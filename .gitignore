@@ -1,0 +1,32 @@
+.DS_Store
+.venv/
+.python-version
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Data and experiment artifacts are regenerated locally. Keep only directory
+# placeholders so CSV, images, manifests, and model output never reach Git.
+/artifacts/**
+!/artifacts/**/
+!/artifacts/**/.gitkeep
+/data/**
+!/data/**/
+!/data/**/.gitkeep
+runs/
+models/
+dist/
+*.log
+/articles/**
+images/**
+
+.vscode/
+.idea/
+*.code-workspace
