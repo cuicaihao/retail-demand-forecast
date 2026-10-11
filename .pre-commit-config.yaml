@@ -5,3 +5,10 @@ repos:
       - id: nbstripout
         files: \.ipynb$
         stages: [pre-commit, pre-push]
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python, jupyter]

@@ -46,7 +46,9 @@ def files_for(entries: list[str]):
         path = ROOT / entry
         if path.is_dir():
             yield from (
-                p for p in sorted(path.rglob("*")) if p.is_file() and p.name != ".gitkeep"
+                p
+                for p in sorted(path.rglob("*"))
+                if p.is_file() and p.name != ".gitkeep"
             )
         elif path.is_file():
             yield path
@@ -64,11 +66,16 @@ def validate_local_assets(package: str) -> None:
         data_dir / "garden_scenario_data.csv",
         data_dir / "vic_holidays.csv",
     ]
-    published = ROOT / "artifacts" / "published" / {
-        "prophet": "prophet",
-        "five-models": "five-model-comparison",
-        "model-series": "model-series",
-    }[package]
+    published = (
+        ROOT
+        / "artifacts"
+        / "published"
+        / {
+            "prophet": "prophet",
+            "five-models": "five-model-comparison",
+            "model-series": "model-series",
+        }[package]
+    )
     missing = [str(path) for path in required_data if not path.is_file()]
     if not published.is_dir() or not any(
         path.is_file() and path.name != ".gitkeep" for path in published.rglob("*")
@@ -82,7 +89,9 @@ def validate_local_assets(package: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build a tutorial ZIP from canonical sources.")
+    parser = argparse.ArgumentParser(
+        description="Build a tutorial ZIP from canonical sources."
+    )
     parser.add_argument("package", choices=sorted(PACKAGES))
     args = parser.parse_args()
     validate_local_assets(args.package)

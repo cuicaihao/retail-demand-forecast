@@ -14,7 +14,9 @@ def sha256(path: Path) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate a run before review or promotion.")
+    parser = argparse.ArgumentParser(
+        description="Validate a run before review or promotion."
+    )
     parser.add_argument("run_dir", type=Path)
     args = parser.parse_args()
     run_dir = args.run_dir.resolve()

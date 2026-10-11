@@ -39,9 +39,9 @@ class RepositoryLayoutTests(unittest.TestCase):
 
     def test_notebook_code_uses_canonical_paths(self) -> None:
         forbidden = (
-            "Path(\"teaching_data\")",
+            'Path("teaching_data")',
             "Path('prophet_outputs')",
-            "Path(\"five_model_outputs\")",
+            'Path("five_model_outputs")',
         )
         for notebook in (ROOT / "notebooks").glob("*.ipynb"):
             document = json.loads(notebook.read_text())
@@ -79,19 +79,27 @@ class RepositoryLayoutTests(unittest.TestCase):
         }
         manifests = {
             "prophet": prophet_manifest,
-            "five_models": ROOT / "artifacts/published/five-model-comparison/comparison_manifest.json",
-            "model_series": ROOT / "artifacts/published/model-series/arima/manifest.json",
+            "five_models": ROOT
+            / "artifacts/published/five-model-comparison/comparison_manifest.json",
+            "model_series": ROOT
+            / "artifacts/published/model-series/arima/manifest.json",
         }
         hashes = {}
         for name, path in manifests.items():
             record = json.loads(path.read_text())
             hashes[name] = record.get("input_sha256") or record.get("hashes")
-        self.assertTrue(all(current[name] == digest for name, digest in hashes["prophet"].items()))
+        self.assertTrue(
+            all(current[name] == digest for name, digest in hashes["prophet"].items())
+        )
         for snapshot in ("five_models", "model_series"):
             mismatches = {
-                name for name, digest in hashes[snapshot].items() if current.get(name) != digest
+                name
+                for name, digest in hashes[snapshot].items()
+                if current.get(name) != digest
             }
-            self.assertEqual(mismatches, {"wine_scenario_data.csv", "garden_scenario_data.csv"})
+            self.assertEqual(
+                mismatches, {"wine_scenario_data.csv", "garden_scenario_data.csv"}
+            )
 
     def test_relative_markdown_links_exist(self) -> None:
         link = re.compile(r"!?\[[^]]*]\(([^)]+)\)")
