@@ -1,7 +1,11 @@
-from .common import *
-import copy, torch
+import json
+import time
+
+import torch
 from torch import nn
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
+
+from .common import *
 from .tft import fit_tft, predict_tft, restore_tft
 
 NAMES = ["MLP", "LSTM", "TFT", "Seasonal naive"]
@@ -86,14 +90,18 @@ def masked_mse(p, y, w):
     return (((p - y) ** 2) * w).sum() / w.sum().clamp_min(1.0)
 
 
-def train_epochs(model, tensors, epochs, validation=None):
+def train_epochs(
+    model, tensors, epochs, validation=None, learning_rate=0.003, weight_decay=0.001
+):
     loader = DataLoader(
         TensorDataset(*tensors),
         batch_size=NEURAL_BATCH_SIZE,
         shuffle=True,
         generator=torch.Generator().manual_seed(SEED),
     )
-    opt = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0.001)
+    opt = torch.optim.AdamW(
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
     logs = []
     best = float("inf")
     best_epoch = 1
@@ -158,7 +166,7 @@ def fit_neural(history, scenario, name, window):
     prep = preprocessor(history, scenario)
     torch.manual_seed(SEED)
     model = WindowNetwork(name, len(feature_names[scenario]))
-    _, final_log = train_epochs(
+    _, _final_log = train_epochs(
         model, training_tensors(history, scenario, prep), epochs
     )
     model.eval()
@@ -225,3 +233,340 @@ def neural_curves():
     fig.savefig(out / "learning_curves.png", dpi=150)
     plt.show()
     plt.close(fig)
+
+
+NEURAL_MODEL_ORDER = ["MLP", "LSTM", "TFT"]
+NEURAL_CANDIDATES = {
+    "MLP": [
+        {"hidden": 16, "learning_rate": 0.001, "weight_decay": 0.001},
+        {"hidden": 32, "learning_rate": 0.001, "weight_decay": 0.001},
+        {"hidden": 16, "learning_rate": 0.003, "weight_decay": 0.0001},
+        {"hidden": 32, "learning_rate": 0.003, "weight_decay": 0.001},
+    ],
+    "LSTM": [
+        {"hidden": 16, "learning_rate": 0.001, "weight_decay": 0.001},
+        {"hidden": 32, "learning_rate": 0.001, "weight_decay": 0.001},
+        {"hidden": 16, "learning_rate": 0.003, "weight_decay": 0.0001},
+        {"hidden": 32, "learning_rate": 0.003, "weight_decay": 0.001},
+    ],
+    "TFT": [
+        {
+            "hidden_size": 8,
+            "attention_head_size": 1,
+            "hidden_continuous_size": 8,
+            "dropout": 0.1,
+            "learning_rate": 0.005,
+            "max_epochs": 12,
+        },
+        {
+            "hidden_size": 16,
+            "attention_head_size": 2,
+            "hidden_continuous_size": 8,
+            "dropout": 0.1,
+            "learning_rate": 0.005,
+            "max_epochs": 12,
+        },
+        {
+            "hidden_size": 16,
+            "attention_head_size": 2,
+            "hidden_continuous_size": 8,
+            "dropout": 0.2,
+            "learning_rate": 0.001,
+            "max_epochs": 12,
+        },
+    ],
+}
+
+
+def fit_neural_config(history, scenario, model_name, config, checkpoint_tag):
+    started = time.perf_counter()
+    if model_name == "TFT":
+        bundle, detail = fit_tft(
+            history,
+            scenario,
+            train_end=len(history) - 1,
+            checkpoint_tag=checkpoint_tag,
+            config=config,
+        )
+        detail["setup_seconds"] = time.perf_counter() - started
+        detail["parameters"] = sum(p.numel() for p in bundle["model"].parameters())
+        return bundle, detail
+
+    core, validation_frame = history.iloc[:-HORIZON], history.iloc[-HORIZON:]
+    prep = preprocessor(core, scenario)
+    train = training_tensors(core, scenario, prep)
+    past, future = inputs(core, validation_frame, scenario, prep)
+    target = ((validation_frame.y.to_numpy(float) - prep["mean"]) / prep["std"]).astype(
+        "float32"
+    )
+    weight = valid_labels(validation_frame).to_numpy(dtype="float32")
+    validation = tuple(
+        torch.from_numpy(value)[None] for value in [past, future, target, weight]
+    )
+    torch.manual_seed(SEED)
+    candidate = WindowNetwork(
+        model_name, len(feature_names[scenario]), hidden=config["hidden"]
+    )
+    epochs, selection = train_epochs(
+        candidate,
+        train,
+        NEURAL_MAX_EPOCHS,
+        validation,
+        config["learning_rate"],
+        config["weight_decay"],
+    )
+    prep = preprocessor(history, scenario)
+    torch.manual_seed(SEED)
+    model = WindowNetwork(
+        model_name, len(feature_names[scenario]), hidden=config["hidden"]
+    )
+    train_epochs(
+        model,
+        training_tensors(history, scenario, prep),
+        epochs,
+        learning_rate=config["learning_rate"],
+        weight_decay=config["weight_decay"],
+    )
+    model.eval()
+    return {"model": model, "prep": prep}, {
+        "selected_epochs": epochs,
+        "validation_MSE_scaled": min(row["validation_loss"] for row in selection),
+        "parameters": sum(parameter.numel() for parameter in model.parameters()),
+        "training_windows": len(train[0]),
+        "setup_seconds": time.perf_counter() - started,
+    }
+
+
+def predict_neural_config(bundle, history, future, scenario, model_name):
+    if model_name == "TFT":
+        full = pd.concat([history, future])
+        origin = len(history) - 1
+        raw = predict_tft(bundle, full, scenario, origin)
+        changed = predict_tft(bundle, full, scenario, origin, placeholder=12345.0)
+        np.testing.assert_allclose(raw, changed, rtol=1e-6, atol=1e-5)
+        return raw
+    return predict_neural(bundle, history, future, scenario, model_name)
+
+
+def _neural_prediction_frame(future, raw, scenario, model_name, split, regime, origin):
+    result = future.copy()
+    result["raw_prediction"] = np.asarray(raw, float)
+    result["prediction"] = sales_prediction(result, raw)
+    result["scenario"] = scenario
+    result["model"] = model_name
+    result["split"] = split
+    result["regime"] = regime
+    result["forecast_origin"] = origin
+    result["horizon_day"] = np.arange(1, len(result) + 1)
+    return result
+
+
+def tune_neural(scenario, model_name):
+    frame = datasets[scenario]
+    rows, cached = [], {}
+    for candidate_id, config in enumerate(NEURAL_CANDIDATES[model_name]):
+        predictions, elapsed, epochs = [], 0.0, []
+        for window in windows(scenario)[:-1]:
+            origin = window["origin"]
+            history = frame.iloc[: origin + 1].copy()
+            future = frame.iloc[origin + 1 : origin + 1 + HORIZON].copy()
+            tag = f"tune_{model_name.lower()}_{scenario}_{candidate_id}_{window['regime']}"
+            bundle, detail = fit_neural_config(
+                history, scenario, model_name, config, tag
+            )
+            raw = predict_neural_config(bundle, history, future, scenario, model_name)
+            predictions.append(
+                _neural_prediction_frame(
+                    future,
+                    raw,
+                    scenario,
+                    model_name,
+                    "validation",
+                    window["regime"],
+                    history.ds.iloc[-1],
+                )
+            )
+            elapsed += detail["setup_seconds"]
+            epochs.append(detail["selected_epochs"])
+        joined = pd.concat(predictions, ignore_index=True)
+        score = metrics(joined, joined.prediction)
+        rows.append(
+            {
+                "scenario": scenario,
+                "model": model_name,
+                "candidate_id": candidate_id,
+                "parameters": json.dumps(config, sort_keys=True),
+                "validation_MAE": score["MAE"],
+                "validation_RMSE": score["RMSE"],
+                "validation_WAPE": score["WAPE"],
+                "mean_selected_epochs": float(np.mean(epochs)),
+                "tuning_seconds": elapsed,
+            }
+        )
+        cached[candidate_id] = joined
+    table = pd.DataFrame(rows).sort_values(
+        ["validation_MAE", "validation_RMSE", "candidate_id"]
+    )
+    best_id = int(table.iloc[0].candidate_id)
+    return NEURAL_CANDIDATES[model_name][best_id], table, cached[best_id]
+
+
+def _neural_permutation_sensitivity(scenario, model_name, config):
+    frame = datasets[scenario]
+    rng = np.random.default_rng(SEED)
+    baseline_error, shuffled_error, count, columns = 0.0, None, 0, None
+    for window in windows(scenario)[:-1]:
+        origin = window["origin"]
+        history = frame.iloc[: origin + 1].copy()
+        future = frame.iloc[origin + 1 : origin + 1 + HORIZON].copy()
+        tag = f"importance_{model_name.lower()}_{scenario}_{window['regime']}"
+        bundle, _ = fit_neural_config(history, scenario, model_name, config, tag)
+        raw = predict_neural_config(bundle, history, future, scenario, model_name)
+        valid = valid_labels(future).to_numpy()
+        target = future.loc[valid, "y"].to_numpy(float)
+        baseline_error += np.abs(sales_prediction(future, raw)[valid] - target).sum()
+        count += len(target)
+        columns = ["calendar_date", *SCENARIOS[scenario]["features"]]
+        if shuffled_error is None:
+            shuffled_error = np.zeros(len(columns))
+        for index, column in enumerate(columns):
+            changed = future.copy()
+            if column != "calendar_date":
+                changed[column] = rng.permutation(changed[column].to_numpy())
+            else:
+                # Calendar/Fourier/holiday inputs are jointly derived from ds.
+                changed["ds"] = rng.permutation(changed.ds.to_numpy())
+            prediction = predict_neural_config(
+                bundle, history, changed, scenario, model_name
+            )
+            shuffled_error[index] += np.abs(
+                sales_prediction(future, prediction)[valid] - target
+            ).sum()
+    return columns, (shuffled_error - baseline_error) / count
+
+
+def run_neural_benchmark(model_name):
+    slug = model_name.lower()
+    out = RUNS_DIR / f"neural_{slug}"
+    out.mkdir(parents=True, exist_ok=False)
+    metrics_rows, prediction_tables, tuning_tables = [], [], []
+    selected_rows, fit_rows, sensitivity_rows = [], [], []
+    for scenario, frame in datasets.items():
+        print(f"{model_name}: tuning {scenario}", flush=True)
+        config, tuning, validation = tune_neural(scenario, model_name)
+        tuning_tables.append(tuning)
+        selected_rows.append(
+            {
+                "scenario": scenario,
+                "model": model_name,
+                "parameters": json.dumps(config, sort_keys=True),
+            }
+        )
+        prediction_tables.append(validation)
+        for regime, group in validation.groupby("regime", sort=False):
+            metrics_rows.append(
+                {
+                    "scenario": scenario,
+                    "model": model_name,
+                    "split": "validation",
+                    "regime": regime,
+                    **metrics(group, group.prediction),
+                }
+            )
+        origin = windows(scenario)[-1]["origin"]
+        history = frame.iloc[: origin + 1].copy()
+        future = frame.iloc[origin + 1 : origin + 1 + HORIZON].copy()
+        bundle, detail = fit_neural_config(
+            history, scenario, model_name, config, f"final_{slug}_{scenario}"
+        )
+        fit_rows.append({"scenario": scenario, "model": model_name, **detail})
+        test = _neural_prediction_frame(
+            future,
+            predict_neural_config(bundle, history, future, scenario, model_name),
+            scenario,
+            model_name,
+            "test",
+            "final",
+            history.ds.iloc[-1],
+        )
+        prediction_tables.append(test)
+        metrics_rows.append(
+            {
+                "scenario": scenario,
+                "model": model_name,
+                "split": "test",
+                "regime": "final",
+                **metrics(test, test.prediction),
+            }
+        )
+        blocks = []
+        for start in training_blocks():
+            past = frame.iloc[:start].copy()
+            block = frame.iloc[start : start + HORIZON].copy()
+            blocks.append(
+                _neural_prediction_frame(
+                    block,
+                    predict_neural_config(bundle, past, block, scenario, model_name),
+                    scenario,
+                    model_name,
+                    "train_hindcast",
+                    "training",
+                    past.ds.iloc[-1],
+                )
+            )
+        hindcast = pd.concat(blocks, ignore_index=True)
+        prediction_tables.append(hindcast)
+        metrics_rows.append(
+            {
+                "scenario": scenario,
+                "model": model_name,
+                "split": "train_hindcast",
+                "regime": "training",
+                **metrics(hindcast, hindcast.prediction),
+            }
+        )
+        columns, sensitivity = _neural_permutation_sensitivity(
+            scenario, model_name, config
+        )
+        sensitivity_rows.extend(
+            {
+                "scenario": scenario,
+                "model": model_name,
+                "feature": feature,
+                "importance_type": "permutation_MAE_increase",
+                "importance": float(value),
+            }
+            for feature, value in zip(columns, sensitivity)
+        )
+        if model_name == "TFT":
+            torch.save(
+                {"state_dict": bundle["model"].state_dict(), "config": config},
+                out / f"{scenario}_model.ckpt",
+            )
+        else:
+            torch.save(bundle["model"].state_dict(), out / f"{scenario}_model.pt")
+    tables = {
+        "metrics": pd.DataFrame(metrics_rows),
+        "predictions": pd.concat(prediction_tables, ignore_index=True),
+        "tuning_results": pd.concat(tuning_tables, ignore_index=True),
+        "selected_parameters": pd.DataFrame(selected_rows),
+        "fit_details": pd.DataFrame(fit_rows),
+        "explanations": pd.DataFrame(sensitivity_rows),
+    }
+    for name, table in tables.items():
+        table.to_csv(out / f"{name}.csv", index=False)
+    (out / "manifest.json").write_text(
+        json.dumps(
+            {
+                "family": f"neural_{slug}",
+                "model": model_name,
+                "scenarios": list(SCENARIOS),
+                "protocol_version": "retail-benchmark-v2",
+                "hashes": INPUT_HASHES,
+                "seed": SEED,
+                "selection_metric": "pooled rolling validation MAE",
+            },
+            indent=2,
+        )
+    )
+    return (*tables.values(), out)

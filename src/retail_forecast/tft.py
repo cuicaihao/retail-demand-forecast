@@ -1,8 +1,10 @@
-from .common import *
-import torch, lightning.pytorch as pl
+import lightning.pytorch as pl
+import torch
 from lightning.pytorch.callbacks import Callback, EarlyStopping
 from pytorch_forecasting import TemporalFusionTransformer, TimeSeriesDataSet
 from pytorch_forecasting.metrics import RMSE
+
+from .common import *
 
 TFT_MAX_EPOCHS = 25
 TFT_BATCH_SIZE = 128
@@ -92,15 +94,16 @@ def tft_inference_dataset(bundle, full_frame, scenario, origin, placeholder=0.0)
     )
 
 
-def new_tft(dataset):
+def new_tft(dataset, config=None):
+    config = config or {}
     return TemporalFusionTransformer.from_dataset(
         dataset,
-        learning_rate=0.005,
-        hidden_size=TFT_HIDDEN_SIZE,
-        attention_head_size=2,
-        hidden_continuous_size=8,
+        learning_rate=config.get("learning_rate", 0.005),
+        hidden_size=config.get("hidden_size", TFT_HIDDEN_SIZE),
+        attention_head_size=config.get("attention_head_size", 2),
+        hidden_continuous_size=config.get("hidden_continuous_size", 8),
         lstm_layers=1,
-        dropout=0.1,
+        dropout=config.get("dropout", 0.1),
         output_size=1,
         loss=RMSE(),
         reduce_on_plateau_patience=5,
@@ -125,7 +128,8 @@ def trainer(epochs, callbacks=()):
     )
 
 
-def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None):
+def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None, config=None):
+    config = config or {}
     if train_end is None:
         train_end = TRAIN_END
     inner_end = train_end - HORIZON
@@ -141,7 +145,7 @@ def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None):
         core_dataset, validation_prepared, predict=True, stop_randomization=True
     )
     pl.seed_everything(SEED, workers=True)
-    selection = new_tft(core_dataset)
+    selection = new_tft(core_dataset, config)
     choice = EpochChoice(scenario + " selection")
     train_loader = core_dataset.to_dataloader(
         train=True, batch_size=TFT_BATCH_SIZE, num_workers=0
@@ -150,7 +154,7 @@ def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None):
         train=False, batch_size=1, num_workers=0
     )
     selection_trainer = trainer(
-        TFT_MAX_EPOCHS,
+        config.get("max_epochs", TFT_MAX_EPOCHS),
         [choice, EarlyStopping(monitor="val_loss", patience=6, mode="min")],
     )
     selection_trainer.fit(
@@ -159,7 +163,7 @@ def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None):
     epochs = choice.best_epoch
     dataset, mean, std = training_dataset(history, scenario)
     pl.seed_everything(SEED, workers=True)
-    final = new_tft(dataset)
+    final = new_tft(dataset, config)
     final_trainer = trainer(epochs, [TrainProgress(scenario + " final")])
     final_trainer.fit(
         final,
@@ -173,7 +177,7 @@ def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None):
         "selected_epochs": epochs,
         "validation_RMSE_original": float(choice.best_loss * selection_std),
         "encoder_length": ENCODER_LENGTH,
-        "hidden_size": TFT_HIDDEN_SIZE,
+        "hidden_size": config.get("hidden_size", TFT_HIDDEN_SIZE),
         "target_mean": mean,
         "target_std": std,
         "validation_target_std": selection_std,

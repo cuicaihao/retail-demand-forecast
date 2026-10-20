@@ -6,7 +6,6 @@ import re
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -91,6 +90,14 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertTrue(
             all(current[name] == digest for name, digest in hashes["prophet"].items())
         )
+        expected_mismatches = {
+            "five_models": {"wine_scenario_data.csv", "garden_scenario_data.csv"},
+            "model_series": {
+                "wine_scenario_data.csv",
+                "garden_scenario_data.csv",
+                "scenario_diagnostics.csv",
+            },
+        }
         for snapshot in ("five_models", "model_series"):
             mismatches = {
                 name
@@ -98,7 +105,8 @@ class RepositoryLayoutTests(unittest.TestCase):
                 if current.get(name) != digest
             }
             self.assertEqual(
-                mismatches, {"wine_scenario_data.csv", "garden_scenario_data.csv"}
+                mismatches,
+                expected_mismatches[snapshot],
             )
 
     def test_relative_markdown_links_exist(self) -> None:

@@ -4,7 +4,6 @@ import argparse
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGES = {
     "prophet": [
@@ -27,8 +26,18 @@ PACKAGES = {
     "model-series": [
         "README.md",
         "notebooks/31-arima-tutorial.ipynb",
-        "notebooks/32-tree-models-tutorial.ipynb",
-        "notebooks/33-neural-models-tutorial.ipynb",
+        "notebooks/32a-decision-tree-tutorial.ipynb",
+        "notebooks/32b-random-forest-tutorial.ipynb",
+        "notebooks/32c-lightgbm-tutorial.ipynb",
+        "notebooks/32d-xgboost-tutorial.ipynb",
+        "notebooks/32e-catboost-tutorial.ipynb",
+        "notebooks/32f-tree-model-comparison.ipynb",
+        "notebooks/33a-mlp-tutorial.ipynb",
+        "notebooks/33b-lstm-tutorial.ipynb",
+        "notebooks/33c-tft-tutorial.ipynb",
+        "notebooks/33d-neural-model-comparison.ipynb",
+        "notebooks/34-all-model-comparison.ipynb",
+        "notebooks/35-autogluon-timeseries-tutorial.ipynb",
         "articles/arima-retail-demand-forecast.md",
         "articles/lightgbm-xgboost-retail-demand-forecast.md",
         "articles/neural-retail-demand-forecast.md",
