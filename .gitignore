@@ -24,8 +24,9 @@ runs/
 models/
 dist/
 *.log
-/articles/**
 images/**
+!/reports/
+!/reports/**
 
 .vscode/
 .idea/
