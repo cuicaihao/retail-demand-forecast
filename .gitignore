@@ -17,6 +17,7 @@ htmlcov/
 /data/**
 !/data/**/
 !/data/**/.gitkeep
+!/data/benchmarks/**
 runs/
 dist/
 *.log

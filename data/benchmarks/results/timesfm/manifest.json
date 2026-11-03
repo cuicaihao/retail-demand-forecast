@@ -1,0 +1,16 @@
+{
+  "model_key": "timesfm",
+  "updated_at": "2026-11-03T06:27:32.378343+00:00",
+  "input_hashes": {
+    "grocery_scenario_data.csv": "02f37513640a7b48402838163e9247620755bd5dbfb122f3b76d0fe6fb687505",
+    "wine_scenario_data.csv": "94ec201624e7e333bd2b5e7d64980a97dd5f513453722471fe22bf26b133effb",
+    "luxury_scenario_data.csv": "8e439a5968f923eccaaa3483b8f7eab19f709d95f22c4fcec345fff0d5827024",
+    "scenario_diagnostics.csv": "44828bad22b290c31240add8ab699adc5c2c59fa0d554bfd3286f18c976b9141",
+    "vic_holidays.csv": "f4c368917c5ea30beaf05996b292782ede0f72daf8a75fdba8951ba21b179713",
+    "garden_scenario_data.csv": "f9797fa8a2aa10d5955a20ca00afd1797c9eb6c40297ac26596552659aa5526d"
+  },
+  "protocol_version": "retail-benchmark-v2",
+  "model_name": "TimesFM 3.0 (BigQuery)",
+  "foundation_model": true,
+  "source": "runs/timesfm-validation-20261103"
+}

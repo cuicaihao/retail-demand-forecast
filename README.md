@@ -11,16 +11,84 @@
 
 ---
 
-## 🛒 四大合成零售场景 (Synthetic Retail Scenarios)
+## 🛒 四大合成零售场景：本仓库的核心资产 (Synthetic Retail Scenarios)
 
-由 [notebooks/00-generate-teaching-data.ipynb](notebooks/00-generate-teaching-data.ipynb) 生成的四套日度数据集（位于 `data/teaching/`）覆盖 `2023-01-01` 至 `2025-12-31`（共 1,096 天；默认前 1,068 天为历史训练期，最后 28 天 `2025-12-04` 至 `2025-12-31` 为测试集）：
+本仓库最核心的学术与工程贡献，在于**抽象并严密实现了四个具有行业典型挑战的合成零售需求场景**（位于 `data/teaching/`，由 [notebooks/00-generate-teaching-data.ipynb](notebooks/00-generate-teaching-data.ipynb) 确定性生成）。每个场景代表现实供应链中不可回避的特定预测难题：
 
-| 场景 | 数据文件 (`data/teaching/`) | 核心需求形态 | 已知业务协变量 (Known Future Covariates) | 核心评测挑战 |
+| 场景 | 数据文件 (`data/teaching/`) | 核心需求形态与业务机制 | 已知业务协变量 (Known Future Covariates) | 核心评测挑战与不可自愈陷阱 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. 商超日用杂货 (Grocery)** | `grocery_scenario_data.csv` | 高频连续需求（均值 ~109.5）+ 周/年周期 | `is_open`, `is_closed_holiday`, `discount`（每 14 天前 7 天 8 折）, VIC 假日 | 含 **24 个随机缺货日**（`stockout=True` 时销量被硬截断为 20 件），考验缺货去偏能力 |
-| **2. 红酒促销 (Wine)** | `wine_scenario_data.csv` | 泊松计数需求（均值 ~10.4，$\widehat{\mathrm{ADI}}=1.013$） | `promo_case_buy`（每 28 天前 3 天成箱促销）, `is_party_event`, `is_december_peak` | 强烈短时促销脉冲与赛事/年末峰值，检验平滑先验与非线性特征交互 |
-| **3. 庭院耗材 (Garden)** | `garden_scenario_data.csv` | 强年度正弦周期 + 周末效应（均值 ~64.9） | `is_long_weekend_diy`（长周末 DIY 旺季）, `is_end_of_autumn_clearance` | 显著的冬夏跨季振幅与长周末叠加效应，检验季节模式（加法 vs. 乘法）与滞后锚定 |
+| **1. 商超日用杂货 (Grocery)** | `grocery_scenario_data.csv` | 高频连续消费（均值 ~109.5）+ 强周/年周期 | `is_open`, `is_closed_holiday`, `discount`（每 14 天前 7 天 8 折）, VIC 公共假日 | 含 **24 个随机缺货截断日**（`stockout=True` 时销量被硬截断为 20 件），考验模型对**缺货删失（Censoring）去偏**能力 |
+| **2. 红酒促销 (Wine)** | `wine_scenario_data.csv` | 泊松计数脉冲（均值 ~10.4，$\widehat{\mathrm{ADI}}=1.013$） | `promo_case_buy`（每 28 天前 3 天成箱促销）, `is_party_event`, `is_december_peak` | 强烈短时促销脉冲与年末峰值，检验平滑先验与非线性特征吸收能力 |
+| **3. 庭院耗材 (Garden)** | `garden_scenario_data.csv` | 强年度正弦周期 + 周末效应（均值 ~64.9） | `is_long_weekend_diy`（长周末 DIY 旺季）, `is_end_of_autumn_clearance` | 极长的冬夏跨季振幅与长周末叠加效应，检验跨年长周期先验与季节项（加法 vs. 乘法） |
 | **4. 奢侈品手袋 (Luxury)** | `luxury_scenario_data.csv` | **极端稀疏间歇性需求**（营业日零值率 **93.58%**，$\widehat{\mathrm{ADI}}=15.571$） | `is_saturday`, `is_sunday`, `is_december_peak`, `is_vip_event`, `discount` | 零膨胀序列（Zero-Inflated），检验点预测保守全零陷阱、概率发生率与分位数校准 |
+
+---
+
+## 🏆 全模型基准库与免重跑机制 (Benchmark Results Store)
+
+为避免每次分析时反复重新拟合深度学习（TFT 需耗时数小时）与 AutoML 模型，本仓库建立了**解耦的基准持久化存储库（Benchmark Results Store）**（位于 `data/benchmarks/`）：
+
+- **轻量标准契约**：每个模型仅固化保存统一标准的 `predictions.csv`（点预测及 P10/P90）与 `metrics.csv`（WAPE/MAE/RMSE/Bias/Coverage80），体积仅百 KB；
+- **独立可重复实验**：支持任意**单个模型独立重跑**，或**多模型按需组合实验**，互不干扰；
+- **秒级排行榜更新**：新增或修改模型后，无需重跑已有模型，毫秒级并入全景基准排行榜。
+
+### 全局排行榜 (Global Leaderboard - Test 28-Day)
+
+以下为 13 种模型在四大零售场景 28 天最终测试集上的最新横向基准排行（按全场景平均 WAPE 升序）：
+
+| 排名 | 模型 (Model) | 模型家族 | 平均 WAPE (%) | 平均 MAE | 平均 RMSE | 平均 Bias (%) | 评测场景数 |
+| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| 1 | **AutoGluon Ensemble** | AutoML 多层集成 | **35.46%** | 3.72 | 4.98 | -28.74% | 4 |
+| 2 | **TFT** | 深度时序 Transformer | **36.88%** | 4.50 | 5.45 | -28.43% | 4 |
+| 3 | **CatBoost** | GBDT 梯度提升树 | **37.42%** | 4.33 | 5.79 | -33.31% | 4 |
+| 4 | **TimesFM 3.0 (BigQuery)** | 时序基础大模型 (Zero-Shot) | **37.86%** | 4.02 | 5.17 | -30.84% | 4 |
+| 5 | **LightGBM** | GBDT 梯度提升树 | **42.92%** | 4.11 | 5.29 | -18.69% | 4 |
+| 6 | **Prophet** | 广义可加分解模型 | **44.59%** | 3.32 | 4.08 | -5.46% | 4 |
+| 7 | **LSTM** | 循环神经网络 | **44.67%** | 3.30 | 4.16 | -8.55% | 4 |
+| 8 | **Decision Tree** | 基础树模型 | **45.77%** | 5.55 | 6.76 | -22.44% | 4 |
+| 9 | **MLP** | 多层感知机 | **46.24%** | 3.63 | 4.53 | -6.00% | 4 |
+| 10 | **Seasonal naive** | 7 天周期天真基线 | **48.79%** | 9.04 | 11.12 | -20.65% | 4 |
+| 11 | **ARIMA** | 经典动态回归时序 | **58.36%** | 3.35 | 4.09 | +19.37% | 4 |
+| 12 | **XGBoost** | GBDT 梯度提升树 | **59.14%** | 3.65 | 4.61 | +5.61% | 4 |
+| 13 | **Random Forest** | Bagging 集成树 | **60.11%** | 4.33 | 5.49 | +6.40% | 4 |
+
+> 注：奢侈品场景因 93.6% 高零值拉高了各模型的平均百分比误差 WAPE；在商超与庭院成熟品场景中，头部模型（AutoGluon、Prophet、TimesFM 3.0、LightGBM）的 WAPE 稳定在 **4% ~ 11%**。
+
+---
+
+## 🧩 如何独立重跑与接入新模型 (How to Onboard a New Model)
+
+### 1. 独立运行与按需实验 CLI
+
+使用统一的基准调度器 `scripts/run_benchmark.py`，灵活控制计算预算：
+
+```bash
+# 查看所有支持独立运行的模型与已持久化的模型库
+uv run python scripts/run_benchmark.py --list
+
+# 仅独立重跑单个模型（例如重新评估 LightGBM）
+uv run python scripts/run_benchmark.py --models lightgbm
+
+# 组合实验（例如对比 Prophet 与 TimesFM）
+uv run python scripts/run_benchmark.py --models prophet,timesfm
+
+# 仅刷新全景排行榜（0 重训，毫秒级出榜）
+uv run python scripts/run_benchmark.py --compare-only
+```
+
+### 2. 接入任意新模型 (XXX) 的 5 步流程
+
+未来若要接入新的预测算法（如 **Chronos、MOIRAI、TiDE、PatchTST、DLinear** 等），请参阅详细协议文档：
+👉 **[`docs/reports/model-onboarding-protocol.md`](docs/reports/model-onboarding-protocol.md)**
+
+简要流程：
+1. **实现统一接口**：在 `src/retail_forecast/<model_key>.py` 中继承 `BaseRetailForecaster`；
+2. **严守信息边界**：使用 `valid_labels` 确保推理期间无未来目标穿越（No Data Leakage）；
+3. **注册运行器**：在 `scripts/run_benchmark.py` 的 `AVAILABLE_RUNNERS` 中注册该模型；
+4. **输出标准契约**：调用 `save_benchmark_results` 自动落盘至 `data/benchmarks/results/<model_key>/`；
+5. **一键并网比对**：运行 `python scripts/run_benchmark.py --compare-only`，秒级生成包含新模型的排行榜与图表。
+
+> 🤖 **面向 AI Coding Agents**：如果你是参与本项目的 AI 助手，请严格遵循顶级指引文档 **[`AGENTS.md`](AGENTS.md)** 中的架构红线与开发规程。
 
 ---
 
@@ -31,6 +99,7 @@ retail-demand-forecast/
 ├── data/                       # 📊 数据与模型资产 (源数据、基准快照、模型权重)
 │   ├── teaching/               # [本地生成] 四套合成场景 CSV、BigQuery Schema JSON 与哈希清单
 │   ├── artifacts/              # [本地生成] 经审核的参考快照 (published/) 与中间产物
+│   ├── benchmarks/             # 🏆 持久化基准结果库 (results/ & summary/ 全景榜单)
 │   └── models/                 # [本地生成] 教学参考模型权重快照 (data/models/reference/)
 ├── docs/                       # 📚 统一文档中心 (系列博客、技术报告与学术文献)
 │   ├── articles/               # 对外发布的系列长文 (*-retail-demand-forecast.md)
