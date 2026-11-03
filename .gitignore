@@ -59,4 +59,6 @@ htmlcov/
 # Local experiment runs and generated visual assets
 /runs/
 /images/**
+!/images/**/
 !/images/**/.gitkeep
+!/images/tweedie/**

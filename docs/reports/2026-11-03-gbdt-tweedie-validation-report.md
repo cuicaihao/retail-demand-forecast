@@ -47,6 +47,9 @@ $$\mathrm{Var}(Y) = \phi \cdot \mathrm{V}(\mu) = \phi \cdot \mu^p$$
 * **$p = 2$**：伽马分布（Gamma Distribution），$\mathrm{Var}(Y) = \phi \mu^2$，标准偏态连续正实数分布；
 * **$p = 3$**：逆高斯分布（Inverse Gaussian Distribution），$\mathrm{Var}(Y) = \phi \mu^3$。
 
+![Tweedie 指数分散族：方差幂指数 p 与分布形态演变图谱](../../images/tweedie/fig-tweedie-01-distribution-spectrum.png)
+*图 1-1：Tweedie 指数分散族（EDM）在不同方差幂指数 $p$ 下的概率密度/质量分布谱系图。上方横轴展示了从正态、泊松、复合泊松-伽马到伽马和逆高斯的连续演化；下方 6 个子图分别对比了各分布对应的密度曲线与离散质点形态。注意在 $1 < p < 2$（如子图 c 与 d）中，分布具有明显的零点塌缩质点 $\mathbb{P}(Y=0) > 0$ 以及严格正向连续长尾，这正是其完美适配 Scenario 4 (`luxury`) 等零膨胀零售需求的数学根源。*
+
 ---
 
 ### 1.2 复合泊松-伽马过程（Compound Poisson-Gamma）
