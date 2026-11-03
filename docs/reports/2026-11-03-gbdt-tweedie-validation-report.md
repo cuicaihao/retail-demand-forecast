@@ -9,10 +9,11 @@
 
 ## 目录
 - [一、Tweedie 分布理论基础与 GBDT 损失机制](#一tweedie-分布理论基础与-gbdt-损失机制)
-  - [1.1 指数分散族与幂律方差关系](#11-指数分散族与幂律方差关系)
-  - [1.2 复合泊松-伽马过程（Compound Poisson-Gamma）](#12-复合泊松-伽马过程compound-poisson-gamma)
-  - [1.3 传统回归方法在零膨胀场景的失效机理](#13-传统回归方法在零膨胀场景的失效机理)
-  - [1.4 Tweedie 偏差损失（Deviance Loss）与 GBDT 节点分裂梯度](#14-tweedie-偏差损失deviance-loss与-gbdt-节点分裂梯度)
+  - [1.1 指数分散族（EDM）与幂律方差关系](#11-指数分散族edm与幂律方差关系)
+  - [1.2 从极大似然估计到常微分方程：Tweedie 累积生成函数数学推导](#12-从极大似然估计到常微分方程tweedie-累积生成函数数学推导)
+  - [1.3 复合泊松-伽马过程（Compound Poisson-Gamma）](#13-复合泊松-伽马过程compound-poisson-gamma)
+  - [1.4 传统回归方法在零膨胀场景的失效机理](#14-传统回归方法在零膨胀场景的失效机理)
+  - [1.5 Tweedie 偏差损失、GBDT 对数连接梯度与 LightGBM 源码映射](#15-tweedie-偏差损失gbdt-对数连接梯度与-lightgbm-源码映射)
 - [二、实验设计方案与严谨工程细节](#二实验设计方案与严谨工程细节)
   - [2.1 四类典型零售场景的数据分布剖析](#21-四类典型零售场景的数据分布剖析)
   - [2.2 时序评估边界与防数据泄漏协议](#22-时序评估边界与防数据泄漏协议)
@@ -27,12 +28,17 @@
   - [4.1 核心 Q&A：根据实验结果，如何判断什么时候使用 Tweedie？](#41-核心-qa根据实验结果如何判断什么时候使用-tweedie)
   - [4.2 深入剖析：为什么稠密快消品也能从 Tweedie 获益？](#42-深入剖析为什么稠密快消品也能从-tweedie-获益)
   - [4.3 三大 GBDT 库的 Tweedie 实现特性对比与调参建议](#43-三大-gbdt-库的-tweedie-实现特性对比与调参建议)
+  - [4.4 业务建模深水区：预测目标是“件数（Quantity）”还是“金额（GMV）”？](#44-业务建模深水区预测目标是件数quantity还是金额gmv)
+  - [4.5 时间聚合与供应链补货：日粒度（Daily）改聚合为周粒度（Weekly）的工程实践](#45-时间聚合与供应链补货日粒度daily改聚合为周粒度weekly的工程实践)
+  - [4.6 面对长尾间歇性需求的多流派方案全景对比矩阵](#46-面对长尾间歇性需求的多流派方案全景对比矩阵)
+  - [4.7 针对高客单低频业务的特征工程前置增强](#47-针对高客单低频业务的特征工程前置增强)
+- [五、相关可视化与数据资产索引](#五相关可视化与数据资产索引)
 
 ---
 
 ## 一、Tweedie 分布理论基础与 GBDT 损失机制
 
-### 1.1 指数分散族与幂律方差关系
+### 1.1 指数分散族（EDM）与幂律方差关系
 Tweedie 分布是广义线性模型（GLM）中**指数分散族（Exponential Dispersion Models, EDM）**的一个极其重要的子类。其核心数学特征在于：**方差与均值之间严格满足幂律函数关系**：
 $$\mathrm{Var}(Y) = \phi \cdot \mathrm{V}(\mu) = \phi \cdot \mu^p$$
 其中：
@@ -52,7 +58,41 @@ $$\mathrm{Var}(Y) = \phi \cdot \mathrm{V}(\mu) = \phi \cdot \mu^p$$
 
 ---
 
-### 1.2 复合泊松-伽马过程（Compound Poisson-Gamma）
+### 1.2 从极大似然估计到常微分方程：Tweedie 累积生成函数数学推导
+
+为了在梯度提升树（GBDT）中实现以 Tweedie 似然为基础的目标函数，必须从极大似然估计（MLE）的第一性原理出发，推导出其自然参数与累积量生成函数。
+
+#### 1. 指数分散族（EDM）概率密度的一般形式
+在广义线性模型理论中，单变量指数分散族的概率密度（或概率质量）函数通式定义为：
+$$f_Y(y \mid \theta, \phi) = a(y, \phi) \exp\left\{\frac{y\theta - k(\theta)}{\phi}\right\}$$
+其中：
+* $\theta$ 为**自然参数（Natural / Canonical Parameter）**；
+* $\phi > 0$ 为**离散参数（Dispersion Parameter）**；
+* $k(\theta)$ 为**累积量生成函数（Cumulant Generator Function）**，具有严格凸性；
+* $a(y, \phi)$ 为归一化基测度项（与未知分布均值参数 $\theta$ 无关）。
+
+根据指数族的经典微分性质，随机变量 $Y$ 的均值 $\mu$ 与方差 $\mathrm{Var}[Y]$ 完全由累积生成函数 $k(\theta)$ 的一阶与二阶导数决定：
+$$\mathbb{E}[Y] = \mu = k'(\theta) = \frac{dk(\theta)}{d\theta}$$
+$$\mathrm{Var}[Y] = \phi \cdot k''(\theta) = \phi \cdot \frac{d^2k(\theta)}{d\theta^2} = \phi \cdot V(\mu)$$
+
+#### 2. 联立幂律方差与常微分方程（ODE）求解
+由于 Tweedie 分布严格要求方差函数满足幂律关系 $V(\mu) = \mu^p$（记 $p$ 为方差幂参数），我们联立均值与方差的一阶导关系：
+$$k''(\theta) = \frac{d\mu}{d\theta} = \mu^p$$
+这是一个标准的**一阶可分离变量常微分方程（Separable ODE）**：
+$$d\theta = \mu^{-p} d\mu$$
+对两端求不定积分（当 $p \ne 1$ 且 $p \ne 2$ 时）：
+$$\theta(\mu) = \int \mu^{-p} d\mu = \frac{\mu^{1-p}}{1-p}$$
+再利用微分几何关系 $dk = \mu d\theta = \mu \cdot (\mu^{-p} d\mu) = \mu^{1-p} d\mu$，对两端积分求累积生成函数 $k(\theta)$：
+$$k(\theta) = \int \mu^{1-p} d\mu = \frac{\mu^{2-p}}{2-p}$$
+
+当 $1 < p < 2$ 时：
+* $1 - p < 0$，自然参数 $\theta = \frac{\mu^{1-p}}{1-p} < 0$；
+* $2 - p > 0$，累积生成函数 $k(\theta) = \frac{\mu^{2-p}}{2-p} > 0$。
+这一组简洁的解析表达式奠定了后续 Tweedie 负对数似然损失与 GBDT 节点分裂梯度的严格数学基石。
+
+---
+
+### 1.3 复合泊松-伽马过程（Compound Poisson-Gamma）
 当方差幂参数位于开放区间 **$1 < p < 2$** 时，Tweedie 分布在零售与精算领域展现出无与伦比的建模能力。其物理生成机制可以严格等价分解为一个**两阶段随机复合过程（Two-Stage Compound Process）**：
 
 1. **事件到达计数（Frequency Process）**：
@@ -76,7 +116,7 @@ $$\lambda = \frac{\mu^{2-p}}{\phi (2-p)}, \quad \alpha = \frac{2-p}{p-1}, \quad 
 
 ---
 
-### 1.3 传统回归方法在零膨胀场景的失效机理
+### 1.4 传统回归方法在零膨胀场景的失效机理
 
 #### 1. 默认均方误差（MSE / L2 Loss）的“均值底噪陷阱”
 标准回归任务默认采用高斯假设下的 MSE 损失 $L(y, \hat{y}) = (y - \hat{y})^2$。
@@ -97,26 +137,71 @@ Hurdle 模型分别训练一个二分类器（预测是否产生销量 $\mathbb{
 
 ---
 
-### 1.4 Tweedie 偏差损失（Deviance Loss）与 GBDT 节点分裂梯度
+### 1.5 Tweedie 偏差损失、GBDT 对数连接梯度与 LightGBM 源码映射
 
-在梯度提升决策树中，样本损失采用负对数似然（Negative Log-Likelihood），对于 Tweedie 分布而言即为 **Tweedie 单元偏差（Unit Deviance）**：
+在梯度提升决策树中，样本损失采用负对数似然（Negative Log-Likelihood）。由 1.2 节推导的 EDM 对数似然函数，单样本对数似然公式为：
+$$\ln f_Y(y \mid \theta, \phi) = \frac{y\theta - k(\theta)}{\phi} + \ln a(y, \phi) = \frac{1}{\phi} \left( \frac{y \mu^{1-p}}{1-p} - \frac{\mu^{2-p}}{2-p} \right) + \ln a(y, \phi)$$
+由于离散参数 $\phi > 0$ 及基测度项 $a(y, \phi)$ 与模型待优化的均值预测 $\mu$ 无关，在树模型训练中可作为常数略去。因此，全体 $N$ 个样本的经验负对数似然损失 $\mathcal{L}$ 为：
+$$\mathcal{L} = \frac{1}{N} \sum_{i=1}^N -\left( \frac{y_i \mu_i^{1-p}}{1-p} - \frac{\mu_i^{2-p}}{2-p} \right)$$
+在广义线性模型中，这与 **Tweedie 单元偏差（Unit Deviance）**在常数倍数下严格等价：
 $$d(y, \mu) = 2 \left( \frac{y^{2-p}}{(1-p)(2-p)} - \frac{y \mu^{1-p}}{1-p} + \frac{\mu^{2-p}}{2-p} \right)$$
-在树模型中，为了保证预测值 $\mu > 0$，通常采用对数连接函数（Log-link）：
-$$\mu = \exp(F(x)) \iff F(x) = \ln \mu$$
-将 $\mu = \exp(F)$ 代入偏差损失函数，得到模型输出 $F$ 的目标损失 $L(y, F)$：
-$$L(y, F) = 2 \left( \frac{\exp((2-p)F)}{2-p} - \frac{y \exp((1-p)F)}{1-p} \right) + \text{const}$$
 
-#### 一阶导数（Gradient $g_i$）与二阶导数（Hessian $h_i$）：
-$$g_i = \frac{\partial L}{\partial F_i} = 2 \left( \mu_i^{2-p} - y_i \mu_i^{1-p} \right) = 2 \mu_i^{1-p} (\mu_i - y_i)$$
-$$h_i = \frac{\partial^2 L}{\partial F_i^2} = 2 \left( (2-p)\mu_i^{2-p} - (1-p) y_i \mu_i^{1-p} \right)$$
+#### 1. GBDT 对数连接函数（Log-link）参数化
+在决策树模型中，为了保证叶节点预测值严格非负（$\mu > 0$），各工业级 GBDT 库统一采用对数连接函数：
+$$\text{score}_i = \ln \mu_i \iff \mu_i = \exp(\text{score}_i)$$
+将 $\mu_i = \exp(\text{score}_i)$ 代入单样本损失函数 $\ell_i$：
+$$\ell_i(\text{score}_i) = -\frac{y_i \exp\left((1-p)\cdot \text{score}_i\right)}{1-p} + \frac{\exp\left((2-p)\cdot \text{score}_i\right)}{2-p}$$
 
-#### 零点自适应惩罚机理分析：
+#### 2. 一阶导数（Gradient $g_i$）与二阶导数（Hessian $h_i$）推导
+对树模型叶子节点原始输出得分 $\text{score}_i$ 分别求一阶与二阶偏导数：
+* **一阶梯度（Gradient $g_i$）**：
+  $$g_i = \frac{\partial \ell_i}{\partial \text{score}_i} = -y_i \exp\left((1-p)\cdot \text{score}_i\right) + \exp\left((2-p)\cdot \text{score}_i\right)$$
+  若换算回均值 $\mu_i$，其等价代数形式为：
+  $$g_i = \mu_i^{2-p} - y_i \mu_i^{1-p} = \mu_i^{1-p} (\mu_i - y_i)$$
+* **二阶海森矩阵（Hessian $h_i$）**：
+  $$h_i = \frac{\partial^2 \ell_i}{\partial \text{score}_i^2} = -y_i (1-p) \exp\left((1-p)\cdot \text{score}_i\right) + (2-p)\exp\left((2-p)\cdot \text{score}_i\right)$$
+
+#### 3. 零点自适应惩罚机理分析：
 1. **当样本实际为 0 时（$y_i = 0$）**：
-   $$g_i = 2 \mu_i^{2-p} > 0, \quad h_i = 2 (2-p) \mu_i^{2-p} > 0$$
-   由于梯度 $g_i > 0$，提升树的更新方向是 $-g_i$，会以幂律力量**强力将预测值 $\mu$ 推向 0**！
+   $$g_i = \exp((2-p)\cdot \text{score}_i) = \mu_i^{2-p} > 0$$
+   $$h_i = (2-p)\exp((2-p)\cdot \text{score}_i) = (2-p)\mu_i^{2-p} > 0$$
+   由于梯度 $g_i > 0$，提升树的更新方向为负梯度方向 $-g_i$，叶节点更新步长 $\Delta = -\frac{\sum g_i}{\sum h_i + \lambda} < 0$，会以幂律力量**强力将模型输出得分推向 $-\infty$（即预测均值 $\mu \to 0$）**！这从数学机制上彻底杜绝了虚假浮点底噪的悬浮。
 2. **当样本实际有销量时（$y_i > 0$）**：
-   $$g_i = 2 \mu_i^{1-p} (\mu_i - y_i)$$
-   误差项 $(\mu_i - y_i)$ 被因子 $\mu_i^{1-p}$ 加权。由于 $p > 1$，当 $\mu$ 较大时，该权重迅速衰减，避免了极端大单对损失函数产生如同 MSE 般失控的二次方冲击，赋予了模型对长尾脉冲天然的稳健性。
+   $$g_i = \mu_i^{1-p} (\mu_i - y_i)$$
+   误差项 $(\mu_i - y_i)$ 被自适应因子 $\mu_i^{1-p}$ 加权。由于 $p > 1$，当 $\mu$ 较大时，该权重迅速衰减，避免了极端大单对损失函数产生如同 MSE 般失控的二次方冲击，赋予了模型对长尾脉冲天然的稳健性。
+
+#### 4. 对齐工业级实现：LightGBM 底层 C++ 源码完全映射
+上述数学推导与 LightGBM 官方源码完全一致。在 LightGBM 的 `src/objective/regression_objective.hpp` 中，Tweedie 目标函数的梯度计算实现如下：
+
+```cpp
+// LightGBM 官方源码: src/objective/regression_objective.hpp
+void GetGradients(const double* score, score_t* gradients, score_t* hessians) const override {
+  #pragma omp parallel for schedule(static)
+  for (data_size_t i = 0; i < num_data_; ++i) {
+    const double y = label_[i];
+    const double s = score[i];
+    // 一阶导数 g_i = -y * exp((1-rho)*score) + exp((2-rho)*score)
+    gradients[i] = static_cast<score_t>(
+      -y * std::exp((1.0 - rho_) * s) + std::exp((2.0 - rho_) * s)
+    );
+    // 二阶导数 h_i = -y * (1-rho) * exp((1-rho)*score) + (2-rho) * exp((2-rho)*score)
+    hessians[i] = static_cast<score_t>(
+      -y * (1.0 - rho_) * std::exp((1.0 - rho_) * s) + (2.0 - rho_) * std::exp((2.0 - rho_) * s)
+    );
+  }
+}
+```
+同时，在评估指标 `src/metric/regression_metric.hpp` 的 `TweedieMetric::LossOnPoint` 中，逐点评估偏差损失亦与负对数似然解析式完全对应：
+```cpp
+// LightGBM 官方源码: src/metric/regression_metric.hpp
+double LossOnPoint(data_size_t i, const double* score) const override {
+  const double y = label_[i];
+  const double s = score[i];
+  // Loss = - y * exp((1-rho)*score) / (1-rho) + exp((2-rho)*score) / (2-rho)
+  return - y * std::exp((1.0 - rho_) * s) / (1.0 - rho_) + std::exp((2.0 - rho_) * s) / (2.0 - rho_);
+}
+```
+这构成了从 EDM 似然推导到工业级 C++ 算子实现之间严密的数学闭环。
 
 ---
 
@@ -425,6 +510,76 @@ Tweedie 的威力很大程度上取决于方差幂指数 $p$ 的合理选择：
 | **LightGBM** | `objective="tweedie"`<br/>`tweedie_variance_power=p` | $1.0 < p < 2.0$ | **成熟度最高、收敛最稳**。在 $p \ge 1.2$ 时能极度彻底地净化零底噪，学习率建议设为 `0.03 ~ 0.05`。早停建议监控 `eval_metric="tweedie"` 或 `"mae"`。 |
 | **XGBoost** | `objective="reg:tweedie"`<br/>`tweedie_variance_power=p` | $1.0 < p < 2.0$ | **改善幅度最为剧烈**。默认 MSE 在零膨胀下表现极差（WAPE 达 198%），切入 Tweedie 后暴降近 90 个百分点。建议树算法指定 `tree_method="hist"`。 |
 | **CatBoost** | `loss_function=`<br/>`"Tweedie:variance_power=p"` | $1.0 < p < 2.0$ | 对 $p=1.1$ 的脉冲较为敏感，适合低客单脉冲品类；但在纯零膨胀场景下对小参数容易欠平滑，在奢品场景建议将参数设为 $p \ge 1.8$。 |
+
+---
+
+### 4.4 业务建模深水区：预测目标是“件数（Quantity）”还是“金额（GMV）”？
+
+在将 Tweedie 运用于类似 Scenario 4（`luxury` 奢侈品高价手袋）的业务场景时，必须明确区分两个本质不同的预测目标：**日/周销售金额（GMV）** 与 **物理售出件数（Units / Quantity）**。
+
+#### 1. 金额（GMV）维度：Tweedie 在数学上高度契合
+若业务目标是预测“每日/每周的销售金额（GMV）”，Tweedie 复合泊松-伽马假设是极为自然的物理写照：
+$$Y = \sum_{i=1}^N Z_i, \quad N \sim \mathrm{Poisson}(\lambda), \quad Z_i \sim \mathrm{Gamma}(\alpha, \beta)$$
+* **$N$ 代表成交笔数**（高净值客户到店频次，平时绝大多数为 0）；
+* **$Z_i$ 代表单笔客单金额**（受包款皮质、尺寸、搭售配饰影响，呈现正向连续右偏分布）；
+* **$Y$ 代表总销售金额（GMV）**：绝大多数天数为 0（零点概率塌缩），偶发成交时为数千至数万的连续正向金额。
+
+Tweedie 能完美兼顾 0 点的概率质量与正向厚尾，且异方差假设 $\mathrm{Var}(Y) = \phi \mu^p$ 符合“金额越高波动越大”的商业直觉，无需做扭曲的 $\log(y+1)$ 变换。
+
+#### 2. 件数（Quantity）维度：Tweedie 存在的潜在“水土不服”
+若业务核心是仓储物流、门店配货等供应链场景，预测目标通常是“每天/每周卖出几只包（0, 1, 2 件）”：
+* **单次客单件数（Basket Size）的台阶性**：奢侈品手袋单笔交易绝大多数是 $Z_i = 1$ 件，偶发 $2$ 件，**其单次购买量呈现离散台阶状（Discrete Stairs），而非连续平滑的 Gamma 分布**；
+* **极小样本下的期望小数**：Tweedie 本质上建模的是连续正实数。若强行用 Tweedie 预测件数，在极小样本上容易把离散计数问题当连续实数解，输出无物理意义的小数期望。
+* **选型结论**：
+  * **目标是金额（GMV）** $\implies$ **首选 Tweedie 树模型**（端到端拟合，兼顾零膨胀与厚尾）；
+  * **目标是件数（Units）** $\implies$ **首选两阶段模型（Hurdle）或离散零膨胀计数模型（ZINB）**。
+
+---
+
+### 4.5 时间聚合与供应链补货：日粒度（Daily）改聚合为周粒度（Weekly）的工程实践
+
+在实际零售与奢侈品供应链落地中，**将日粒度（Daily）预测聚合为周粒度（Weekly）是非常普遍且符合业务逻辑的做法**：
+
+1. **削减微观泊松随机到达噪声（Noise Reduction）**：
+   * 单店单 SKU 的日级销售是极度微观的偶发随机事件（例如某位 VIP 客户究竟是周三下午还是周四上午进店）。在日粒度上试图精确预测“哪一天成交”信噪比（SNR）极低；
+   * 聚合到周粒度后，日内随机扰动相互抵消，显现出稳定的周内规律与宏观趋势，预测信噪比成倍提升。
+2. **匹配真实供应链调拨与订货节奏（Supply Chain Rhythm）**：
+   * 奢侈品与耐用品供应链的跨店调拨（Inter-store Transfer）、区域中央仓补货与工厂排产，通常以周（Weekly）或双周（Bi-weekly）为执行周期。
+   * 日级预测过剩的颗粒度并不能转化为可执行的供应链动作，周级汇总预测与采购排单的契合度更高。
+3. **周聚合后的零值形态决定模型分流**：
+   * **周级依然零膨胀严重**（如低频常态款、偏远精品店，一周甚至一个月才偶发 1 件）：**Tweedie 树模型依然是首选**；
+   * **周级大部分周销量 $\ge 1$**（零值占比骤降至 10% 以下）：此时零膨胀问题基本消失，模型可直接平滑转化为普通的**泊松回归（Poisson Regression）**或**负二项回归（Negative Binomial）**。
+
+---
+
+### 4.6 面对长尾间歇性需求的多流派方案全景对比矩阵
+
+针对“绝大多数时间为 0，偶发出现销售”的高客单间歇性/零膨胀需求，工业界与学术界主要形成了五大主流解决方案体系：
+
+| 方案流派 | 核心建模思想 | 核心优势 | 主要局限 | 最佳适用场景 |
+| :--- | :--- | :--- | :--- | :--- |
+| **方案 1：Tweedie GBDT 单模型**<br/>*(本报告重点评估)* | 基于复合泊松-伽马分布，以 Tweedie 负对数似然为损失函数，端到端单模型联合优化零点与正值。 | • 单模型一体化，无误差串联传导<br/>• 天然对数连接保证预测严格非负<br/>• 树模型自动提取高维非线性特征 | • 假设正值部分服从连续 Gamma，对极度离散的单件计数（$1, 2$）存在近似误差 | • **日/周销售金额（GMV）预测**<br/>• 零膨胀且正值呈连续长尾的品类 |
+| **方案 2：两阶段模型 (Hurdle / Two-Stage)** | **阶段一（分类）**：LightGBM 预测是否有售 $\mathbb{P}(Y > 0)$<br/>**阶段二（条件回归）**：在有售前提下预测销售量 $\mathbb{E}[Y \mid Y > 0]$<br/>最终预测值 = $P \times \hat{y}_{\text{cond}}$ | • 业务解释性极高，解耦客流触发与购买深度<br/>• 阶段二可自由选用任意连续回归或分类模型 | • 维护两套模型与调参流程，复杂度翻倍<br/>• 第一阶段分类误差会无阻碍向下游传导放大<br/>• 阶段二仅在正样本上训练，极易过拟合 | • 日级/周级高稀疏度且客流与客单机制明确解耦的场景 |
+| **方案 3：离散件数计数模型 (ZINB / ZIP)** | 将目标限定为物理件数（Units），采用零膨胀负二项（ZINB）或零膨胀泊松分布建模件数，单价作为外生特征：$\text{GMV} = \text{Units} \times \text{Price}$ | • 严格契合离散非负整数本质<br/>• 负二项分布能自然处理过度分散（Overdispersion, 方差 > 均值） | • GBDT 原生对 ZINB 的两参数联合树分裂支持不成熟，多见于统计 GLM 库 | • **库存规划、安全库存设定与物理补货件数预测** |
+| **方案 4：传统间歇性时序算法 (Croston / TSB)** | 不按固定时间步预测，而是将时序分解为**销售间隔时间（Inter-arrival Time）**与**发生量（Demand Size）**两个指数平滑子方程。 | • 计算极度轻量，无需海量训练样本<br/>• 在长尾冷启动 SKU 上表现稳健，不易被连续 0 带偏 | • 难以有效融入天气、日历、促销等高维外部协变量<br/>• 对突发性爆款活动响应迟钝 | • 备品备件、工业长尾耗材、无特征冷启动基线（Baseline） |
+| **方案 5：多层级层次调和 (Hierarchical Reconciliation)** | 采用 MinT 或 Top-down / Bottom-up 框架：先预测品类级、大区级或月度销售，再自上而下分配（Reconcile）到单店单 SKU。 | • 高层级数据平滑且有明显趋势/季节性，大幅规避单 SKU 单店的微观不确定性 | • 依赖自洽的商品与组织树架构（SKU-Category-Brand-Store-Region） | • 拥有多门店网络与完整商品层级的大型零售连锁集团 |
+
+---
+
+### 4.7 针对高客单低频业务的特征工程前置增强
+
+对于高价值、低频次零售品类（如奢侈品手袋、高级腕表、定制家具），除了损失函数选择 Tweedie 外，特征工程应着重跳出单纯的滞后滑动统计（Lag/Rolling），引入业务前置信号：
+
+1. **前置意向与漏斗特征（Pre-purchase Intent Signals）**：
+   * 专属导购（VIC Client Advisor）预约到店量、试戴/试背预约记录；
+   * 线上官网/小程序专属单品的浏览深度、加购数、心愿单收藏数（Wishlist Counts）；
+2. **时间间隔特征（Recency Features）**：
+   * 距上一次产生销售的天数（Days since last sale）；
+   * 距上一次 VIP 闭门沙龙/私享特卖的天数；
+3. **静态与生命周期商品标签（Product Static Metadata）**：
+   * 款式属性：常青经典款（Iconic Core）vs 季节限定款（Seasonal Capsule）；
+   * 材质与公价区间：常规皮质 vs 稀有皮，公价区间分桶；
+   * 配件关联度与配货政策敏感度。
 
 ---
 
