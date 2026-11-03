@@ -7,8 +7,6 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,24 +21,29 @@ from retail_forecast.common import (
     valid_labels,
 )
 from retail_forecast.timesfm_benchmark import (
+    compute_metrics,
     fit_predict_lightgbm,
     fit_predict_prophet,
     predict_croston_sba,
     predict_seasonal_naive,
 )
-from tsfm_benchmark.evaluate_metrics import compute_metrics
 
-ROOT = Path(__file__).resolve().parents[1]
-IMG_DIR = ROOT / "images" / "tsfm"
-IMG_DIR.mkdir(parents=True, exist_ok=True)
-RUNS_DIR = ROOT / "runs"
+DEFAULT_RUNS_DIR = ROOT / "runs" / "timesfm-validation-20261103"
+DEFAULT_IMG_DIR = ROOT / "images" / "tsfm"
 
 
-def process_results(csv_path: Path):
+def run_benchmark(
+    csv_path: Path,
+    output_dir: Path,
+    img_dir: Path,
+):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    img_dir.mkdir(parents=True, exist_ok=True)
+
     print(f"Reading BigQuery TimesFM predictions from: {csv_path}")
     df_bq = pd.read_csv(csv_path, parse_dates=["ds"])
 
-    # 1. 评估实验 1: 全历史基准
+    # 1. 评估实验 1: 全历史基准 (Exp 1: Full History Benchmark)
     print("\nEvaluating Experiment 1 (Full History Benchmark)...")
     exp1_rows = []
     exp1_preds = {}
@@ -138,9 +141,9 @@ def process_results(csv_path: Path):
             )
 
     df_exp1 = pd.DataFrame(exp1_rows)
-    df_exp1.to_csv(RUNS_DIR / "exp1_full_history_benchmark.csv", index=False)
+    df_exp1.to_csv(output_dir / "exp1_full_history_benchmark.csv", index=False)
 
-    # 2. 评估实验 2: 缺货删失污染实验
+    # 2. 评估实验 2: 缺货删失污染实验 (Exp 2: Stockout Censoring Sensitivity)
     print("\nEvaluating Experiment 2 (Stockout Censoring Sensitivity)...")
     exp2_rows = []
     g_df = datasets["grocery"]
@@ -187,9 +190,9 @@ def process_results(csv_path: Path):
         )
 
     df_exp2 = pd.DataFrame(exp2_rows)
-    df_exp2.to_csv(RUNS_DIR / "exp2_stockout_censoring.csv", index=False)
+    df_exp2.to_csv(output_dir / "exp2_stockout_censoring.csv", index=False)
 
-    # 3. 评估实验 3: 冷启动截断曲线
+    # 3. 评估实验 3: 冷启动截断曲线 (Exp 3: Cold-Start Truncation Curve)
     print("\nEvaluating Experiment 3 (Cold-Start Truncation Curve)...")
     exp3_rows = []
     lengths = [1068, 365, 90, 56, 28, 14]
@@ -235,10 +238,10 @@ def process_results(csv_path: Path):
                 )
 
     df_exp3 = pd.DataFrame(exp3_rows)
-    df_exp3.to_csv(RUNS_DIR / "exp3_cold_start_curve.csv", index=False)
+    df_exp3.to_csv(output_dir / "exp3_cold_start_curve.csv", index=False)
 
     # 4. 生成出版级图表
-    print("\nGenerating figures in images/tsfm/...")
+    print(f"\nGenerating figures in {img_dir}...")
     plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Helvetica", "Arial"]
     plt.rcParams["axes.edgecolor"] = "#cccccc"
     plt.rcParams["axes.linewidth"] = 0.8
@@ -311,8 +314,8 @@ def process_results(csv_path: Path):
             ax.legend(fontsize=8.5, loc="upper left", framealpha=0.9)
 
     plt.tight_layout()
-    fig.savefig(IMG_DIR / "fig-tsfm-01-four-scenarios-comparison.png", dpi=300)
-    fig.savefig(IMG_DIR / "fig-tsfm-01-four-scenarios-comparison.webp", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-01-four-scenarios-comparison.png", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-01-four-scenarios-comparison.webp", dpi=300)
     plt.close(fig)
 
     # 图 2: 冷启动退化曲线 (3 x 1 纵向堆叠)
@@ -351,8 +354,8 @@ def process_results(csv_path: Path):
 
     axes[-1].set_xlabel("Context Length L (Days before test period)", fontsize=10)
     plt.tight_layout()
-    fig.savefig(IMG_DIR / "fig-tsfm-02-coldstart-degradation-curve.png", dpi=300)
-    fig.savefig(IMG_DIR / "fig-tsfm-02-coldstart-degradation-curve.webp", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-02-coldstart-degradation-curve.png", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-02-coldstart-degradation-curve.webp", dpi=300)
     plt.close(fig)
 
     # 图 3: 缺货删失污染图 (2 x 1 上下垂直结构)
@@ -443,23 +446,35 @@ def process_results(csv_path: Path):
     axes[1].legend(fontsize=8.5, loc="upper left")
 
     plt.tight_layout()
-    fig.savefig(IMG_DIR / "fig-tsfm-03-stockout-censoring-impact.png", dpi=300)
-    fig.savefig(IMG_DIR / "fig-tsfm-03-stockout-censoring-impact.webp", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-03-stockout-censoring-impact.png", dpi=300)
+    fig.savefig(img_dir / "fig-tsfm-03-stockout-censoring-impact.webp", dpi=300)
     plt.close(fig)
 
     print(
-        "\nAll BigQuery results processed, metrics saved in runs/, and figures generated in images/tsfm/!"
+        f"\nAll benchmark evaluations completed successfully!\n"
+        f"Metrics saved to: {output_dir}\n"
+        f"Figures saved to: {img_dir}\n"
     )
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process BigQuery TimesFM predictions and generate figures"
+        description="Process BigQuery TimesFM predictions, evaluate benchmark metrics, and generate figures."
     )
     parser.add_argument(
         "--csv",
-        default="runs/bq_timesfm_predictions.csv",
-        help="Path to BQ predictions CSV",
+        default=str(DEFAULT_RUNS_DIR / "bq_timesfm_predictions.csv"),
+        help="Path to BigQuery predictions CSV (default: runs/timesfm-validation-20261103/bq_timesfm_predictions.csv)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_RUNS_DIR),
+        help="Directory to save benchmark metrics CSVs",
+    )
+    parser.add_argument(
+        "--img-dir",
+        default=str(DEFAULT_IMG_DIR),
+        help="Directory to save generated figure plots",
     )
     args = parser.parse_args()
 
@@ -468,7 +483,12 @@ def main():
         raise FileNotFoundError(
             f"Predictions CSV not found: {csv_path}. Please download it from BigQuery first."
         )
-    process_results(csv_path)
+
+    run_benchmark(
+        csv_path=csv_path,
+        output_dir=Path(args.output_dir),
+        img_dir=Path(args.img_dir),
+    )
 
 
 if __name__ == "__main__":

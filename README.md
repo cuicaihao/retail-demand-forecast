@@ -28,7 +28,7 @@
 
 ```text
 retail-demand-forecast/
-├── notebooks/                  # 16 个循序渐进的交互式教学与基准评测 Notebook (00 ~ 35)
+├── notebooks/                  # 17 个循序渐进的交互式教学与基准评测 Notebook (00 ~ 36)
 ├── src/
 │   └── retail_forecast/        # 核心 Python 包：统一数据契约、特征工程与各模型家族实现
 │       ├── common.py           # 数据加载、SHA256 校验、滚动验证窗口切分与统一评价指标
@@ -38,19 +38,21 @@ retail-demand-forecast/
 │       ├── neural.py           # MLP 与 LSTM 时序神经网络实现
 │       ├── tft.py              # Temporal Fusion Transformer (TFT) 训练与推理封装
 │       ├── autogluon_benchmark.py # AutoGluon-TimeSeries 自动集成评测模块
+│       ├── timesfm_benchmark.py# TimesFM 时序大模型评测与基准对比模块
 │       └── model_comparison.py # 跨模型家族统一汇总、切片分析与图表生成
 ├── data/
 │   ├── README.md               # 数据生成与防覆盖策略说明
-│   └── teaching/               # [本地生成] 四套合成场景 CSV、VIC 假日表与哈希清单
-├── scripts/                    # 辅助脚本（数据绘图、运行校验、Notebook 生成与发布打包）
+│   └── teaching/               # [本地生成] 四套合成场景 CSV、BigQuery Schema JSON 与哈希清单
+├── sql/                        # 生产级 BigQuery SQL（含 TimesFM 原生 AI.FORECAST 全套受控实验）
+├── scripts/                    # 自动化脚本（基准评测、数据绘图、运行校验、Notebook 生成与发布打包）
 ├── tests/                      # 单元测试（仓库布局规范、数据哈希一致性、模型基准测试）
 ├── references/                 # 参考文献与论文存档（如 Prophet 2017 原始论文）
 ├── artifacts/                  # [本地生成] 经审核的参考快照 (published/) 与中间产物，详见 artifacts/README.md
 ├── models/                     # [本地生成] 教学参考模型权重快照 (models/reference/)
 ├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (runs/<run-id>/)
 ├── images/                     # [本地生成] 教学数据总览与实验对比图表 (.png / .webp)
-├── articles/                   # [本地/develop] 系列技术博客文稿、配图 (figures/) 与实验计划
-└── reports/                    # [本地/develop] 多模型评测报告与系统架构设计文档
+├── articles/                   # [本地/develop] 系列技术博客文稿与配图 (figures/)
+└── reports/                    # [本地/develop] 受控实验方案协议、量化实证报告与系统架构设计文档
 ```
 
 ---
@@ -68,6 +70,7 @@ retail-demand-forecast/
 | **32 树模型与 GBDT** | [32a-decision-tree-tutorial.ipynb](notebooks/32a-decision-tree-tutorial.ipynb)<br>[32b-random-forest-tutorial.ipynb](notebooks/32b-random-forest-tutorial.ipynb)<br>[32c-lightgbm-tutorial.ipynb](notebooks/32c-lightgbm-tutorial.ipynb)<br>[32d-xgboost-tutorial.ipynb](notebooks/32d-xgboost-tutorial.ipynb)<br>[32e-catboost-tutorial.ipynb](notebooks/32e-catboost-tutorial.ipynb)<br>[32f-tree-model-comparison.ipynb](notebooks/32f-tree-model-comparison.ipynb) | 时序转表格化特征工程（Lags、Rolling Stats、日历与促销特征），从单棵决策树到主流 GBDT 家族的系统对比 |
 | **33 深度学习模型** | [33a-mlp-tutorial.ipynb](notebooks/33a-mlp-tutorial.ipynb)<br>[33b-lstm-tutorial.ipynb](notebooks/33b-lstm-tutorial.ipynb)<br>[33c-tft-tutorial.ipynb](notebooks/33c-tft-tutorial.ipynb)<br>[33d-neural-model-comparison.ipynb](notebooks/33d-neural-model-comparison.ipynb) | MLP、序列编码 LSTM 与 Temporal Fusion Transformer (TFT) 的训练、早停与样本复杂度边界 |
 | **34–35 全模型与 AutoML** | [34-all-model-comparison.ipynb](notebooks/34-all-model-comparison.ipynb)<br>[35-autogluon-timeseries-tutorial.ipynb](notebooks/35-autogluon-timeseries-tutorial.ipynb) | 10 种核心模型在统一滚动验证与测试口径下的全量对比，以及 AutoGluon-TimeSeries 多层集成实验 |
+| **36 时序基础模型 (TSFM)** | [36-timesfm-bigquery-tutorial.ipynb](notebooks/36-timesfm-bigquery-tutorial.ipynb) | Google TimesFM 3.0 与 BigQuery 原生托管时序大模型零样本预测、缺货去偏与冷启动极限评测 |
 
 ---
 
