@@ -108,7 +108,7 @@ retail-demand-forecast/
 │   └── references/             # 学术文献与经典论文 PDF 存档 (如 Prophet 2017)
 ├── images/                     # [本地生成] 教学数据总览与出版级实验对比图表 (.png / .webp)
 ├── notebooks/                  # 17 个循序渐进的交互式教学与基准评测 Notebook (00 ~ 36)
-├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (runs/<run-id>/)
+├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (统一命名: runs/YYYYMMDD-[model]-[type]/)
 ├── scripts/                    # 自动化与运维脚本 (基准评测、数据绘图、Notebook 生成与发布打包)
 ├── src/
 │   └── retail_forecast/        # 核心 Python 库与生产 SQL 资产
@@ -167,8 +167,8 @@ uv run jupyter lab
 # 运行仓库布局、数据哈希契约与模型基准单元测试
 uv run python -m unittest discover -s tests -v
 
-# 校验指定实验运行目录的输入数据哈希清单
-uv run python scripts/validate_artifacts.py runs/<run-id>
+# 校验指定实验运行目录的输入数据哈希清单 (子目录遵循 YYYYMMDD-[model]-[type])
+uv run python scripts/validate_artifacts.py runs/20261020-all-models-summary
 ```
 
 ---

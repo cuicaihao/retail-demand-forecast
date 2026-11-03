@@ -151,3 +151,4 @@ uv run python scripts/run_benchmark.py --compare-only
 - [ ] **交互式教学 Notebook**：`notebooks/3X-<model>-tutorial.ipynb`（单元格 `outputs` 必须为 `[]`，`execution_count` 必须为 `null`）；
 - [ ] **持久化基准结果**：`data/benchmarks/results/<model>/`；
 - [ ] **回归测试保证**：`.venv/bin/python -m unittest discover -s tests -v` 全绿。
+

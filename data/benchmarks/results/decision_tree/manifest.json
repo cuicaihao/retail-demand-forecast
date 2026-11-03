@@ -1,6 +1,6 @@
 {
   "model_key": "decision_tree",
-  "updated_at": "2026-11-03T06:27:32.322510+00:00",
+  "updated_at": "2026-11-03T06:59:26.953988+00:00",
   "input_hashes": {
     "grocery_scenario_data.csv": "02f37513640a7b48402838163e9247620755bd5dbfb122f3b76d0fe6fb687505",
     "wine_scenario_data.csv": "94ec201624e7e333bd2b5e7d64980a97dd5f513453722471fe22bf26b133effb",
@@ -11,5 +11,5 @@
   },
   "protocol_version": "retail-benchmark-v2",
   "model_name": "Decision Tree",
-  "source": "runs/all-models-summary-validation-20261020"
+  "source": "runs/20261020-all-models-summary"
 }

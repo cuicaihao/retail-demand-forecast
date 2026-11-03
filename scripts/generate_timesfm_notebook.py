@@ -52,7 +52,7 @@ cells = [
             "    predict_seasonal_naive,\n",
             ")\n",
             "\n",
-            'RUNS_DIR = ROOT / "runs" / "timesfm-validation-20261103"\n',
+            'RUNS_DIR = ROOT / "runs" / "20261103-timesfm-validation"\n',
             'print(f"Project Root: {ROOT}")\n',
             'print(f"Runs Directory: {RUNS_DIR}")\n',
         ],

@@ -58,7 +58,7 @@ DEFAULT_IMPORTANCE_SECONDS = int(os.environ.get("AUTOGLOUON_IMPORTANCE_SECONDS",
 OLD_COMPARISON = (
     Path(__file__).resolve().parents[2]
     / "runs"
-    / "all-models-summary-validation-20261020"
+    / "20261020-all-models-summary"
     / "all_model_comparison"
 )
 

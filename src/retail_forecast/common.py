@@ -13,9 +13,9 @@ HORIZON = 28
 ENCODER_LENGTH = 84
 SEED = 42
 CPU_THREADS = 2
-RUN_ID = os.environ.get("RETAIL_FORECAST_RUN_ID") or datetime.now(
-    timezone.utc
-).strftime("%Y%m%dT%H%M%S%fZ")
+RUN_ID = os.environ.get("RETAIL_FORECAST_RUN_ID") or (
+    datetime.now(timezone.utc).strftime("%Y%m%d") + "-experiment-run"
+)
 RUNS_DIR = ROOT / "runs" / RUN_ID
 THREAD_LIMITER = threadpool_limits(limits=CPU_THREADS)
 SCENARIOS = {

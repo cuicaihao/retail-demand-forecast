@@ -33,10 +33,7 @@ def slugify(name: str) -> str:
 
 def sync_core_models():
     comparison_dir = (
-        ROOT
-        / "runs"
-        / "all-models-summary-validation-20261020"
-        / "all_model_comparison"
+        ROOT / "runs" / "20261020-all-models-summary" / "all_model_comparison"
     )
     if not comparison_dir.is_dir():
         print(f"Warning: {comparison_dir} not found.")
@@ -62,13 +59,13 @@ def sync_core_models():
             metrics_df=sub_metrics,
             manifest_meta={
                 "model_name": model_name,
-                "source": "runs/all-models-summary-validation-20261020",
+                "source": "runs/20261020-all-models-summary",
             },
         )
 
 
 def sync_timesfm():
-    tsfm_dir = ROOT / "runs" / "timesfm-validation-20261103"
+    tsfm_dir = ROOT / "runs" / "20261103-timesfm-validation"
     pred_file = tsfm_dir / "bq_timesfm_predictions.csv"
     benchmark_file = tsfm_dir / "exp1_full_history_benchmark.csv"
 
@@ -111,13 +108,13 @@ def sync_timesfm():
         manifest_meta={
             "model_name": "TimesFM 3.0 (BigQuery)",
             "foundation_model": True,
-            "source": "runs/timesfm-validation-20261103",
+            "source": "runs/20261103-timesfm-validation",
         },
     )
 
 
 def sync_autogluon():
-    ag_dir = ROOT / "runs" / "autogluon-validation-20261020" / "autogluon_timeseries"
+    ag_dir = ROOT / "runs" / "20261020-autogluon-validation" / "autogluon_timeseries"
     pred_file = ag_dir / "predictions.csv"
     metrics_file = ag_dir / "aggregate_metrics.csv"
 
@@ -135,7 +132,7 @@ def sync_autogluon():
         manifest_meta={
             "model_name": "AutoGluon Ensemble",
             "automl": True,
-            "source": "runs/autogluon-validation-20261020",
+            "source": "runs/20261020-autogluon-validation",
         },
     )
 

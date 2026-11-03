@@ -29,7 +29,7 @@ AutoGluon 的价值在本实验中得到了一半验证：它确实能在统一�
 - **对间歇需求，自动模型选择会忠实优化指标，也会暴露指标缺陷。**奢侈品最终选择全零模型，MAE 最低但没有业务事件召回能力。
 - **解释性介于单模型与黑盒之间。**组件权重和 permutation importance 比单一深度网络更透明，但不如 Prophet 的趋势与季节分解直观，也不能提供单日因果解释。
 
-![AutoGluon 与原十种模型的最终测试 WAPE](../../runs/autogluon-validation-20261020/autogluon_timeseries/comparison_with_all_models.png)
+![AutoGluon 与原十种模型的最终测试 WAPE](../../runs/20261020-autogluon-validation/autogluon_timeseries/comparison_with_all_models.png)
 
 ## 1. 实验设计
 
@@ -189,7 +189,7 @@ AutoGluon 输出 10%、50% 和 90% 分位数。最终测试的经验覆盖率如
 
 名义 80% 区间在三个连续需求场景中达到 100% 覆盖，并不代表校准优秀；过宽区间也能获得高覆盖。测试期只有 27 个有效日，尚不足以稳定评价尾部概率。生产使用前应跨更多滚动窗口计算覆盖率和区间得分，而不是只看一段测试期。
 
-![AutoGluon 最终 28 天点预测与区间](../../runs/autogluon-validation-20261020/autogluon_timeseries/final_test_predictions.png)
+![AutoGluon 最终 28 天点预测与区间](../../runs/20261020-autogluon-validation/autogluon_timeseries/final_test_predictions.png)
 
 ## 7. 可解释性比较
 
@@ -199,7 +199,7 @@ AutoGluon 输出 10%、50% 和 90% 分位数。最终测试的经验覆盖率如
 2. **Ensemble 权重：**说明最终预测由哪些组件组合，但权重会随预测起点变化。
 3. **Permutation importance：**说明打乱业务变量后整体 MAE 增加多少，并提供采样不确定性。
 
-![四个场景最终 AutoGluon ensemble 权重](../../runs/autogluon-validation-20261020/autogluon_timeseries/final_ensemble_weights.png)
+![四个场景最终 AutoGluon ensemble 权重](../../runs/20261020-autogluon-validation/autogluon_timeseries/final_ensemble_weights.png)
 
 ### 7.2 与原模型家族比较
 
@@ -251,9 +251,9 @@ AutoGluon 输出 10%、50% 和 90% 分位数。最终测试的经验覆盖率如
 ## 附录：证据与复现
 
 - Notebook：`notebooks/35-autogluon-timeseries-tutorial.ipynb`
-- AutoGluon 运行：`runs/autogluon-validation-20261020/autogluon_timeseries/`
-- 原模型汇总：`runs/all-models-summary-validation-20261020/all_model_comparison/`
-- 原报告：`reports/2026-10-20-all-models-validation-report.md`
+- AutoGluon 运行：`runs/20261020-autogluon-validation/autogluon_timeseries/`
+- 原模型汇总：`runs/20261020-all-models-summary/all_model_comparison/`
+- 原报告：`docs/reports/2026-10-20-all-models-validation-report.md`
 - 输入数据：`data/teaching/`
 
 主要结果文件包括 `aggregate_metrics.csv`、`predictions.csv`、`leaderboard.csv`、`ensemble_weights.csv`、`component_test_diagnostics.csv`、`feature_importance.csv`、`business_slices.csv`、`model_failures.csv` 和 `comparison_with_all_models.csv`。

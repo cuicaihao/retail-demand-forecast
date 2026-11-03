@@ -1,6 +1,6 @@
 {
   "model_key": "autogluon",
-  "updated_at": "2026-11-03T06:27:32.384829+00:00",
+  "updated_at": "2026-11-03T06:59:27.014823+00:00",
   "input_hashes": {
     "grocery_scenario_data.csv": "02f37513640a7b48402838163e9247620755bd5dbfb122f3b76d0fe6fb687505",
     "wine_scenario_data.csv": "94ec201624e7e333bd2b5e7d64980a97dd5f513453722471fe22bf26b133effb",
@@ -12,5 +12,5 @@
   "protocol_version": "retail-benchmark-v2",
   "model_name": "AutoGluon Ensemble",
   "automl": true,
-  "source": "runs/autogluon-validation-20261020"
+  "source": "runs/20261020-autogluon-validation"
 }

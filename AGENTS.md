@@ -45,6 +45,7 @@ retail-demand-forecast/
 - **Rule 2 (Notebook Invariant)**: All Jupyter Notebooks (`notebooks/*.ipynb`) must NOT contain saved execution outputs. Cells must have `"outputs": []` and `"execution_count": null`. The test suite strictly asserts this.
 - **Rule 3 (PEP 518/621 Layout)**: `tests/` must remain in the root directory and never be merged into `src/`.
 - **Rule 4 (No Data Leakage)**: The final test set is strictly the **last 28 calendar days** (`2025-12-04` to `2025-12-31`). During inference, future `y` values must be masked or set to `NaN` / `NULL`. Future known covariates (`is_open`, `discount`, holidays) are permitted.
+- **Rule 5 (`runs/` Directory Naming Invariant)**: Any experiment execution directory generated under `runs/` must strictly adopt the format `[时间]+[模型]+[type]` (i.e. `YYYYMMDD-[model]-[type]` in lowercase kebab-case, e.g., `20261020-prophet-experiment`, `20261020-all-models-summary`, `20261020-tree-models-validation`, `20261020-autogluon-validation`, `20261103-timesfm-validation`).
 
 ---
 
@@ -82,3 +83,4 @@ When tasked with adding a new forecasting model (e.g. Chronos, MOIRAI, TiDE, Pat
 4. **Execute Benchmark**: Run `uv run python scripts/run_benchmark.py --models <model_key>` to evaluate on all 4 scenarios.
 5. **Create Tutorial Notebook**: Generate `notebooks/3X-<model_key>-tutorial.ipynb` with stripped outputs (`"outputs": []`).
 6. **Verify Tests**: Run `.venv/bin/python -m unittest discover -s tests -v` to ensure 100% test pass rate.
+

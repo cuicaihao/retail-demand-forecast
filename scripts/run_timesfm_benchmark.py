@@ -28,7 +28,7 @@ from retail_forecast.timesfm_benchmark import (
     predict_seasonal_naive,
 )
 
-DEFAULT_RUNS_DIR = ROOT / "runs" / "timesfm-validation-20261103"
+DEFAULT_RUNS_DIR = ROOT / "runs" / "20261103-timesfm-validation"
 DEFAULT_IMG_DIR = ROOT / "images" / "tsfm"
 
 
@@ -464,7 +464,7 @@ def main():
     parser.add_argument(
         "--csv",
         default=str(DEFAULT_RUNS_DIR / "bq_timesfm_predictions.csv"),
-        help="Path to BigQuery predictions CSV (default: runs/timesfm-validation-20261103/bq_timesfm_predictions.csv)",
+        help="Path to BigQuery predictions CSV (default: runs/20261103-timesfm-validation/bq_timesfm_predictions.csv)",
     )
     parser.add_argument(
         "--output-dir",

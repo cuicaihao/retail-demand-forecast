@@ -3,7 +3,7 @@
 > **用途说明**：本文档面向 `retail-demand-forecast` 仓库的开发者与 AI Agent。
 > 本实验全面拥抱 Google Cloud 官方最新发布的 [BigQuery TimesFM 3.0 with Multivariate Forecasting](https://cloud.google.com/blog/products/data-analytics/bigquery-timesfm-3-0-with-multivariate-time-series-forecasting) 与 [TimesFM Univariate Tutorial](https://cloud.google.com/bigquery/docs/timesfm-univariate-tutorial)。
 > 实验将 **Google Research TimesFM**（3.3 亿参数时序基础大模型）的零样本推理与分位数生成委托给 **Google Cloud BigQuery** 原生时序引擎（内置函数 `AI.FORECAST`，免去模型拟合与存储开销）。
-> 预测结果通过标准化 CSV 契约（`runs/timesfm-validation-20261103/bq_timesfm_predictions.csv`）回传本地，由仓库自带的指标评估与可视化脚本生成数据分析报告 `reports/2026-11-03-timesfm-validation-report.md` 及配套图片 `images/tsfm/*.png`，供主博客《拆解 Google TimesFM》第五章直接引用。
+> 预测结果通过标准化 CSV 契约（`runs/20261103-timesfm-validation/bq_timesfm_predictions.csv`）回传本地，由仓库自带的指标评估与可视化脚本生成数据分析报告 `reports/2026-11-03-timesfm-validation-report.md` 及配套图片 `images/tsfm/*.png`，供主博客《拆解 Google TimesFM》第五章直接引用。
 
 ---
 
@@ -31,7 +31,7 @@
 flowchart TD
     subgraph Local["本地工作区 (Local Workstation)"]
         A["data/teaching/*.csv 教学数据"]
-        F["runs/timesfm-validation-20261103/bq_timesfm_predictions.csv"]
+        F["runs/20261103-timesfm-validation/bq_timesfm_predictions.csv"]
         G["评估指标对比表格"]
         H["images/tsfm/*.png 可视化图表"]
         I["reports/2026-11-03-timesfm-validation-report.md"]
@@ -214,9 +214,9 @@ FROM AI.FORECAST(
 
 2. **一键拉取预测数据至本地运行目录**：
    ```bash
-   mkdir -p runs/timesfm-validation-20261103
+   mkdir -p runs/20261103-timesfm-validation
    bq query --use_legacy_sql=false --format=csv --max_rows=10000 \
-     "SELECT * FROM \`gcp-cc-ai-ml-llm.retail_forecast_output.all_timesfm_predictions\`" > runs/timesfm-validation-20261103/bq_timesfm_predictions.csv
+     "SELECT * FROM \`gcp-cc-ai-ml-llm.retail_forecast_output.all_timesfm_predictions\`" > runs/20261103-timesfm-validation/bq_timesfm_predictions.csv
    ```
 
 3. **本地多维指标评估与报告输出**：
@@ -231,8 +231,8 @@ FROM AI.FORECAST(
 
 完成上述执行后，系统将生成以下最终交付物：
 
-1. **`runs/timesfm-validation-20261103/bq_timesfm_predictions.csv`**：BigQuery TimesFM 全实验预测标准结果集。
-2. **`runs/timesfm-validation-20261103/exp1_full_history_benchmark.csv`**：四场景全历史多模型基准对比指标表。
+1. **`runs/20261103-timesfm-validation/bq_timesfm_predictions.csv`**：BigQuery TimesFM 全实验预测标准结果集。
+2. **`runs/20261103-timesfm-validation/exp1_full_history_benchmark.csv`**：四场景全历史多模型基准对比指标表。
 3. **`images/tsfm/fig-tsfm-01-four-scenarios-comparison.png`**：四场景 28 天预测曲线与分位数区间对比四宫格图。
 4. **`images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png`**：历史样本长度对误差（WAPE/MAE）衰减曲线图（单栏博客布局）。
 5. **`images/tsfm/fig-tsfm-03-stockout-censoring-impact.png`**：缺货删失污染与清洗对比图。
