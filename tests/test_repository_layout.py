@@ -61,15 +61,13 @@ class RepositoryLayoutTests(unittest.TestCase):
 
     def test_generated_artifacts_are_ignored_by_policy(self) -> None:
         rules = (ROOT / ".gitignore").read_text().splitlines()
-        self.assertIn("/artifacts/**", rules)
-        self.assertIn("!/artifacts/**/.gitkeep", rules)
         self.assertIn("/data/**", rules)
         self.assertIn("!/data/**/.gitkeep", rules)
-        self.assertTrue((ROOT / "artifacts" / "published").is_dir())
+        self.assertTrue((ROOT / "data" / "artifacts" / "published").is_dir())
 
     def test_reference_snapshot_provenance_is_explicit(self) -> None:
         data_dir = ROOT / "data" / "teaching"
-        prophet_manifest = ROOT / "artifacts/published/prophet/run_manifest.json"
+        prophet_manifest = ROOT / "data/artifacts/published/prophet/run_manifest.json"
         if not prophet_manifest.is_file():
             self.skipTest("local published artifacts are not present in this clone")
         current = {
@@ -78,10 +76,13 @@ class RepositoryLayoutTests(unittest.TestCase):
         }
         manifests = {
             "prophet": prophet_manifest,
-            "five_models": ROOT
-            / "artifacts/published/five-model-comparison/comparison_manifest.json",
-            "model_series": ROOT
-            / "artifacts/published/model-series/arima/manifest.json",
+            "five_models": (
+                ROOT
+                / "data/artifacts/published/five-model-comparison/comparison_manifest.json"
+            ),
+            "model_series": (
+                ROOT / "data/artifacts/published/model-series/arima/manifest.json"
+            ),
         }
         hashes = {}
         for name, path in manifests.items():
@@ -111,7 +112,7 @@ class RepositoryLayoutTests(unittest.TestCase):
 
     def test_relative_markdown_links_exist(self) -> None:
         link = re.compile(r"!?\[[^]]*]\(([^)]+)\)")
-        for markdown in [ROOT / "README.md", *(ROOT / "articles").glob("*.md")]:
+        for markdown in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
             for target in link.findall(markdown.read_text()):
                 if target.startswith(("http://", "https://", "#")):
                     continue

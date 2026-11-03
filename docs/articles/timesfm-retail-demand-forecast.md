@@ -21,8 +21,8 @@ math: true
 > 完整量化评测指标、实验方案与对比数据详见仓库报告：
 > - 实验方案协议：[`reports/2026-11-03-timesfm-experiment-plan.md`](../reports/2026-11-03-timesfm-experiment-plan.md)
 > - 量化实证报告：[`reports/2026-11-03-timesfm-validation-report.md`](../reports/2026-11-03-timesfm-validation-report.md)
-> - 交互实操代码：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../notebooks/36-timesfm-bigquery-tutorial.ipynb)
-> - 生产 SQL 资产：[`sql/bigquery_timesfm_experiments.sql`](../sql/bigquery_timesfm_experiments.sql)
+> - 交互实操代码：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../../notebooks/36-timesfm-bigquery-tutorial.ipynb)
+> - 生产 SQL 资产：[`src/retail_forecast/sql/bigquery_timesfm_experiments.sql`](../../src/retail_forecast/sql/bigquery_timesfm_experiments.sql)
 
 ---
 
@@ -30,7 +30,7 @@ math: true
 
 在拥有 1,068 天（约 3 年）历史的基准测试中，我们对比了 **Seasonal Naive**、**Prophet**、**LightGBM** 与 **TimesFM 3.0 (BigQuery)** 在最后 28 天测试期的预测表现：
 
-![四场景多模型预测对比四宫格](../images/tsfm/fig-tsfm-01-four-scenarios-comparison.png)
+![四场景多模型预测对比四宫格](../../images/tsfm/fig-tsfm-01-four-scenarios-comparison.png)
 
 ### 核心量化发现
 1. **高频商超（Grocery）**：
@@ -46,7 +46,7 @@ math: true
 
 我们将商超场景中包含 24 个缺货截断日的原始污染序列直接输入 TimesFM 3.0，并与经过插补去偏的序列对比：
 
-![缺货删失对 TimesFM 预测的系统性偏差](../images/tsfm/fig-tsfm-03-stockout-censoring-impact.png)
+![缺货删失对 TimesFM 预测的系统性偏差](../../images/tsfm/fig-tsfm-03-stockout-censoring-impact.png)
 
 > **实证结论**：直接暴露缺货截断导致 TimesFM 预测产生 **-1.74% 的系统性负向偏差（Bias）**。这量化证实了：**时序大模型具备强大的形态拟合能力，但无法凭空识别业务语义上的隐性截断，上游去偏清洗不可替代**。
 
@@ -56,7 +56,7 @@ math: true
 
 在新品上市或新店开业场景下，历史数据往往极短（$L = 14 \sim 28$ 天）。我们对比了样本长度从 1068 天极端压缩至 14 天时的模型衰减曲线：
 
-![冷启动样本衰减曲线](../images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png)
+![冷启动样本衰减曲线](../../images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png)
 
 > **实证结论**：在 14 天极限冷启动下，LightGBM 的特征滑动窗口失效崩溃（WAPE 达 100%），Prophet 产生严重过拟合（WAPE 55.27%）。而 TimesFM 3.0 依托跨领域千亿级时序先验，在红酒场景将 WAPE 压制在 **43.79%**，显现出基础模型在长尾小样本下的绝对壁垒。
 
@@ -67,3 +67,4 @@ math: true
 1. **新品/长尾冷启动（$L \le 28$ 天）**：坚决推行 TimesFM 3.0，替代传统小样本容易崩溃的树模型；
 2. **成熟稳定品（$L > 1$ 年）**：TimesFM 可作为免调参顶级基线，与精调统计模型协同；
 3. **极端稀疏慢动品（零值率 $> 80\%$）**：配合两阶段门控或 Croston/SBA，不可直接依赖连续大模型。
+

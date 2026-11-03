@@ -14,7 +14,7 @@ math: true
 
 神经网络可以学习输入窗口到未来输出的映射。实际价值取决于样本组织、未来输入的可见性、训练数据规模与交付成本。**网络结构增加表达能力，工程验证决定这些能力是否改善补货预测。**
 
-本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../notebooks/33a-mlp-tutorial.ipynb)、[LSTM Notebook](../notebooks/33b-lstm-tutorial.ipynb)、[TFT Notebook](../notebooks/33c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../notebooks/33d-neural-model-comparison.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
+本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../../notebooks/33a-mlp-tutorial.ipynb)、[LSTM Notebook](../../notebooks/33b-lstm-tutorial.ipynb)、[TFT Notebook](../../notebooks/33c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../../notebooks/33d-neural-model-comparison.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
 
 LSTM 与 TFT 的完整实现分别来自 PyTorch 和 PyTorch Forecasting；后者也提供需求预测教程 [1]。本文记录的历史快照曾恢复每个起点对应的真实检查点，并验证恢复预测与此前逐日预测完全一致。当前仓库的权威 wine/garden 数据已经更新，因此 Notebook 默认从头训练全部 TFT；历史 checkpoint 只能与其 manifest 记录的输入版本配套使用。
 
@@ -187,9 +187,9 @@ $$
 
 
 
-![各回测窗口的 WAPE](../artifacts/published/model-series/neural/rolling_heatmap.png)
+![各回测窗口的 WAPE](../../data/artifacts/published/model-series/neural/rolling_heatmap.png)
 
-![内部验证学习曲线](../artifacts/published/model-series/neural/learning_curves.png)
+![内部验证学习曲线](../../data/artifacts/published/model-series/neural/learning_curves.png)
 
 MLP/LSTM 的学习曲线来自内部验证，纵轴为缩放后的验证 RMSE；不同案例的缩放不同，不能直接跨案例比较这个纵轴。原单位误差则在统一评价表中报告。
 

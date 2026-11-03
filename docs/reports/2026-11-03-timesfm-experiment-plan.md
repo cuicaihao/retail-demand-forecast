@@ -208,7 +208,7 @@ FROM AI.FORECAST(
 1. **执行自动化 SQL 套件**：
    在本地终端一键触发全套 4 组受控实验：
    ```bash
-   bq query --use_legacy_sql=false < sql/bigquery_timesfm_experiments.sql
+   bq query --use_legacy_sql=false < src/retail_forecast/sql/bigquery_timesfm_experiments.sql
    ```
    该脚本将所有场景的预测结果写入 `retail_forecast_output` 对应的 4 张独立实验表中，并自动聚合成总表 `retail_forecast_output.all_timesfm_predictions`。
 

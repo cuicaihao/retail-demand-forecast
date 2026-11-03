@@ -21,7 +21,7 @@
 
 从模型家族看，Prophet 在四类数据上表现最稳定且调参最省时；树模型中的 boosting 通常优于单棵决策树，但复杂度增加并不保证测试误差下降；神经网络偶尔取得单场景第一，但对验证窗口和训练预算更敏感。TFT 的最终参数量约为 3.5 万至 6.5 万，而每个场景只有约三年日数据，因此本实验更适合把 TFT 看作复杂度上限基准，而不是默认生产方案。
 
-![十种模型在训练回看、滚动验证和测试集上的总体指标](../runs/all-models-summary-validation-20261020/all_model_comparison/all_model_metrics.png)
+![十种模型在训练回看、滚动验证和测试集上的总体指标](../../runs/all-models-summary-validation-20261020/all_model_comparison/all_model_metrics.png)
 
 ## 1. 如何阅读本报告
 
@@ -83,7 +83,7 @@ Prophet 从 4 组趋势灵活度、季节先验和加法/乘法配置中，选�
 | Decision Tree | 3.10% | 6.15% | 8.31% | 9.471 | 11.495 | 0.82% |
 | Seasonal naive | 17.28% | 14.49% | 16.21% | 18.481 | 21.125 | -2.24% |
 
-![商超最终 28 天真实销量与模型预测](../runs/all-models-summary-validation-20261020/all_model_comparison/grocery_test_predictions.png)
+![商超最终 28 天真实销量与模型预测](../../runs/all-models-summary-validation-20261020/all_model_comparison/grocery_test_predictions.png)
 
 ARIMA、Prophet 和 LSTM 的测试 MAE 相差不足 0.10，并且 Bias 接近零。ARIMA 的测试 WAPE 比 Seasonal naive 低 74.0%，说明稳定趋势、周期和业务变量比简单复制季节历史有效得多。
 
@@ -127,7 +127,7 @@ MLP 使用 16 个隐藏单元；LSTM 使用 32 个隐藏单元并在最终拟合
 | Decision Tree | 25.40% | 26.87% | 34.14% | 3.919 | 5.562 | -24.96% |
 | Seasonal naive | 74.03% | 55.34% | 59.68% | 6.852 | 8.863 | 35.16% |
 
-![红酒最终 28 天真实销量与模型预测](../runs/all-models-summary-validation-20261020/all_model_comparison/wine_test_predictions.png)
+![红酒最终 28 天真实销量与模型预测](../../runs/all-models-summary-validation-20261020/all_model_comparison/wine_test_predictions.png)
 
 LSTM、Prophet 和 ARIMA 的测试 MAE 分别为 2.44096、2.44142 和 2.44196，最大差距只有 0.001。LSTM 的名义第一名不构成实质优势；Prophet 还同时取得更低的测试 RMSE 和更接近零的 Bias。
 
@@ -171,7 +171,7 @@ MLP 使用 16 个隐藏单元并在最终拟合选择 13 个 epoch；LSTM 使用
 | TFT | 17.57% | 10.10% | 17.23% | 9.502 | 10.992 | -15.63% |
 | Seasonal naive | 27.09% | 13.76% | 19.27% | 10.630 | 14.067 | -15.51% |
 
-![庭院用品最终 28 天真实销量与模型预测](../runs/all-models-summary-validation-20261020/all_model_comparison/garden_test_predictions.png)
+![庭院用品最终 28 天真实销量与模型预测](../../runs/all-models-summary-validation-20261020/all_model_comparison/garden_test_predictions.png)
 
 MLP 的测试 WAPE 比 Seasonal naive 低 49.4%，且 Bias 只有 0.98%。然而四窗口验证的排序不同：Prophet、ARIMA、LightGBM 和 CatBoost 分别为 9.47%、9.48%、9.69% 和 9.92%，MLP 则为 12.43%。
 
@@ -217,7 +217,7 @@ MLP 使用 32 个隐藏单元；LSTM 降至 16 个隐藏单元并只训练 5 个
 | ARIMA | 0.098 | 0.253 | 0.366 | 0.417 | 197.5% | 85.2% |
 | XGBoost | 0.062 | 0.192 | 0.368 | 0.502 | 198.8% | 38.1% |
 
-![奢侈品手袋最终 28 天真实销量与模型预测](../runs/all-models-summary-validation-20261020/all_model_comparison/luxury_test_predictions.png)
+![奢侈品手袋最终 28 天真实销量与模型预测](../../runs/all-models-summary-validation-20261020/all_model_comparison/luxury_test_predictions.png)
 
 测试期实际总销量为 5。CatBoost 和 Seasonal naive 的 Bias 均为 -100%，意味着预测总量为零；它们的 MAE 第一来自“多数日期确实为零”，而不是命中正销量事件。Prophet 的 MAE 较高，但 RMSE 最低且总量低估较少。这两个方向回答的是不同问题：前者优化日级平均误差，后者减少大误差并保留一定需求信号。
 
@@ -265,7 +265,7 @@ LSTM 在红酒测试中名义第一，MLP 在庭院测试中第一，证明神�
 
 TFT 每场景调参约需 217 至 257 秒，是 Prophet 的约 200 倍，也是三种神经网络中最慢的。最终模型包含约 34,853 至 65,177 个参数，编码窗口为 84 天；相对于约 1,000 个可用日观测，容量偏大。早停在奢侈品上只选择 1 个 epoch、庭院 7 个 epoch，也说明训练协议主动限制了过拟合。当前数据下，TFT 应作为复杂模型上限和教学基准；除非增加多商品联合训练、更多历史或静态/已知未来协变量，否则不应默认采用。
 
-![三种神经网络的最终测试预测比较](../runs/all-models-summary-validation-20261020/neural_comparison/neural_test_predictions.png)
+![三种神经网络的最终测试预测比较](../../runs/all-models-summary-validation-20261020/neural_comparison/neural_test_predictions.png)
 
 ### 6.4 面向使用场景的选择矩阵
 

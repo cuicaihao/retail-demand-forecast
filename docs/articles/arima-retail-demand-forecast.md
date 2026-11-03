@@ -16,7 +16,7 @@ Prophet 教程用显式模块表达趋势、周期和业务效应。本篇沿着
 
 自回归积分滑动平均模型（Autoregressive Integrated Moving Average，ARIMA）组合了自回归、差分与滑动平均项，用于描述序列的时间依赖 [1]。本文从简单模型推到带 ARIMA 误差的回归，再检查额外的时间结构是否改善未来预测。
 
-配套文件为 [ARIMA Notebook](../notebooks/31-arima-tutorial.ipynb)。在下载包根目录启动 Jupyter，Notebook 会读取已有 CSV，完成训练、滚动验证、最终测试、参数检查、新息诊断和区间图。完整实现位于 `src/retail_forecast/arima.py` 与 `src/retail_forecast/common.py`。
+配套文件为 [ARIMA Notebook](../../notebooks/31-arima-tutorial.ipynb)。在下载包根目录启动 Jupyter，Notebook 会读取已有 CSV，完成训练、滚动验证、最终测试、参数检查、新息诊断和区间图。完整实现位于 `src/retail_forecast/arima.py` 与 `src/retail_forecast/common.py`。
 
 ## 二、问题评估与数据：我们究竟要预测什么？
 
@@ -179,7 +179,7 @@ $$
 
 结果需要分层理解。纯 ARIMA 与 SARIMA 没有业务计划，业务回归能够使用这些计划；动态回归和独立误差回归则共享外生特征。在相同窗口中检查后两者，才能讨论剩余时间相关结构的价值。小样本差异仍可能来自随机波动，本文没有做稳定优劣的显著性检验。
 
-![各回测窗口的 WAPE](../artifacts/published/model-series/arima/rolling_heatmap.png)
+![各回测窗口的 WAPE](../../data/artifacts/published/model-series/arima/rolling_heatmap.png)
 
 参数检查单元列出拟合参数；新息诊断在最长连续有效训练片段上画 ACF，并做 Ljung–Box 检查，保留日滞后的含义。样本片段的非显著结果只能表示未发现指定滞后的相关证据；未来性能仍要由时间窗口评价。缺货标签被屏蔽，也没有自动恢复被供给限制的潜在需求。
 

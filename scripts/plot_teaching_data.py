@@ -14,7 +14,9 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "artifacts" / "generated" / "prophet" / "teaching_data_overview.png"
+OUTPUT = (
+    ROOT / "data" / "artifacts" / "generated" / "prophet" / "teaching_data_overview.png"
+)
 
 
 def main():

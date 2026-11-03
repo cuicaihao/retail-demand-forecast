@@ -14,9 +14,6 @@ htmlcov/
 
 # Data and experiment artifacts are regenerated locally. Keep only directory
 # placeholders so CSV, images, manifests, and model output never reach Git.
-/artifacts/**
-!/artifacts/**/
-!/artifacts/**/.gitkeep
 /data/**
 !/data/**/
 !/data/**/.gitkeep
@@ -25,8 +22,8 @@ models/
 dist/
 *.log
 images/**
-!/reports/
-!/reports/**
+!/docs/
+!/docs/**
 
 .vscode/
 .idea/

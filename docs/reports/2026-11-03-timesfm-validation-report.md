@@ -88,7 +88,7 @@
 
 ### 3.2 场景对决图景与深度分析
 
-![四场景预测曲线与置信区间对比图](../images/tsfm/fig-tsfm-01-four-scenarios-comparison.png)
+![四场景预测曲线与置信区间对比图](../../images/tsfm/fig-tsfm-01-four-scenarios-comparison.png)
 
 1. **商超场景（Grocery，均值 109.5）**：
    - TimesFM 3.0 展现出极致的周周期捕捉能力，点预测与 Prophet 高度重合，WAPE 达到惊人的 **5.13%**。
@@ -120,7 +120,7 @@
 
 ### 4.2 删失污染机制与预测下移诊断
 
-![缺货删失污染与预测偏差对比图](../images/tsfm/fig-tsfm-03-stockout-censoring-impact.png)
+![缺货删失污染与预测偏差对比图](../../images/tsfm/fig-tsfm-03-stockout-censoring-impact.png)
 
 1. **系统性负向偏差扩大近 5 倍**：
    - 如上图 (B) 所示，未清洗的原始输入导致预测曲线（红色虚线）整体相对真实需求（黑色实心点）产生了明显的向下平移。
@@ -160,7 +160,7 @@
 
 ### 5.2 冷启动误差衰减曲线分析
 
-![冷启动样本退化曲线对比图](../images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png)
+![冷启动样本退化曲线对比图](../../images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png)
 
 1. **树模型在极短窗口下彻底失效（断崖效应）**：
    - 当历史缩短至 14 天时，LightGBM 在三个场景中的 WAPE 全部直接打满至 **100.00%**。

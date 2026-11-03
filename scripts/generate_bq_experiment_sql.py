@@ -437,7 +437,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default=str(ROOT / "sql" / "bigquery_timesfm_experiments.sql"),
+        default=str(
+            ROOT
+            / "src"
+            / "retail_forecast"
+            / "sql"
+            / "bigquery_timesfm_experiments.sql"
+        ),
         help="Target SQL file path",
     )
     args = parser.parse_args()

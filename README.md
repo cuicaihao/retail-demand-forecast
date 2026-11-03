@@ -28,9 +28,21 @@
 
 ```text
 retail-demand-forecast/
+├── data/                       # 数据与 Schema 契约源头，以及参考基准快照 (data/artifacts/)
+│   ├── teaching/               # [本地生成] 四套合成场景 CSV、BigQuery Schema JSON 与哈希清单
+│   └── artifacts/              # [本地生成] 经审核的参考快照 (published/) 与中间产物
+├── docs/                       # 📚 统一文档中心 (系列博客、技术报告与学术文献)
+│   ├── articles/               # 对外发布的系列长文 (*-retail-demand-forecast.md)
+│   │   └── figures/            # 博客插图
+│   ├── reports/                # 内部量化实证报告与系统设计 (YYYY-MM-DD-*.md)
+│   └── references/             # 学术文献与经典论文 PDF 存档 (如 Prophet 2017)
+├── images/                     # [本地生成] 教学数据总览与出版级实验对比图表 (.png / .webp)
+├── models/                     # [本地生成] 教学参考模型权重快照 (models/reference/)
 ├── notebooks/                  # 17 个循序渐进的交互式教学与基准评测 Notebook (00 ~ 36)
+├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (runs/<run-id>/)
+├── scripts/                    # 自动化与运维脚本 (基准评测、数据绘图、Notebook 生成与发布打包)
 ├── src/
-│   └── retail_forecast/        # 核心 Python 包：统一数据契约、特征工程与各模型家族实现
+│   └── retail_forecast/        # 核心 Python 库与生产 SQL 资产
 │       ├── common.py           # 数据加载、SHA256 校验、滚动验证窗口切分与统一评价指标
 │       ├── prophet_benchmark.py# Prophet 建模与调参评测模块
 │       ├── arima.py            # SARIMAX / 动态回归实现
@@ -39,20 +51,9 @@ retail-demand-forecast/
 │       ├── tft.py              # Temporal Fusion Transformer (TFT) 训练与推理封装
 │       ├── autogluon_benchmark.py # AutoGluon-TimeSeries 自动集成评测模块
 │       ├── timesfm_benchmark.py# TimesFM 时序大模型评测与基准对比模块
-│       └── model_comparison.py # 跨模型家族统一汇总、切片分析与图表生成
-├── data/
-│   ├── README.md               # 数据生成与防覆盖策略说明
-│   └── teaching/               # [本地生成] 四套合成场景 CSV、BigQuery Schema JSON 与哈希清单
-├── sql/                        # 生产级 BigQuery SQL（含 TimesFM 原生 AI.FORECAST 全套受控实验）
-├── scripts/                    # 自动化脚本（基准评测、数据绘图、运行校验、Notebook 生成与发布打包）
-├── tests/                      # 单元测试（仓库布局规范、数据哈希一致性、模型基准测试）
-├── references/                 # 参考文献与论文存档（如 Prophet 2017 原始论文）
-├── artifacts/                  # [本地生成] 经审核的参考快照 (published/) 与中间产物，详见 artifacts/README.md
-├── models/                     # [本地生成] 教学参考模型权重快照 (models/reference/)
-├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (runs/<run-id>/)
-├── images/                     # [本地生成] 教学数据总览与实验对比图表 (.png / .webp)
-├── articles/                   # [本地/develop] 系列技术博客文稿与配图 (figures/)
-└── reports/                    # [本地/develop] 受控实验方案协议、量化实证报告与系统架构设计文档
+│       ├── model_comparison.py # 跨模型家族统一汇总、切片分析与图表生成
+│       └── sql/                # 生产级 BigQuery SQL (含 TimesFM 原生 AI.FORECAST 全套受控实验)
+└── tests/                      # 单元测试 (仓库布局规范、数据哈希一致性、模型基准测试)
 ```
 
 ---
@@ -105,5 +106,5 @@ uv run python scripts/validate_artifacts.py runs/<run-id>
 
 ## 🌿 分支规范与本地产物策略 (Branch & Artifact Policy)
 
-- **`main` 分支（远端同步分支）**：保持精简、干净且 100% 可复现，仅追踪核心源码 (`src/`)、无输出状态的教学 Notebook (`notebooks/`)、工具脚本 (`scripts/`)、单元测试 (`tests/`) 与项目文档。生成的数据 (`data/teaching/`)、运行输出 (`runs/`)、模型权重 (`models/`)、配图 (`images/`) 与未定稿报告默认通过 [.gitignore](.gitignore) 忽略，详情参见 [data/README.md](data/README.md) 与 [artifacts/README.md](artifacts/README.md)。
-- **`develop` 分支（本地实验与报告分支）**：用于在本地环境（如 Mac mini）开展前沿模型受控实验（例如 Google TimesFM 零样本与协变量基准测试）、保存实验计划 (`articles/`) 与深度评测报告 (`reports/`)。
+- **`main` 分支（远端同步分支）**：保持精简、干净且 100% 可复现，仅追踪核心源码 (`src/`)、无输出状态的教学 Notebook (`notebooks/`)、工具脚本 (`scripts/`)、单元测试 (`tests/`) 与项目文档 (`docs/`)。生成的数据 (`data/teaching/`)、运行输出 (`runs/`)、模型权重 (`models/`)、配图 (`images/`) 与参考快照 (`data/artifacts/`) 默认通过 [.gitignore](.gitignore) 忽略，详情参见 [data/README.md](data/README.md) 与 [data/artifacts/README.md](data/artifacts/README.md)。
+- **`develop` 分支（本地实验与报告分支）**：用于在本地环境（如 Mac mini）开展前沿模型受控实验（例如 Google TimesFM 零样本与协变量基准测试）、保存实验计划与深度评测报告 (`docs/reports/`)。

@@ -96,7 +96,7 @@ cells = [
         "source": [
             "## 2. BigQuery 原生 TimesFM 3.0 预测结果加载\n",
             "\n",
-            "在云端，我们通过如下标准 BigQuery SQL 语法调用托管的 TimesFM 3.0（完整脚本见 `sql/bigquery_timesfm_experiments.sql`）：\n",
+            "在云端，我们通过如下标准 BigQuery SQL 语法调用托管的 TimesFM 3.0（完整脚本见 `src/retail_forecast/sql/bigquery_timesfm_experiments.sql`）：\n",
             "\n",
             "```sql\n",
             "SELECT\n",
@@ -252,7 +252,7 @@ cells = [
             "2. **基础模型不能免除数据去偏**：时序大模型无法自发修正删失截断，必须在特征入湖前完成缺货标记与平滑插补；\n",
             "3. **In-Database AI 全托管范式**：通过 BigQuery `AI.FORECAST` 直接在数仓内执行批量时序大模型预测，大幅降低了环境依赖与运维成本。\n",
             "\n",
-            "> 详细量化指标与架构设计请参阅报告：[`reports/2026-11-03-timesfm-validation-report.md`](../reports/2026-11-03-timesfm-validation-report.md)。\n",
+            "> 详细量化指标与架构设计请参阅报告：[`docs/reports/2026-11-03-timesfm-validation-report.md`](../docs/reports/2026-11-03-timesfm-validation-report.md)。\n",
         ],
     },
 ]

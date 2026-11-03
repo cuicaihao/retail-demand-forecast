@@ -14,7 +14,7 @@ math: true
 
 Prophet 和业务动态回归为每个模块预先指定结构。回归树可以根据特征阈值分组，再为不同组合学习预测值。**树模型的需求预测能力取决于特征在预测起点是否可见，以及这些特征是否表达了业务变化。**
 
-本篇继续使用相同的合成案例、VIC 假日表和 28 天补货期限。配套 [LightGBM Notebook](../notebooks/32c-lightgbm-tutorial.ipynb)、[XGBoost Notebook](../notebooks/32d-xgboost-tutorial.ipynb) 和 [五模型比较 Notebook](../notebooks/32f-tree-model-comparison.ipynb) 使用统一的起点历史摘要，并实际运行四个训练期滚动窗口和最终测试。完整训练实现位于 `src/retail_forecast/trees.py`。
+本篇继续使用相同的合成案例、VIC 假日表和 28 天补货期限。配套 [LightGBM Notebook](../../notebooks/32c-lightgbm-tutorial.ipynb)、[XGBoost Notebook](../../notebooks/32d-xgboost-tutorial.ipynb) 和 [五模型比较 Notebook](../../notebooks/32f-tree-model-comparison.ipynb) 使用统一的起点历史摘要，并实际运行四个训练期滚动窗口和最终测试。完整训练实现位于 `src/retail_forecast/trees.py`。
 
 文章用同一条主线串联业务评估、特征、模型计算、解释、验证和交付，让读者能够判断某个特征改善来自哪里，以及获得的改善是否值得维护成本。
 
@@ -170,7 +170,7 @@ Notebook 替换未来 `y` 为极端占位值，检查生成的输入特征完全
 
 `+ history` 对照同时改变了特征和样本展开方式。改善应解释为这套完整方案的收益；若希望归因到某一列，需要进一步固定训练样本，只移除该列做消融。
 
-![各回测窗口的 WAPE](../artifacts/published/model-series/trees/rolling_heatmap.png)
+![各回测窗口的 WAPE](../../data/artifacts/published/model-series/trees/rolling_heatmap.png)
 
 分裂重要性描述某个特征在训练中被用于降低损失的程度。相关特征可能分摊或替代重要性；折扣与高需求日期的共同出现也可能影响解释。因此，重要性和预测差异不直接证明促销的因果增量。
 
