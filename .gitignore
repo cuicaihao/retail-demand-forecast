@@ -1,10 +1,27 @@
+# Operating System
 .DS_Store
+._*
+
+# Python environment & bytecode
 .venv/
 .python-version
-.ipynb_checkpoints/
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 
+# Packaging & distributions
+build/
+/dist/
+*.egg-info/
+.eggs/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Testing & Linting caches
 .cache/
 .pytest_cache/
 .ruff_cache/
@@ -12,19 +29,30 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# IDE & Editor artifacts
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
 # Data and experiment artifacts are regenerated locally. Keep only directory
 # placeholders so CSV, images, manifests, and model output never reach Git.
 /data/**
 !/data/**/
 !/data/**/.gitkeep
+!/data/**/*.md
+!/data/*.md
 !/data/benchmarks/**
-runs/
-dist/
-*.log
-images/**
-!/docs/
-!/docs/**
 
-.vscode/
-.idea/
-*.code-workspace
+# Local experiment runs and generated visual assets
+/runs/
+/images/**
+!/images/**/.gitkeep
