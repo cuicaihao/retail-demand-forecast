@@ -139,11 +139,12 @@ def origin_training(
 
 def _new_estimator(model_name: str, params: dict, n_estimators: int | None = None):
     common = {"random_state": SEED}
+    p = params.copy()
     if model_name == "Decision Tree":
-        return DecisionTreeRegressor(**common, **params)
+        return DecisionTreeRegressor(**common, **p)
     if model_name == "Random Forest":
         return RandomForestRegressor(
-            n_estimators=300, n_jobs=CPU_THREADS, **common, **params
+            n_estimators=300, n_jobs=CPU_THREADS, **common, **p
         )
     if model_name == "LightGBM":
         return LGBMRegressor(
@@ -151,29 +152,32 @@ def _new_estimator(model_name: str, params: dict, n_estimators: int | None = Non
             n_jobs=CPU_THREADS,
             verbosity=-1,
             **common,
-            **params,
+            **p,
         )
     if model_name == "XGBoost":
+        objective = p.pop("objective", "reg:squarederror")
+        eval_metric = p.pop("eval_metric", "mae")
         return XGBRegressor(
             n_estimators=n_estimators or 600,
-            objective="reg:squarederror",
+            objective=objective,
             tree_method="hist",
             n_jobs=CPU_THREADS,
-            eval_metric="mae",
+            eval_metric=eval_metric,
             subsample=1.0,
             colsample_bytree=1.0,
             **common,
-            **params,
+            **p,
         )
     if model_name == "CatBoost":
+        loss_function = p.pop("loss_function", "MAE")
         return CatBoostRegressor(
             iterations=n_estimators or 600,
-            loss_function="MAE",
+            loss_function=loss_function,
             random_seed=SEED,
             thread_count=CPU_THREADS,
             verbose=False,
             allow_writing_files=False,
-            **params,
+            **p,
         )
     raise KeyError(model_name)
 
@@ -228,6 +232,21 @@ def predict_model(bundle, history, future, scenario):
     pd.testing.assert_frame_equal(features, origin_features(history, changed, scenario))
     assert list(features) == bundle["columns"]
     return bundle["model"].predict(features)
+
+
+def fit_predict_tree_model(
+    history: pd.DataFrame,
+    future: pd.DataFrame,
+    scenario: str,
+    model_name: str = "LightGBM",
+    params: dict | None = None,
+) -> np.ndarray:
+    """Fit tree model on history and predict on future, applying valid mask and clamping."""
+    if params is None:
+        params, _, _ = tune_model(scenario, model_name)
+    bundle, _ = fit_model(history, scenario, model_name, params)
+    raw = predict_model(bundle, history, future, scenario)
+    return sales_prediction(future, raw)
 
 
 def _prediction_frame(future, raw, scenario, model_name, split, regime, origin):
