@@ -18,7 +18,6 @@ htmlcov/
 !/data/**/
 !/data/**/.gitkeep
 runs/
-models/
 dist/
 *.log
 images/**

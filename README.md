@@ -28,16 +28,16 @@
 
 ```text
 retail-demand-forecast/
-├── data/                       # 数据与 Schema 契约源头，以及参考基准快照 (data/artifacts/)
+├── data/                       # 📊 数据与模型资产 (源数据、基准快照、模型权重)
 │   ├── teaching/               # [本地生成] 四套合成场景 CSV、BigQuery Schema JSON 与哈希清单
-│   └── artifacts/              # [本地生成] 经审核的参考快照 (published/) 与中间产物
+│   ├── artifacts/              # [本地生成] 经审核的参考快照 (published/) 与中间产物
+│   └── models/                 # [本地生成] 教学参考模型权重快照 (data/models/reference/)
 ├── docs/                       # 📚 统一文档中心 (系列博客、技术报告与学术文献)
 │   ├── articles/               # 对外发布的系列长文 (*-retail-demand-forecast.md)
 │   │   └── figures/            # 博客插图
 │   ├── reports/                # 内部量化实证报告与系统设计 (YYYY-MM-DD-*.md)
 │   └── references/             # 学术文献与经典论文 PDF 存档 (如 Prophet 2017)
 ├── images/                     # [本地生成] 教学数据总览与出版级实验对比图表 (.png / .webp)
-├── models/                     # [本地生成] 教学参考模型权重快照 (models/reference/)
 ├── notebooks/                  # 17 个循序渐进的交互式教学与基准评测 Notebook (00 ~ 36)
 ├── runs/                       # [本地生成] 每次实验运行的独立输出目录 (runs/<run-id>/)
 ├── scripts/                    # 自动化与运维脚本 (基准评测、数据绘图、Notebook 生成与发布打包)
@@ -106,5 +106,5 @@ uv run python scripts/validate_artifacts.py runs/<run-id>
 
 ## 🌿 分支规范与本地产物策略 (Branch & Artifact Policy)
 
-- **`main` 分支（远端同步分支）**：保持精简、干净且 100% 可复现，仅追踪核心源码 (`src/`)、无输出状态的教学 Notebook (`notebooks/`)、工具脚本 (`scripts/`)、单元测试 (`tests/`) 与项目文档 (`docs/`)。生成的数据 (`data/teaching/`)、运行输出 (`runs/`)、模型权重 (`models/`)、配图 (`images/`) 与参考快照 (`data/artifacts/`) 默认通过 [.gitignore](.gitignore) 忽略，详情参见 [data/README.md](data/README.md) 与 [data/artifacts/README.md](data/artifacts/README.md)。
+- **`main` 分支（远端同步分支）**：保持精简、干净且 100% 可复现，仅追踪核心源码 (`src/`)、无输出状态的教学 Notebook (`notebooks/`)、工具脚本 (`scripts/`)、单元测试 (`tests/`) 与项目文档 (`docs/`)。生成的数据 (`data/teaching/`)、运行输出 (`runs/`)、模型权重 (`data/models/`)、配图 (`images/`) 与参考快照 (`data/artifacts/`) 默认通过 [.gitignore](.gitignore) 忽略，详情参见 [data/README.md](data/README.md) 与 [data/artifacts/README.md](data/artifacts/README.md)。
 - **`develop` 分支（本地实验与报告分支）**：用于在本地环境（如 Mac mini）开展前沿模型受控实验（例如 Google TimesFM 零样本与协变量基准测试）、保存实验计划与深度评测报告 (`docs/reports/`)。

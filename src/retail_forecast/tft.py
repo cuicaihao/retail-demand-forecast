@@ -209,12 +209,13 @@ def predict_tft(bundle, full_frame, scenario, origin, placeholder=0.0):
 def restore_tft(history, scenario, regime):
     checkpoint = (
         ROOT
+        / "data"
         / "models"
         / "reference"
         / "tft"
         / f"{scenario + '_' + regime if regime != 'final' else scenario}_tft.ckpt"
     )
-    checkpoint_dir = ROOT / "models" / "reference" / "tft"
+    checkpoint_dir = ROOT / "data" / "models" / "reference" / "tft"
     manifest = json.loads((checkpoint_dir / "comparison_manifest.json").read_text())
     for name, digest in manifest["input_sha256"].items():
         assert hashlib.sha256((DATA_DIR / name).read_bytes()).hexdigest() == digest

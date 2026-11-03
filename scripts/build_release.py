@@ -44,7 +44,7 @@ PACKAGES = {
         "src/retail_forecast",
         "data/teaching",
         "data/artifacts/published/model-series",
-        "models/reference/tft",
+        "data/models/reference/tft",
         "pyproject.toml",
     ],
 }
@@ -61,7 +61,7 @@ def files_for(entries: list[str]):
             )
         elif path.is_file():
             yield path
-        elif entry.startswith("models/"):
+        elif entry.startswith("data/models/"):
             continue
         else:
             raise FileNotFoundError(path)
