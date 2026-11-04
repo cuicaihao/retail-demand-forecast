@@ -24,9 +24,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import sys
 import time
-from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -40,14 +41,18 @@ from retail_forecast.baselines import (
     SeasonalNaiveForecaster,
 )
 from retail_forecast.benchmark_registry import (
+    BENCHMARK_DIR,
     RESULTS_DIR,
+    SUMMARY_DIR,
     ModelConfig,
+    RollingFold,
     compute_standard_metrics,
     generate_leaderboard,
     generate_week_aligned_folds,
     save_rolling_benchmark_results,
 )
 from retail_forecast.common import (
+    DATA_DIR,
     HORIZON,
     INPUT_HASHES,
     SCENARIOS,
@@ -61,7 +66,7 @@ from retail_forecast.trees import fit_predict_tree_model, tune_model
 # 模型变种注册字典 (Model Registry & Configuration Matrix)
 # =====================================================================
 
-MODEL_REGISTRY: dict[str, ModelConfig] = {
+MODEL_REGISTRY: Dict[str, ModelConfig] = {
     # 1. Baseline Family
     "seasonal_naive": ModelConfig(
         model_id="seasonal_naive",
@@ -271,7 +276,7 @@ def run_single_model_benchmark(
     model_config: ModelConfig,
     eval_mode: str = "4week",
     train_weeks: int = 24,
-    scenarios: list[str] | None = None,
+    scenarios: Optional[List[str]] = None,
     force: bool = False,
 ) -> Path:
     """
@@ -289,14 +294,14 @@ def run_single_model_benchmark(
     folds = generate_week_aligned_folds(
         mode=eval_mode, train_weeks=train_weeks, horizon_days=HORIZON
     )
-    print("\n========================================================")
+    print(f"\n========================================================")
     print(f"Executing Benchmark: {model_config.model_name}")
     print(f"Model ID: {model_config.model_id} | Family: {model_config.family}")
     print(
         f"Evaluation Mode: {eval_mode} ({len(folds)} folds) | Train History: {train_weeks} weeks"
     )
     print(f"Scenarios: {scenarios}")
-    print("========================================================\n")
+    print(f"========================================================\n")
 
     all_preds_rows = []
     all_period_metrics = []
