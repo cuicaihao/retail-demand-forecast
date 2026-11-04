@@ -7,11 +7,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib import font_manager
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-import pandas as pd
-
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = (

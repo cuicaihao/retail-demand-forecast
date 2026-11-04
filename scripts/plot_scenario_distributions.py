@@ -5,13 +5,14 @@ illustrating the impact of store closures and stockout censoring.
 """
 
 from pathlib import Path
+
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
 import numpy as np
 import pandas as pd
+from matplotlib import font_manager
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -281,7 +282,7 @@ def plot_scenario_distributions():
     ax.text(
         0,
         1040,
-        f"0 销售合计\n1,026 天 (93.6%)",
+        "0 销售合计\n1,026 天 (93.6%)",
         ha="center",
         va="bottom",
         fontsize=8.5,
@@ -516,7 +517,7 @@ def plot_scenario_distributions():
     ax.text(
         0,
         1035,
-        f"依然有 1,020 天\n严格为 0 (93.58%)",
+        "依然有 1,020 天\n严格为 0 (93.58%)",
         ha="center",
         va="bottom",
         fontsize=8.5,

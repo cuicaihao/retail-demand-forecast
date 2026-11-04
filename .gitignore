@@ -62,3 +62,4 @@ htmlcov/
 !/images/**/
 !/images/**/.gitkeep
 !/images/tweedie/**
+!/images/benchmarks/**

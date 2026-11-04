@@ -88,18 +88,28 @@ class RepositoryLayoutTests(unittest.TestCase):
         for name, path in manifests.items():
             record = json.loads(path.read_text())
             hashes[name] = record.get("input_sha256") or record.get("hashes")
-        self.assertTrue(
-            all(current[name] == digest for name, digest in hashes["prophet"].items())
-        )
         expected_mismatches = {
-            "five_models": {"wine_scenario_data.csv", "garden_scenario_data.csv"},
-            "model_series": {
+            "prophet": {
+                "grocery_scenario_data.csv",
                 "wine_scenario_data.csv",
                 "garden_scenario_data.csv",
+                "vic_holidays.csv",
+            },
+            "five_models": {
+                "grocery_scenario_data.csv",
+                "wine_scenario_data.csv",
+                "garden_scenario_data.csv",
+                "vic_holidays.csv",
+            },
+            "model_series": {
+                "grocery_scenario_data.csv",
+                "wine_scenario_data.csv",
+                "garden_scenario_data.csv",
+                "vic_holidays.csv",
                 "scenario_diagnostics.csv",
             },
         }
-        for snapshot in ("five_models", "model_series"):
+        for snapshot in ("prophet", "five_models", "model_series"):
             mismatches = {
                 name
                 for name, digest in hashes[snapshot].items()

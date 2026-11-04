@@ -1,9 +1,13 @@
+import hashlib
+import json
+import os
+import time
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
-import json, hashlib, os, time, warnings
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
@@ -14,7 +18,7 @@ ENCODER_LENGTH = 84
 SEED = 42
 CPU_THREADS = 2
 RUN_ID = os.environ.get("RETAIL_FORECAST_RUN_ID") or (
-    datetime.now(timezone.utc).strftime("%Y%m%d") + "-experiment-run"
+    datetime.now(UTC).strftime("%Y%m%d") + "-experiment-run"
 )
 RUNS_DIR = ROOT / "runs" / RUN_ID
 THREAD_LIMITER = threadpool_limits(limits=CPU_THREADS)

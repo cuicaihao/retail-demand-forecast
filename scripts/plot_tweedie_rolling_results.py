@@ -5,13 +5,13 @@ Generate high-resolution figures for the 12-Month Walk-Forward Rolling Window Ex
 """
 
 from pathlib import Path
+
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
-import numpy as np
 import pandas as pd
+from matplotlib import font_manager
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -1,37 +1,28 @@
 from __future__ import annotations
 
-import gc
-import json
-import os
 import time
-from pathlib import Path
 from typing import Any
+
+import numpy as np
+import pandas as pd
 
 # =====================================================================
 # 关键：在 macOS Apple Silicon 上，PyTorch / TimesFM 必须在 LightGBM (libomp)
 # 之前加载，避免 OpenMP 动态库初始化顺序冲突引发的段错误 (Exit code 139)
 # =====================================================================
 import timesfm
-import numpy as np
-import pandas as pd
 from lightgbm import LGBMRegressor
 from prophet import Prophet
 
 from .common import (
     CPU_THREADS,
-    DATA_DIR,
-    ENCODER_LENGTH,
-    HORIZON,
     SCENARIOS,
     SEED,
-    datasets,
     make_features,
-    metrics,
     sales_prediction,
     valid_labels,
     vic_holidays,
 )
-
 
 # =====================================================================
 # 1. 经典基线与传统模型

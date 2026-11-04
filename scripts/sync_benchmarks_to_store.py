@@ -5,10 +5,9 @@ into data/benchmarks/results/<model_key>/.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -18,10 +17,8 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from retail_forecast.benchmark_registry import (
-    BENCHMARK_DIR,
     RESULTS_DIR,
     SUMMARY_DIR,
-    compute_standard_metrics,
     generate_leaderboard,
     save_benchmark_results,
 )

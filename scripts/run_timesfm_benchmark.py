@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
@@ -13,9 +13,7 @@ import numpy as np
 import pandas as pd
 
 from retail_forecast.common import (
-    DATA_DIR,
     HORIZON,
-    SCENARIOS,
     datasets,
     sales_prediction,
     valid_labels,
@@ -24,7 +22,6 @@ from retail_forecast.timesfm_benchmark import (
     compute_metrics,
     fit_predict_lightgbm,
     fit_predict_prophet,
-    predict_croston_sba,
     predict_seasonal_naive,
 )
 

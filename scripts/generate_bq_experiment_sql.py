@@ -124,7 +124,7 @@ def generate_sql(
     sql.append("-- 0. 确保输出数据集存在")
     sql.append("-- 注意：BigQuery Web UI 在执行前会对全脚本进行静态 Dry Run 检查。")
     sql.append(
-        f"-- 若 dataset 尚未创建，请先选中本行点击『Run selected』，或在终端执行："
+        "-- 若 dataset 尚未创建，请先选中本行点击『Run selected』，或在终端执行："
     )
     sql.append(
         f"--   bq mk -d --project_id={project_id} --location=US {output_dataset}"

@@ -4,6 +4,7 @@ import time
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.preprocessing import StandardScaler
 
 from .common import *
 from .tft import fit_tft, predict_tft, restore_tft
