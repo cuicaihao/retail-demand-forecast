@@ -49,6 +49,7 @@ from retail_forecast.benchmark_registry import (
     compute_standard_metrics,
     generate_leaderboard,
     generate_week_aligned_folds,
+    get_model_result_dir,
     save_rolling_benchmark_results,
 )
 from retail_forecast.common import (
@@ -243,7 +244,7 @@ def _is_cache_valid(
     model_config: ModelConfig, eval_mode: str, train_weeks: int
 ) -> bool:
     """Check if model results already exist and match current input hashes & params."""
-    res_dir = RESULTS_DIR / model_config.model_id
+    res_dir = get_model_result_dir(model_config.model_id, eval_mode=eval_mode)
     manifest_path = res_dir / "manifest.json"
     ann_path = res_dir / "metrics_annual.csv"
     per_path = res_dir / "metrics_period.csv"
@@ -289,7 +290,7 @@ def run_single_model_benchmark(
         print(
             f"[{model_config.model_id}] Up-to-date benchmark cache found. Skipping execution. (Use --force to recompute)"
         )
-        return RESULTS_DIR / model_config.model_id
+        return get_model_result_dir(model_config.model_id, eval_mode=eval_mode)
 
     folds = generate_week_aligned_folds(
         mode=eval_mode, train_weeks=train_weeks, horizon_days=HORIZON
@@ -580,10 +581,8 @@ def main():
         return
 
     if args.compare_only:
-        print(
-            "Refreshing global benchmark leaderboard from data/benchmarks/results/..."
-        )
-        generate_leaderboard()
+        print(f"Refreshing benchmark leaderboard for mode '{args.mode}'...")
+        generate_leaderboard(eval_mode=args.mode)
         return
 
     # Resolve target models
@@ -631,8 +630,8 @@ def main():
             force=args.force,
         )
 
-    print("\nRefreshing global leaderboard...")
-    generate_leaderboard()
+    print(f"\nRefreshing global leaderboard for mode '{args.mode}'...")
+    generate_leaderboard(eval_mode=args.mode)
 
 
 if __name__ == "__main__":

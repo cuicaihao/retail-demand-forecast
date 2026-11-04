@@ -254,9 +254,23 @@ def compute_standard_metrics(
 # =====================================================================
 
 
-def get_model_result_dir(model_id: str) -> Path:
-    """Return the dedicated storage path for a model's benchmark results."""
-    model_dir = RESULTS_DIR / model_id
+def get_benchmark_dirs(eval_mode: str = "4week") -> tuple[Path, Path]:
+    """
+    Return (results_dir, summary_dir) for a specific evaluation mode.
+    - '4week': canonical 'data/benchmarks/results/' and 'data/benchmarks/summary/'
+    - other modes (e.g. 'weekly'): isolated 'data/benchmarks/results_<mode>/'
+    """
+    if eval_mode == "4week":
+        return RESULTS_DIR, SUMMARY_DIR
+    res_dir = BENCHMARK_DIR / f"results_{eval_mode}"
+    sum_dir = BENCHMARK_DIR / f"summary_{eval_mode}"
+    return res_dir, sum_dir
+
+
+def get_model_result_dir(model_id: str, eval_mode: str = "4week") -> Path:
+    """Return the dedicated storage path for a model's benchmark results under the given eval mode."""
+    results_dir, _ = get_benchmark_dirs(eval_mode)
+    model_dir = results_dir / model_id
     model_dir.mkdir(parents=True, exist_ok=True)
     return model_dir
 
@@ -385,7 +399,7 @@ def save_rolling_benchmark_results(
     4. manifest.json: Metadata, input hashes, Git commit.
     5. model_report.md: Standalone markdown validation report.
     """
-    out_dir = get_model_result_dir(model_config.model_id)
+    out_dir = get_model_result_dir(model_config.model_id, eval_mode=eval_mode)
 
     predictions_df.to_csv(out_dir / "predictions.csv", index=False)
     metrics_period_df.to_csv(out_dir / "metrics_period.csv", index=False)
@@ -457,19 +471,22 @@ def save_benchmark_results(
 # =====================================================================
 
 
-def load_all_benchmark_results() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_all_benchmark_results(
+    eval_mode: str = "4week",
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Load all available model predictions and metrics from data/benchmarks/results/.
+    Load all available model predictions and metrics from the benchmark result store.
     Returns (all_annual_df, all_period_df, all_predictions_df).
     """
-    if not RESULTS_DIR.exists():
+    res_dir, _ = get_benchmark_dirs(eval_mode)
+    if not res_dir.exists():
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     all_annual = []
     all_period = []
     all_preds = []
 
-    for model_path in sorted(RESULTS_DIR.iterdir()):
+    for model_path in sorted(res_dir.iterdir()):
         if not model_path.is_dir() or model_path.name.startswith("."):
             continue
 
@@ -512,17 +529,22 @@ def load_all_benchmark_results() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFra
     return df_annual, df_period, df_preds
 
 
-def generate_leaderboard(output_dir: Path | None = None) -> pd.DataFrame:
+def generate_leaderboard(
+    eval_mode: str = "4week", output_dir: Path | None = None
+) -> pd.DataFrame:
     """
     Generate unified multi-model leaderboard from persisted benchmark results.
     Ranks models by mean annual test WAPE, MAE, RMSE across all 4 scenarios.
     """
-    df_annual, df_period, _ = load_all_benchmark_results()
+    df_annual, df_period, _ = load_all_benchmark_results(eval_mode=eval_mode)
     if df_annual.empty:
-        print("No benchmark results found to generate leaderboard.")
+        print(
+            f"No benchmark results found to generate leaderboard for mode: {eval_mode}."
+        )
         return pd.DataFrame()
 
-    out = output_dir or SUMMARY_DIR
+    _, sum_dir = get_benchmark_dirs(eval_mode)
+    out = output_dir or sum_dir
     out.mkdir(parents=True, exist_ok=True)
 
     # Model identifier column
