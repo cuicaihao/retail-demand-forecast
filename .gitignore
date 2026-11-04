@@ -63,3 +63,8 @@ htmlcov/
 !/images/**/.gitkeep
 !/images/tweedie/**
 !/images/benchmarks/**
+!/images/grocery-demand.*
+!/images/wine-demand.*
+!/images/garden-demand.*
+!/images/luxury-handbag-demand.*
+!/images/retail-demand-profile-adi-cv.*
