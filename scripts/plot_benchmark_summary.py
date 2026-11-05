@@ -62,23 +62,11 @@ def plot_fig01_annual_leaderboard(df_scenario: pd.DataFrame):
         "luxury": "Luxury Handbags (94% Zero-Inflated Intermittent)",
     }
 
-    selected_models = [
-        "Seasonal Naive (7d)",
-        "Moving Average (14d)",
-        "Prophet",
-        "Decision Tree",
-        "Random Forest",
-        "LightGBM Default (MSE)",
-        "XGBoost Default (MSE)",
-        "CatBoost Default (MAE)",
-        "LightGBM Tweedie (p=1.8)",
-        "XGBoost Tweedie (p=1.8)",
-    ]
-
     palette = {
         "Seasonal Naive (7d)": "#7F7F7F",
         "Moving Average (14d)": "#A6A6A6",
         "Prophet": "#9467BD",
+        "Regression + ARIMA (1,0,1)": "#BCBD22",
         "Decision Tree": "#8C564B",
         "Random Forest": "#E377C2",
         "LightGBM Default (MSE)": "#1F77B4",
@@ -92,7 +80,7 @@ def plot_fig01_annual_leaderboard(df_scenario: pd.DataFrame):
         ax = axes[idx]
         sub = df_scenario[
             (df_scenario["scenario"] == sc)
-            & (df_scenario["model_name"].isin(selected_models))
+            & (df_scenario["comparison_role"] == "breadth")
         ].copy()
         sub["WAPE_pct"] = sub["WAPE"] * 100
         sub = sub.sort_values("WAPE_pct", ascending=True)
@@ -142,6 +130,7 @@ def plot_fig02_trajectories(df_period: pd.DataFrame):
     key_models = [
         ("Seasonal Naive (7d)", "#7F7F7F", "--", "o"),
         ("Prophet", "#9467BD", "-.", "^"),
+        ("Regression + ARIMA (1,0,1)", "#BCBD22", "-", "P"),
         ("LightGBM Default (MSE)", "#1F77B4", "-", "s"),
         ("XGBoost Default (MSE)", "#2CA02C", "-", "v"),
         ("XGBoost Tweedie (p=1.8)", "#D62728", "-", "D"),

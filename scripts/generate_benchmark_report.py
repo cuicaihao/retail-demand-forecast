@@ -165,10 +165,10 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
 
     release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
     provenance = (
-        f"> Benchmark ID: `{benchmark_id}`  \n"
-        f"> Release ID: `{release_id}`  \n"
-        f"> Protocol hash: `{spec.protocol_hash}`  \n"
-        f"> Release manifest SHA-256: `{release_digest}`  \n"
+        f"> Benchmark ID: `{benchmark_id}`<br>\n"
+        f"> Release ID: `{release_id}`<br>\n"
+        f"> Protocol hash: `{spec.protocol_hash}`<br>\n"
+        f"> Release manifest SHA-256: `{release_digest}`<br>\n"
         "> Fold uncertainty intervals are descriptive; they are not claims of statistical significance.\n"
     )
     (output / "provenance.md").write_text(provenance, encoding="utf-8")

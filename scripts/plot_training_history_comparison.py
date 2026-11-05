@@ -44,26 +44,26 @@ def plot_comparison(comparison_id: str, release_id: str) -> Path:
         colors = ["#2166AC" if value >= 0 else "#B2182B" for value in frame.delta_pp]
         bars = ax.barh(frame.model_name, frame.delta_pp, color=colors, alpha=0.88)
         ax.axvline(0, color="#333333", linewidth=1)
+        ax.set_xscale("symlog", linthresh=15, linscale=1)
         ax.set_title(scenario.capitalize(), fontweight="bold")
-        ax.set_xlabel("24-week WAPE minus expanding-history WAPE (percentage points)")
-        ax.grid(True, axis="x", linestyle=":", alpha=0.55)
-        span = max(frame.delta_pp.max() - frame.delta_pp.min(), 1.0)
-        padding = max(span * 0.08, 0.5)
-        ax.set_xlim(
-            min(0.0, frame.delta_pp.min()) - padding,
-            max(0.0, frame.delta_pp.max()) + padding,
+        ax.set_xlabel(
+            "24-week WAPE minus expanding-history WAPE "
+            "(percentage points, symmetric-log scale)"
         )
-        offset = max(span * 0.015, 0.08)
+        ax.grid(True, axis="x", linestyle=":", alpha=0.55)
+        ax.margins(x=0.08)
         for bar, value in zip(bars, frame.delta_pp, strict=True):
             negative = value < 0
-            ax.text(
-                value + offset,
-                bar.get_y() + bar.get_height() / 2,
+            ax.annotate(
                 f"{value:+.2f}",
+                xy=(value, bar.get_y() + bar.get_height() / 2),
+                xytext=(-5 if negative else 5, 0),
+                textcoords="offset points",
                 va="center",
-                ha="left",
+                ha="right" if negative else "left",
                 fontsize=8,
-                color="white" if negative else "#111111",
+                color="#111111",
+                clip_on=False,
             )
         if scenario == "luxury":
             ax.text(

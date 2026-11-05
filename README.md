@@ -10,7 +10,7 @@
   记录 V3 固定 24 周历史快照在 52 个完整零售周上的结果。该历史报告不等同于 V4 扩展历史主榜。
 - **[2026 零售周 52 周前向滑动窗口技术验证报告](docs/reports/2026-annual-retail-forecast-benchmark.md)**
   保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
-- **[2026 零售周 V4 首阶段基准报告](docs/reports/2026-retail-week-v4-first-stage-report.md)**
+- **[2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA）](docs/reports/2026-retail-week-v4-first-stage-report.md)**
   使用审核后的扩展历史主榜、24 周消融和不可变跨协议 comparison release，分开呈现工具包广度、配置深度与训练历史影响。
 - **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
   深入探讨指数离散族（Exponential Dispersion Family）、Compound Poisson-Gamma 分布的极大似然估计、一阶梯度与二阶 Hessian 推导及其在 LightGBM / XGBoost C++ 源码中的工程映射。
@@ -46,7 +46,7 @@
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 - **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
 
-> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。当前 V4 结果及其发布 provenance 请以[首阶段 V4 报告](docs/reports/2026-retail-week-v4-first-stage-report.md)为准。
+> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。当前 V4 结果及其发布 provenance 请以[V4 分阶段报告](docs/reports/2026-retail-week-v4-first-stage-report.md)为准。
 
 ### 四大零售场景独立排行榜 (Scenario-Specific Annual Leaderboards - 52 Weeks)
 
@@ -185,9 +185,9 @@ uv run python scripts/compare_training_histories.py \
 
 # 审核两套模型 release 后，发布可复算的训练历史比较
 uv run python scripts/publish_training_history_comparison.py \
-  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-first-stage-v1 \
-  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-first-stage-v1 \
-  --release 20261106-first-stage-v1
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-arima-v1 \
+  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-arima-v1 \
+  --release 20261106-arima-v1
 ```
 
 ### 2. 零重训图表与报告生成工具
@@ -198,12 +198,12 @@ uv run python scripts/publish_training_history_comparison.py \
 # 渲染 4 组出版级基准全景图表 (生成至 images/benchmarks/)
 uv run python scripts/plot_benchmark_summary.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261106-first-stage-v1
+  --release 20261106-arima-v1
 
 # 从已发布快照生成受控 Markdown 数据块，不覆盖人工叙事
 uv run python scripts/generate_benchmark_report.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261106-first-stage-v1
+  --release 20261106-arima-v1
 
 # 重新渲染 4 个场景的时序全貌图与 ADI-CV 分布图 (生成至 images/)
 uv run python scripts/plot_teaching_scenarios.py

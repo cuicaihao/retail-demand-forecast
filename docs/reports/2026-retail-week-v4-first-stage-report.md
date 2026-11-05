@@ -1,21 +1,25 @@
-# 2026 零售周 V4 首阶段基准报告
+# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA）
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
 `2026-retail-week-24w-ablation-v4` 量化固定 24 周训练历史带来的影响。正式评估覆盖
 2025-12-29 至 2026-12-27，共 13 个互不重叠的 28 天 fold，也就是 52 个完整零售周
 和 364 个评估日；它不是完整日历年。
 
-当前发布包含基线、Prophet、经典树，以及 LightGBM、XGBoost、CatBoost 的默认配置
-与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 20 个模型配置。ARIMA、神经网络、
-AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结论。
+当前发布包含基线、Prophet、ARIMA 动态回归、经典树，以及 LightGBM、XGBoost、
+CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 个模型配置。
+神经网络、AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结论。
 
 ## 1. 证据边界与主要结论
 
-- Grocery、Wine 和 Garden 中，扩展历史在 20 个配置里均取得 18 胜、2 平；两个平局
+- Grocery、Wine 和 Garden 中，扩展历史在 21 个配置里均取得 19 胜、2 平；两个平局
   来自不依赖拟合历史长度的 Seasonal Naive 与 Moving Average。
-- Garden 对训练历史最敏感。代表配置的 WAPE 差值中位数为 `+6.79 pp`
-  （24 周减扩展历史），符合年度季节性需要跨年证据的预期。
-- Luxury 呈现 9 胜、9 负、2 平，且 WAPE 与需求事件 F1 并不总是同向。因此这里不能
+- 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
+  `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
+  这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
+- 固定 24 周下，同一 ARIMA 配置的四场景 WAPE 分别恶化到 `172.84%`、`679.55%`、
+  `271.15%`、`10928.55%`。24 周无法覆盖完整年度周期，年度谐波与多项回归系数的
+  外推极不稳定；该消融保留原始结果，不利用正式测试标签重新调参。
+- Luxury 呈现 10 胜、9 负、2 平，且 WAPE 与需求事件 F1 并不总是同向。因此这里不能
   得出“历史越长一定越好”或基于 WAPE 的单一冠军结论。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
@@ -25,10 +29,10 @@ AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结�
 ## 2. 主榜发布来源
 
 <!-- BENCHMARK_BLOCK:provenance:START -->
-> Benchmark ID: `2026-retail-week-expanding-v4`  
-> Release ID: `20261106-first-stage-v1`  
-> Protocol hash: `281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e`  
-> Release manifest SHA-256: `4435debb0c4ed09e699359c3ca8cd3a7137b806c4d17d40978af39afc9506b98`  
+> Benchmark ID: `2026-retail-week-expanding-v4`<br>
+> Release ID: `20261106-arima-v1`<br>
+> Protocol hash: `281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e`<br>
+> Release manifest SHA-256: `79a4fc93e754fcd21bb5cd7251d42a8c94b27a1a01265a09288c6c17e4a98afa`<br>
 > Fold uncertainty intervals are descriptive; they are not claims of statistical significance.
 <!-- BENCHMARK_BLOCK:provenance:END -->
 
@@ -43,6 +47,7 @@ AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结�
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Prophet | prophet | default | 4.16% | 5.0931 | 6.4422 | 0.19% | 0.1864 | 0.0414 | 0.0058 |
+| Regression + ARIMA (1,0,1) | statsmodels | default | 4.17% | 5.1005 | 6.4488 | 0.19% | 0.1867 | 0.0413 | 0.0062 |
 | XGBoost Default (MSE) | xgboost | default | 5.01% | 6.1295 | 7.8354 | -1.17% | 0.2244 | 0.0485 | 0.0178 |
 | CatBoost Default (MAE) | catboost | default | 5.05% | 6.1832 | 8.2256 | -1.33% | 0.2263 | 0.0512 | 0.0154 |
 | LightGBM Default (MSE) | lightgbm | default | 5.31% | 6.5005 | 8.5586 | -1.48% | 0.2379 | 0.0533 | 0.0138 |
@@ -55,6 +60,7 @@ AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结�
 
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | default | 22.10% | 2.5856 | 3.2650 | 2.14% | 0.4299 | 0.2127 | 0.0319 |
 | Prophet | prophet | default | 22.78% | 2.6649 | 3.3746 | -1.03% | 0.4431 | 0.2223 | 0.0432 |
 | XGBoost Default (MSE) | xgboost | default | 23.94% | 2.8004 | 3.5918 | -2.26% | 0.4656 | 0.2278 | 0.0671 |
 | CatBoost Default (MAE) | catboost | default | 24.40% | 2.8551 | 3.7194 | -6.04% | 0.4747 | 0.2307 | 0.0692 |
@@ -68,6 +74,7 @@ AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结�
 
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | default | 7.80% | 5.6053 | 6.9706 | -0.21% | 0.5901 | 0.0880 | 0.0630 |
 | Prophet | prophet | default | 7.81% | 5.6108 | 6.9749 | -0.23% | 0.5906 | 0.0881 | 0.0628 |
 | CatBoost Default (MAE) | catboost | default | 8.86% | 6.3611 | 7.8148 | -1.59% | 0.6696 | 0.0889 | 0.0848 |
 | XGBoost Default (MSE) | xgboost | default | 9.03% | 6.4864 | 8.0532 | -1.53% | 0.6828 | 0.0880 | 0.0855 |
@@ -85,6 +92,7 @@ AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结�
 | Moving Average (14d) | moving_average | default | 161.82% | 0.1296 | 100.00% | 0.00% | 0.00% | 1.2891 |
 | Prophet | prophet | default | 172.55% | 0.1382 | 99.12% | 4.76% | 8.00% | 1.2954 |
 | Seasonal Naive (7d) | seasonal_naive | default | 182.76% | 0.1464 | 93.55% | 9.52% | 8.89% | 1.2857 |
+| Regression + ARIMA (1,0,1) | statsmodels | default | 209.29% | 0.1677 | 99.12% | 9.52% | 15.38% | 1.2297 |
 | XGBoost Default (MSE) | xgboost | default | 224.11% | 0.1795 | 98.24% | 0.00% | 0.00% | 1.2531 |
 | Random Forest | random_forest | default | 225.78% | 0.1809 | 99.41% | 14.29% | 23.08% | 1.1967 |
 | Decision Tree | decision_tree | default | 238.73% | 0.1912 | 96.77% | 9.52% | 11.76% | 1.2593 |
@@ -221,27 +229,27 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 配置表回答的是同一工具包内损失函数与 Tweedie power 的敏感性问题，不用于增加该工具包
 在广度榜中的投票权。完整图表位于：
 
-- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-first-stage-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
-- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-first-stage-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
+- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
+- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
 ## 5. 训练历史策略消融
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
-> Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4`  
-> Release ID: `20261106-first-stage-v1`  
-> Main source: `2026-retail-week-expanding-v4` / `20261106-first-stage-v1`  
-> Ablation source: `2026-retail-week-24w-ablation-v4` / `20261106-first-stage-v1`  
-> Comparison release manifest SHA-256: `1072b28aa7d4f29bcd196a427eeaced57a0500e7f11f3c0febbd620b273ffc03`  
+> Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4`<br>
+> Release ID: `20261106-arima-v1`<br>
+> Main source: `2026-retail-week-expanding-v4` / `20261106-arima-v1`<br>
+> Ablation source: `2026-retail-week-24w-ablation-v4` / `20261106-arima-v1`<br>
+> Comparison release manifest SHA-256: `747afbdf43ff7b55057991e86cc68be09ac1f79b0caef1913172a9ffe0dc5d17`<br>
 > WAPE differences are paired descriptive results, not statistical significance claims.
 <!-- BENCHMARK_BLOCK:history_provenance:END -->
 
 <!-- BENCHMARK_BLOCK:history_policy_summary:START -->
 | 场景 | 配置数 | 扩展历史胜 | 24 周胜 | 平局 | WAPE 差值中位数 (24w-expanding) | 广度配置 WAPE 差值中位数 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| garden | 20 | 18 | 0 | 2 | +8.82 pp | +6.79 pp |
-| grocery | 20 | 18 | 0 | 2 | +2.13 pp | +2.12 pp |
-| luxury | 20 | 9 | 9 | 2 | +0.00 pp | -6.22 pp |
-| wine | 20 | 18 | 0 | 2 | +6.96 pp | +5.03 pp |
+| garden | 21 | 19 | 0 | 2 | +9.32 pp | +7.38 pp |
+| grocery | 21 | 19 | 0 | 2 | +2.15 pp | +2.23 pp |
+| luxury | 21 | 10 | 9 | 2 | +0.00 pp | +0.00 pp |
+| wine | 21 | 19 | 0 | 2 | +7.13 pp | +5.51 pp |
 <!-- BENCHMARK_BLOCK:history_policy_summary:END -->
 
 正差值表示 24 周 WAPE 更高，因而扩展历史更好；负差值表示 24 周结果更低。该方向只描述
@@ -252,6 +260,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | 4.17% | 172.84% | +168.67 pp | expanding |
 | Prophet | prophet | 4.16% | 7.53% | +3.36 pp | expanding |
 | CatBoost Default (MAE) | catboost | 5.05% | 7.45% | +2.39 pp | expanding |
 | Random Forest | random_forest | 5.39% | 7.63% | +2.24 pp | expanding |
@@ -265,6 +274,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | 22.10% | 679.55% | +657.45 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 25.08% | 35.33% | +10.24 pp | expanding |
 | Prophet | prophet | 22.78% | 29.91% | +7.13 pp | expanding |
 | CatBoost Default (MAE) | catboost | 24.40% | 31.20% | +6.79 pp | expanding |
@@ -278,6 +288,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | 7.80% | 271.15% | +263.35 pp | expanding |
 | CatBoost Default (MAE) | catboost | 8.86% | 20.68% | +11.82 pp | expanding |
 | Random Forest | random_forest | 9.33% | 20.44% | +11.11 pp | expanding |
 | Decision Tree | decision_tree | 10.75% | 21.45% | +10.70 pp | expanding |
@@ -291,6 +302,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 | 扩展历史 Event F1 | 24 周 Event F1 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Regression + ARIMA (1,0,1) | statsmodels | 209.29% | 10928.55% | +10719.25 pp | expanding | 15.38% | 8.47% |
 | Prophet | prophet | 172.55% | 183.06% | +10.51 pp | expanding | 8.00% | 7.41% |
 | CatBoost Default (MAE) | catboost | 100.25% | 104.63% | +4.38 pp | expanding | 9.09% | 0.00% |
 | Moving Average (14d) | moving_average | 161.82% | 161.82% | +0.00 pp | tie | 0.00% | 0.00% |
@@ -301,7 +313,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | LightGBM Default (MSE) | lightgbm | 239.15% | 183.86% | -55.29 pp | sliding_24w | 7.41% | 0.00% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
 
-[训练历史 WAPE 配对差值图](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4/20261106-first-stage-v1/fig-01-training-history-wape-delta.png)
+[训练历史 WAPE 配对差值图](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4/20261106-arima-v1/fig-01-training-history-wape-delta.png)
 只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释。
 
 ## 6. 局限与后续工作
@@ -309,7 +321,8 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 1. 数据为固定生成协议下的教学合成数据，支持受控机制分析，但不能直接外推到真实企业。
 2. 24 周窗口刻意构成短历史消融。它不包含一个完整年度周期，不能作为年度季节模型的
    公平主榜；Prophet 在该设置下也会提示年度季节性所需的历史不足。
-3. 第一阶段多数模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为不适用；
-   后续概率模型必须补齐这些指标。
-4. 下一阶段按相同适配器和发布协议逐个迁移 ARIMA、MLP/LSTM/TFT、AutoGluon 与
-   TimesFM，每个模型单独审核并通过新 release 继承现有结果，不重写本次快照。
+3. 除 ARIMA 外，当前模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为
+   不适用。ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、
+   `80.66%`、`94.75%`；这些是未校准的模型区间，不能直接解释为库存服务水平。
+4. 下一阶段按相同适配器和发布协议逐个迁移 MLP/LSTM/TFT、AutoGluon 与 TimesFM，
+   每个模型单独审核并通过新 release 继承现有结果，不重写本次快照。

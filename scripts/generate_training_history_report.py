@@ -113,14 +113,14 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
 
     manifest_path = release_root / "release_manifest.json"
     provenance = (
-        f"> Comparison ID: `{comparison_id}`  \n"
-        f"> Release ID: `{release_id}`  \n"
+        f"> Comparison ID: `{comparison_id}`<br>\n"
+        f"> Release ID: `{release_id}`<br>\n"
         f"> Main source: `{manifest['main_source_release']['benchmark_id']}` / "
-        f"`{manifest['main_source_release']['release_id']}`  \n"
+        f"`{manifest['main_source_release']['release_id']}`<br>\n"
         f"> Ablation source: `{manifest['ablation_source_release']['benchmark_id']}` / "
-        f"`{manifest['ablation_source_release']['release_id']}`  \n"
+        f"`{manifest['ablation_source_release']['release_id']}`<br>\n"
         f"> Comparison release manifest SHA-256: "
-        f"`{hashlib.sha256(manifest_path.read_bytes()).hexdigest()}`  \n"
+        f"`{hashlib.sha256(manifest_path.read_bytes()).hexdigest()}`<br>\n"
         "> WAPE differences are paired descriptive results, not statistical significance claims.\n"
     )
     (output / "provenance.md").write_text(provenance, encoding="utf-8")
