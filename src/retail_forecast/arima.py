@@ -44,6 +44,8 @@ def _arima_parameters(name, parameter_config):
         "trend": config.get("trend", "c"),
         "maxiter": int(config.get("maxiter", 200)),
         "retry_maxiter": int(config.get("retry_maxiter", 600)),
+        "fallback_method": config.get("fallback_method", "powell"),
+        "fallback_maxiter": int(config.get("fallback_maxiter", 1000)),
         "enforce_stationarity": bool(config.get("enforce_stationarity", True)),
         "enforce_invertibility": bool(config.get("enforce_invertibility", True)),
     }
@@ -82,11 +84,20 @@ def fit_arima(history, scenario, name, window):
         enforce_invertibility=parameters["enforce_invertibility"],
     )
     fitted = model.fit(disp=False, maxiter=parameters["maxiter"])
+    optimizer = "lbfgs"
     if not fitted.mle_retvals.get("converged", False):
         fitted = model.fit(
             start_params=fitted.params,
             disp=False,
             maxiter=parameters["retry_maxiter"],
+        )
+    if not fitted.mle_retvals.get("converged", False):
+        optimizer = parameters["fallback_method"]
+        fitted = model.fit(
+            start_params=fitted.params,
+            disp=False,
+            method=optimizer,
+            maxiter=parameters["fallback_maxiter"],
         )
     bundle = {
         "result": fitted,
@@ -101,6 +112,7 @@ def fit_arima(history, scenario, name, window):
         "order": str(order),
         "seasonal_order": str(seasonal),
         "converged": bool(fitted.mle_retvals.get("converged", False)),
+        "optimizer": optimizer,
         "AIC": float(fitted.aic),
     }
 

@@ -78,6 +78,7 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         self.assertEqual(config.comparison_role, "breadth")
         self.assertEqual(config.params["order"], [1, 0, 1])
         self.assertTrue(config.params["use_exog"])
+        self.assertEqual(config.params["fallback_method"], "powell")
 
     def test_arima_prediction_does_not_read_future_targets(self) -> None:
         frame = datasets["grocery"]

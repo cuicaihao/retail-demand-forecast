@@ -124,6 +124,8 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
             "trend": "c",
             "maxiter": 200,
             "retry_maxiter": 600,
+            "fallback_method": "powell",
+            "fallback_maxiter": 1000,
             "enforce_stationarity": True,
             "enforce_invertibility": True,
         },
