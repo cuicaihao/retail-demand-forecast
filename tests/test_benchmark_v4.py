@@ -169,6 +169,10 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
                     )
                 ),
             ),
+            patch(
+                "publish_benchmark._contains_only_release_outputs",
+                return_value=True,
+            ),
         ):
             result = _publishing_source_provenance()
             self.assertFalse(result["git_dirty"])

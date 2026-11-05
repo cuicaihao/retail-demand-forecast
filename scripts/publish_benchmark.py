@@ -54,6 +54,23 @@ def _validate_release_id(release_id: str) -> str:
     return release_id
 
 
+def _contains_only_release_outputs(path_text: str) -> bool:
+    published_root = ROOT / "data" / "benchmarks" / "published"
+    path = ROOT / path_text
+    candidates = [path] if path.is_file() else list(path.rglob("*"))
+    files = [candidate for candidate in candidates if candidate.is_file()]
+    if not files:
+        return False
+    for file_path in files:
+        try:
+            relative = file_path.relative_to(published_root)
+        except ValueError:
+            return False
+        if len(relative.parts) < 4 or relative.parts[1] != "releases":
+            return False
+    return True
+
+
 def _publishing_source_provenance() -> dict:
     """Require clean source while allowing earlier outputs from the same release batch."""
     provenance = current_source_provenance()
@@ -68,11 +85,7 @@ def _publishing_source_provenance() -> dict:
     disallowed = []
     for line in result.stdout.splitlines():
         path = line[3:]
-        if (
-            line.startswith("?? ")
-            and path.startswith("data/benchmarks/published/")
-            and "/releases/" in path
-        ):
+        if line.startswith("?? ") and _contains_only_release_outputs(path):
             pending_releases.append(path)
         else:
             disallowed.append(line)
