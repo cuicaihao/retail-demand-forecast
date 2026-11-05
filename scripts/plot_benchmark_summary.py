@@ -2,10 +2,10 @@
 Academic and Blog Publication Visualization Suite for Retail Demand Forecasting Benchmark.
 
 Generates:
-1. fig-01-annual-leaderboard-all-scenarios (.png & .webp)
+1. fig-01-retail-week-leaderboard-all-scenarios (.png & .webp)
 2. fig-02-13-period-wape-trajectories (.png & .webp)
 3. fig-03-gbdt-tweedie-ablation-deepdive (.png & .webp)
-4. fig-04-intermittent-zero-confusion (.png & .webp)
+4. fig-04-intermittent-zero-recall (.png & .webp)
 """
 
 from __future__ import annotations
@@ -128,7 +128,7 @@ def plot_fig01_annual_leaderboard(df_scenario: pd.DataFrame):
         fontweight="bold",
         y=1.02,
     )
-    save_dual_format(fig, "fig-01-annual-leaderboard-all-scenarios")
+    save_dual_format(fig, "fig-01-retail-week-leaderboard-all-scenarios")
     plt.close(fig)
 
 
@@ -330,7 +330,7 @@ def plot_fig04_zero_recall(df_scenario: pd.DataFrame):
             fontweight="bold" if w > 80 else "normal",
         )
 
-    save_dual_format(fig, "fig-04-intermittent-zero-confusion")
+    save_dual_format(fig, "fig-04-intermittent-zero-recall")
     plt.close(fig)
 
 
