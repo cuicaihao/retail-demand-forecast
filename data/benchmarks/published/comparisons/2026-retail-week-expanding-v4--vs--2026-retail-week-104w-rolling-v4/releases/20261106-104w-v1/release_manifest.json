@@ -1,0 +1,62 @@
+{
+  "release_schema_version": "training-history-comparison-release-v2",
+  "release_id": "20261106-104w-v1",
+  "comparison_id": "2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4",
+  "published_at": "2026-11-05T22:59:51.254954+00:00",
+  "published_by_source_provenance": {
+    "git_commit": "a5f39bfe519f625c64f909a56d0f47fd92cc8627",
+    "git_dirty": false,
+    "source_tree_sha256": "366d62f6865f33c56f40abcefb46ba58232994b4d7d6778d72297f339040e24d",
+    "pending_release_outputs": [
+      "data/benchmarks/published/2026-retail-week-104w-rolling-v4/"
+    ]
+  },
+  "main_source_release": {
+    "benchmark_id": "2026-retail-week-expanding-v4",
+    "release_id": "20261106-arima-v1",
+    "protocol_hash": "281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e",
+    "release_manifest_sha256": "79a4fc93e754fcd21bb5cd7251d42a8c94b27a1a01265a09288c6c17e4a98afa",
+    "relative_path": "2026-retail-week-expanding-v4/releases/20261106-arima-v1"
+  },
+  "fixed_window_source_release": {
+    "benchmark_id": "2026-retail-week-104w-rolling-v4",
+    "release_id": "20261106-104w-v1",
+    "protocol_hash": "13918ef24a240992a4254869b6dd968a8246ed615e927eda452217428188ecbf",
+    "release_manifest_sha256": "3e9fe0e01288d6ea58584218eb246019aeac27898a4c3c117a2952ca82f5e016",
+    "relative_path": "2026-retail-week-104w-rolling-v4/releases/20261106-104w-v1"
+  },
+  "fixed_window_weeks": 104,
+  "model_ids": [
+    "arima",
+    "catboost_default",
+    "catboost_tweedie_p11",
+    "catboost_tweedie_p12",
+    "catboost_tweedie_p15",
+    "catboost_tweedie_p18",
+    "decision_tree",
+    "lightgbm_default",
+    "lightgbm_tweedie_p11",
+    "lightgbm_tweedie_p12",
+    "lightgbm_tweedie_p15",
+    "lightgbm_tweedie_p18",
+    "moving_average_14d",
+    "prophet",
+    "random_forest",
+    "seasonal_naive",
+    "xgboost_default",
+    "xgboost_tweedie_p11",
+    "xgboost_tweedie_p12",
+    "xgboost_tweedie_p15",
+    "xgboost_tweedie_p18"
+  ],
+  "scenarios": [
+    "grocery",
+    "wine",
+    "garden",
+    "luxury"
+  ],
+  "files": {
+    "scenario_summary.csv": "40709c1f5946955066e0de793384526ade30c6cb19f5126694e870a41740e230",
+    "training_history_comparison.csv": "97453140f03e335a0625ea17d4c8c5b4713af876b39ff47fcc3b211fd369e79f"
+  }
+}

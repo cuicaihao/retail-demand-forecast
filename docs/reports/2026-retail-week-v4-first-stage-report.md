@@ -11,13 +11,16 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 
 ## 1. 证据边界与主要结论
 
-- Grocery、Wine 和 Garden 中，扩展历史在 21 个配置里均取得 19 胜、2 平；两个平局
-  来自不依赖拟合历史长度的 Seasonal Naive 与 Moving Average。
+- 在全部 21 个配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden 分别取得
+  `18/1/2`、`18/1/2`、`11/8/2`（扩展历史胜 / 104 周胜 / 平局）。因此，两年滚动窗口
+  在 Grocery 与 Wine 上多数略逊，但在 Garden 上并非单向劣化。
 - 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
   `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
   这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
 - 104 周生产滚动实验与扩展历史使用相同的模型配置、预测日期和已知未来信息，只改变
-  每个 forecast origin 可见的训练历史范围；结果将在新 release 中重新生成。
+  每个 forecast origin 可见的训练历史范围。代表配置的 WAPE 差值中位数在 Grocery、
+  Wine、Garden 分别为 `+0.09`、`+0.37`、`+0.05` 个百分点，整体代价较小；Luxury
+  的方向因模型而异，必须同时检查事件召回与 F1，不能只看 WAPE。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
 - 所有区间和 fold 分布只用于描述稳定性。本报告没有进行预注册的显著性检验，也不把
@@ -232,92 +235,96 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 ## 5. 生产式训练历史比较：104 周训练 → 4 周预测
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
-> Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4`<br>
-> Release ID: `20261106-arima-v1`<br>
+> Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4`<br>
+> Release ID: `20261106-104w-v1`<br>
 > Main source: `2026-retail-week-expanding-v4` / `20261106-arima-v1`<br>
-> Ablation source: `2026-retail-week-24w-ablation-v4` / `20261106-arima-v1`<br>
-> Comparison release manifest SHA-256: `747afbdf43ff7b55057991e86cc68be09ac1f79b0caef1913172a9ffe0dc5d17`<br>
+> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-104w-v1`<br>
+> Comparison release manifest SHA-256: `a3e59f607727998c7c130bd98090fd7defb193650f0c9258d05a0c8ebb7522da`<br>
 > WAPE differences are paired descriptive results, not statistical significance claims.
 <!-- BENCHMARK_BLOCK:history_provenance:END -->
 
 <!-- BENCHMARK_BLOCK:history_policy_summary:START -->
-| 场景 | 配置数 | 扩展历史胜 | 24 周胜 | 平局 | WAPE 差值中位数 (24w-expanding) | 广度配置 WAPE 差值中位数 |
+| 场景 | 配置数 | 扩展历史胜 | 104 周胜 | 平局 | WAPE 差值中位数 (104w-expanding) | 广度配置 WAPE 差值中位数 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| garden | 21 | 19 | 0 | 2 | +9.32 pp | +7.38 pp |
-| grocery | 21 | 19 | 0 | 2 | +2.15 pp | +2.23 pp |
+| garden | 21 | 11 | 8 | 2 | +0.03 pp | +0.05 pp |
+| grocery | 21 | 18 | 1 | 2 | +0.28 pp | +0.09 pp |
 | luxury | 21 | 10 | 9 | 2 | +0.00 pp | +0.00 pp |
-| wine | 21 | 19 | 0 | 2 | +7.13 pp | +5.51 pp |
+| wine | 21 | 18 | 1 | 2 | +0.68 pp | +0.37 pp |
 <!-- BENCHMARK_BLOCK:history_policy_summary:END -->
 
-正差值表示 24 周 WAPE 更高，因而扩展历史更好；负差值表示 24 周结果更低。该方向只描述
+正差值表示 104 周 WAPE 更高，因而扩展历史更好；负差值表示 104 周结果更低。该方向只描述
 相同模型、场景和评估日期下的配对差异，不跨不同需求尺度计算总冠军。
 
 <!-- BENCHMARK_BLOCK:history_policy_breadth:START -->
 ## grocery
 
-| 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Regression + ARIMA (1,0,1) | statsmodels | 4.17% | 172.84% | +168.67 pp | expanding |
-| Prophet | prophet | 4.16% | 7.53% | +3.36 pp | expanding |
-| CatBoost Default (MAE) | catboost | 5.05% | 7.45% | +2.39 pp | expanding |
-| Random Forest | random_forest | 5.39% | 7.63% | +2.24 pp | expanding |
-| LightGBM Default (MSE) | lightgbm | 5.31% | 7.54% | +2.23 pp | expanding |
-| Decision Tree | decision_tree | 6.95% | 8.97% | +2.02 pp | expanding |
-| XGBoost Default (MSE) | xgboost | 5.01% | 6.83% | +1.82 pp | expanding |
+| CatBoost Default (MAE) | catboost | 5.05% | 5.37% | +0.32 pp | expanding |
+| XGBoost Default (MSE) | xgboost | 5.01% | 5.33% | +0.31 pp | expanding |
+| LightGBM Default (MSE) | lightgbm | 5.31% | 5.61% | +0.30 pp | expanding |
+| Prophet | prophet | 4.16% | 4.28% | +0.12 pp | expanding |
+| Regression + ARIMA (1,0,1) | statsmodels | 4.17% | 4.26% | +0.09 pp | expanding |
+| Random Forest | random_forest | 5.39% | 5.45% | +0.05 pp | expanding |
 | Moving Average (14d) | moving_average | 12.45% | 12.45% | +0.00 pp | tie |
 | Seasonal Naive (7d) | seasonal_naive | 15.28% | 15.28% | +0.00 pp | tie |
+| Decision Tree | decision_tree | 6.95% | 6.42% | -0.53 pp | sliding_104w |
 
 ## wine
 
-| 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Regression + ARIMA (1,0,1) | statsmodels | 22.10% | 679.55% | +657.45 pp | expanding |
-| LightGBM Default (MSE) | lightgbm | 25.08% | 35.33% | +10.24 pp | expanding |
-| Prophet | prophet | 22.78% | 29.91% | +7.13 pp | expanding |
-| CatBoost Default (MAE) | catboost | 24.40% | 31.20% | +6.79 pp | expanding |
-| Decision Tree | decision_tree | 27.05% | 32.56% | +5.51 pp | expanding |
-| XGBoost Default (MSE) | xgboost | 23.94% | 28.49% | +4.55 pp | expanding |
-| Random Forest | random_forest | 25.81% | 28.25% | +2.45 pp | expanding |
+| XGBoost Default (MSE) | xgboost | 23.94% | 25.38% | +1.44 pp | expanding |
+| CatBoost Default (MAE) | catboost | 24.40% | 25.61% | +1.21 pp | expanding |
+| LightGBM Default (MSE) | lightgbm | 25.08% | 25.63% | +0.55 pp | expanding |
+| Decision Tree | decision_tree | 27.05% | 27.44% | +0.40 pp | expanding |
+| Random Forest | random_forest | 25.81% | 26.18% | +0.37 pp | expanding |
+| Regression + ARIMA (1,0,1) | statsmodels | 22.10% | 22.46% | +0.36 pp | expanding |
 | Moving Average (14d) | moving_average | 39.99% | 39.99% | +0.00 pp | tie |
 | Seasonal Naive (7d) | seasonal_naive | 49.26% | 49.26% | +0.00 pp | tie |
+| Prophet | prophet | 22.78% | 22.49% | -0.29 pp | sliding_104w |
 
 ## garden
 
-| 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 |
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Regression + ARIMA (1,0,1) | statsmodels | 7.80% | 271.15% | +263.35 pp | expanding |
-| CatBoost Default (MAE) | catboost | 8.86% | 20.68% | +11.82 pp | expanding |
-| Random Forest | random_forest | 9.33% | 20.44% | +11.11 pp | expanding |
-| Decision Tree | decision_tree | 10.75% | 21.45% | +10.70 pp | expanding |
-| LightGBM Default (MSE) | lightgbm | 9.17% | 16.55% | +7.38 pp | expanding |
-| Prophet | prophet | 7.81% | 14.02% | +6.21 pp | expanding |
-| XGBoost Default (MSE) | xgboost | 9.03% | 14.94% | +5.91 pp | expanding |
+| CatBoost Default (MAE) | catboost | 8.86% | 9.25% | +0.39 pp | expanding |
+| LightGBM Default (MSE) | lightgbm | 9.17% | 9.34% | +0.17 pp | expanding |
+| Random Forest | random_forest | 9.33% | 9.48% | +0.15 pp | expanding |
+| XGBoost Default (MSE) | xgboost | 9.03% | 9.17% | +0.14 pp | expanding |
+| Regression + ARIMA (1,0,1) | statsmodels | 7.80% | 7.85% | +0.05 pp | expanding |
+| Prophet | prophet | 7.81% | 7.84% | +0.03 pp | expanding |
 | Moving Average (14d) | moving_average | 20.02% | 20.02% | +0.00 pp | tie |
 | Seasonal Naive (7d) | seasonal_naive | 15.36% | 15.36% | +0.00 pp | tie |
+| Decision Tree | decision_tree | 10.75% | 10.70% | -0.06 pp | sliding_104w |
 
 ## luxury
 
-| 代表模型 | 工具包 | 扩展历史 WAPE | 24 周 WAPE | 差值 | WAPE 胜者 | 扩展历史 Event F1 | 24 周 Event F1 |
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 | 扩展历史 Event F1 | 104 周 Event F1 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Regression + ARIMA (1,0,1) | statsmodels | 209.29% | 10928.55% | +10719.25 pp | expanding | 15.38% | 8.47% |
-| Prophet | prophet | 172.55% | 183.06% | +10.51 pp | expanding | 8.00% | 7.41% |
-| CatBoost Default (MAE) | catboost | 100.25% | 104.63% | +4.38 pp | expanding | 9.09% | 0.00% |
+| Decision Tree | decision_tree | 238.73% | 275.31% | +36.58 pp | expanding | 11.76% | 13.56% |
+| CatBoost Default (MAE) | catboost | 100.25% | 111.81% | +11.56 pp | expanding | 9.09% | 16.00% |
+| XGBoost Default (MSE) | xgboost | 224.11% | 228.91% | +4.80 pp | expanding | 0.00% | 8.33% |
 | Moving Average (14d) | moving_average | 161.82% | 161.82% | +0.00 pp | tie | 0.00% | 0.00% |
 | Seasonal Naive (7d) | seasonal_naive | 182.76% | 182.76% | +0.00 pp | tie | 8.89% | 8.89% |
-| Random Forest | random_forest | 225.78% | 213.34% | -12.44 pp | sliding_24w | 23.08% | 0.00% |
-| Decision Tree | decision_tree | 238.73% | 205.84% | -32.89 pp | sliding_24w | 11.76% | 9.76% |
-| XGBoost Default (MSE) | xgboost | 224.11% | 186.40% | -37.71 pp | sliding_24w | 0.00% | 7.41% |
-| LightGBM Default (MSE) | lightgbm | 239.15% | 183.86% | -55.29 pp | sliding_24w | 7.41% | 0.00% |
+| Random Forest | random_forest | 225.78% | 218.24% | -7.54 pp | sliding_104w | 23.08% | 23.08% |
+| LightGBM Default (MSE) | lightgbm | 239.15% | 220.86% | -18.29 pp | sliding_104w | 7.41% | 7.14% |
+| Prophet | prophet | 172.55% | 142.28% | -30.26 pp | sliding_104w | 8.00% | 0.00% |
+| Regression + ARIMA (1,0,1) | statsmodels | 209.29% | 174.82% | -34.47 pp | sliding_104w | 15.38% | 9.09% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
 
-生产滚动比较图将在 104 周 release 审核后由发布数据重新生成。
-只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释。
+![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-104w-v1/fig-01-training-history-wape-delta.png)
+
+图中只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释：例如 Prophet 和
+ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据此宣称事件识别能力改善。
 
 ## 6. 局限与后续工作
 
 1. 数据为固定生成协议下的教学合成数据，支持受控机制分析，但不能直接外推到真实企业。
 2. 104 周窗口代表两个完整的 52 周零售周期，用于模拟现实中每月滚动重训、预测未来
-   4 周的 MLOps 流程；它不是对所有企业历史保留策略的普遍建议。
+   4 周的 MLOps 流程。它严格等于 728 天，不等于两个完整日历年；Prophet 因而会触发
+   “少于 730 天”的年度季节性提示。这是周对齐协议的已知边界，不是对所有企业历史
+   保留策略的普遍建议。
 3. 除 ARIMA 外，当前模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为
    不适用。ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、
    `80.66%`、`94.75%`；这些是未校准的模型区间，不能直接解释为库存服务水平。
