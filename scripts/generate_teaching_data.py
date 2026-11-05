@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Generate Canonical Teaching Data for Melbourne Retail Demand Forecasting.
 
@@ -25,18 +24,14 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = REPO_ROOT / "data" / "teaching"
+GENERATION_SPEC_PATH = OUTPUT_DIR / "generation_spec.json"
+GENERATION_SPEC = json.loads(GENERATION_SPEC_PATH.read_text(encoding="utf-8"))
 
-START_DATE = "2022-07-04"  # Monday
-END_DATE = "2027-06-27"  # Sunday
-TIME_ORIGIN = pd.Timestamp("2023-01-01")  # Consistent seasonal phase origin
-HORIZON_DAYS = 28
-
-SEEDS = {
-    "grocery": 42,
-    "wine": 2027,
-    "garden": 2027,
-    "luxury": 2085,
-}
+START_DATE = GENERATION_SPEC["start_date"]
+END_DATE = GENERATION_SPEC["end_date"]
+TIME_ORIGIN = pd.Timestamp(GENERATION_SPEC["time_origin"])
+HORIZON_DAYS = int(GENERATION_SPEC["horizon_days"])
+SEEDS = GENERATION_SPEC["seeds"]
 
 TABLE_SCHEMAS: dict[str, list[dict[str, str]]] = {
     "grocery_scenario_data": [
@@ -406,18 +401,30 @@ def build_vic_holidays(ds):
 
 
 def generate_grocery(ds, t, vic_holidays, is_open):
+    spec = GENERATION_SPEC["scenarios"]["grocery"]
     rng = np.random.default_rng(SEEDS["grocery"])
-    discount = np.where(t % 14 < 7, 0.20, 0.0)
+    discount = np.where(
+        t % spec["discount_cycle_days"] < spec["discount_days"],
+        spec["discount_rate"],
+        0.0,
+    )
     weekend = (ds.dayofweek >= 5).astype(float)
     is_vic_holiday = ds.isin(vic_holidays["ds"].unique()).astype(float)
-    annual = 14 * np.sin(2 * np.pi * (t - 15) / 365.25)
+    annual = spec["annual_amplitude"] * np.sin(
+        2 * np.pi * (t - spec["annual_phase_days"]) / 365.25
+    )
     conditional_mean = np.maximum(
         0,
-        85 + 0.015 * t + 16 * weekend + annual + 130 * discount + 28 * is_vic_holiday,
+        spec["base"]
+        + spec["trend_per_day"] * t
+        + spec["weekend_lift"] * weekend
+        + annual
+        + spec["discount_lift"] * discount
+        + spec["holiday_lift"] * is_vic_holiday,
     )
-    latent = np.maximum(0, conditional_mean + rng.normal(0, 6, len(ds)))
-    stockout = (rng.random(len(ds)) < 0.03) & is_open
-    sales = np.where(stockout, np.minimum(latent, 20), latent)
+    latent = np.maximum(0, conditional_mean + rng.normal(0, spec["noise_std"], len(ds)))
+    stockout = (rng.random(len(ds)) < spec["stockout_probability"]) & is_open
+    sales = np.where(stockout, np.minimum(latent, spec["stockout_cap"]), latent)
     return pd.DataFrame(
         {
             "ds": ds,
@@ -433,6 +440,7 @@ def generate_grocery(ds, t, vic_holidays, is_open):
 
 
 def generate_wine(ds, t, vic_holidays, is_open):
+    spec = GENERATION_SPEC["scenarios"]["wine"]
     rng = np.random.default_rng(SEEDS["wine"])
     dow = ds.dayofweek
     december_peak = (ds.month == 12) & (ds.day >= 15) & (ds.day <= 24)
@@ -452,19 +460,20 @@ def generate_wine(ds, t, vic_holidays, is_open):
         | ds.isin(afl_dates)
         | ((ds.month == 12) & (ds.day == 31))
     )
-    promo = (t % 28 < 3).astype(int)
+    promo = (t % spec["promotion_cycle_days"] < spec["promotion_days"]).astype(int)
     mean = (
-        4.5
-        + 0.002 * t
-        + 2.8 * (dow == 3)
-        + 7.5 * ((dow == 4) | (dow == 5))
-        + 2 * (dow == 6)
+        spec["base"]
+        + spec["trend_per_day"] * t
+        + spec["thursday_lift"] * (dow == 3)
+        + spec["friday_saturday_lift"] * ((dow == 4) | (dow == 5))
+        + spec["sunday_lift"] * (dow == 6)
     )
     mean += (
-        3.5 * np.cos(2 * np.pi * (t - 190) / 365.25)
-        + 6 * december_peak
-        + 12 * party
-        + 15 * promo
+        spec["annual_amplitude"]
+        * np.cos(2 * np.pi * (t - spec["annual_phase_days"]) / 365.25)
+        + spec["december_lift"] * december_peak
+        + spec["party_lift"] * party
+        + spec["promotion_lift"] * promo
     )
     intensity = np.maximum(mean, 1e-6)
     latent = rng.poisson(intensity)
@@ -484,6 +493,7 @@ def generate_wine(ds, t, vic_holidays, is_open):
 
 
 def generate_garden(ds, t, vic_holidays, is_open):
+    spec = GENERATION_SPEC["scenarios"]["garden"]
     rng = np.random.default_rng(SEEDS["garden"])
     dow = ds.dayofweek
     labour = pd.DatetimeIndex(
@@ -507,15 +517,16 @@ def generate_garden(ds, t, vic_holidays, is_open):
     long_weekend = ds.isin(diy_dates)
     clearance = ((ds.month == 5) & (ds.day >= 25)).astype(int)
     mean = (
-        50
-        + 0.01 * t
-        + 35 * (dow == 5)
-        + 25 * (dow == 6)
-        + 38 * np.sin(2 * np.pi * (t - 10) / 365.25)
-        + 30 * long_weekend
-        + 12 * clearance
+        spec["base"]
+        + spec["trend_per_day"] * t
+        + spec["saturday_lift"] * (dow == 5)
+        + spec["sunday_lift"] * (dow == 6)
+        + spec["annual_amplitude"]
+        * np.sin(2 * np.pi * (t - spec["annual_phase_days"]) / 365.25)
+        + spec["long_weekend_lift"] * long_weekend
+        + spec["clearance_lift"] * clearance
     )
-    latent = np.maximum(0, mean + rng.normal(0, 7, len(ds)))
+    latent = np.maximum(0, mean + rng.normal(0, spec["noise_std"], len(ds)))
     return pd.DataFrame(
         {
             "ds": ds,
@@ -531,6 +542,7 @@ def generate_garden(ds, t, vic_holidays, is_open):
 
 
 def generate_luxury(ds, t, vic_holidays, is_open):
+    spec = GENERATION_SPEC["scenarios"]["luxury"]
     rng = np.random.default_rng(SEEDS["luxury"])
     is_saturday = ds.dayofweek == 5
     is_sunday = ds.dayofweek == 6
@@ -544,19 +556,25 @@ def generate_luxury(ds, t, vic_holidays, is_open):
             vip_dates.extend([first_saturday, first_saturday + pd.Timedelta(days=1)])
     is_vip_event = ds.isin(pd.DatetimeIndex(vip_dates))
 
-    discount = np.where((ds.month == 6) & (ds.day >= 20) & (ds.day <= 26), 0.20, 0.0)
+    discount = np.where(
+        (ds.month == 6) & (ds.day >= 20) & (ds.day <= 26),
+        spec["discount_rate"],
+        0.0,
+    )
     logit_probability = (
-        -3.2
-        + 0.5 * is_saturday
-        + 0.3 * is_sunday
-        + 1.1 * is_december_peak
-        + 1.4 * is_vip_event
-        + 0.8 * discount
+        spec["logit_intercept"]
+        + spec["saturday_logit"] * is_saturday
+        + spec["sunday_logit"] * is_sunday
+        + spec["december_logit"] * is_december_peak
+        + spec["vip_logit"] * is_vip_event
+        + spec["discount_logit"] * discount
     )
     occurrence_probability = 1 / (1 + np.exp(-logit_probability))
     has_demand = rng.binomial(1, occurrence_probability).astype(bool)
     sampled_positive_demand = rng.choice(
-        [1, 2, 5, 10], size=len(ds), p=[0.75, 0.15, 0.08, 0.02]
+        spec["positive_values"],
+        size=len(ds),
+        p=spec["positive_probabilities"],
     )
     positive_demand = np.where(has_demand, sampled_positive_demand, np.nan)
     latent_demand = np.where(has_demand, sampled_positive_demand, 0)
@@ -595,7 +613,8 @@ def generate_all():
 
     closed_dates = pd.DatetimeIndex(
         vic_holidays.loc[
-            vic_holidays["holiday"].isin(["Good Friday", "Christmas Day"]), "ds"
+            vic_holidays["holiday"].isin(GENERATION_SPEC["closed_holiday_names"]),
+            "ds",
         ]
     )
     is_open = ~ds.isin(closed_dates)
@@ -694,12 +713,16 @@ def generate_all():
         "cutoff": str(cutoff.date()),
         "diagnostics_file": "scenario_diagnostics.csv",
         "seeds": SEEDS,
+        "generation_spec": GENERATION_SPEC_PATH.name,
+        "generation_spec_sha256": hashlib.sha256(
+            GENERATION_SPEC_PATH.read_bytes()
+        ).hexdigest(),
         "versions": {
             "numpy": version("numpy"),
             "pandas": version("pandas"),
             "holidays": version("holidays"),
         },
-        "closed_holiday_names": ["Good Friday", "Christmas Day"],
+        "closed_holiday_names": GENERATION_SPEC["closed_holiday_names"],
         "regressor_columns": {
             "grocery": ["discount"],
             "wine": ["promo_case_buy", "is_december_peak", "is_party_event"],
@@ -712,12 +735,7 @@ def generate_all():
                 "discount",
             ],
         },
-        "diagnostic_only_columns": [
-            "conditional_mean",
-            "occurrence_probability",
-            "positive_demand",
-            "latent_demand",
-        ],
+        "diagnostic_only_columns": GENERATION_SPEC["diagnostic_only_columns"],
         "csv_sha256": csv_sha256,
     }
 

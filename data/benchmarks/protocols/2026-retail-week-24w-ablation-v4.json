@@ -1,0 +1,16 @@
+{
+  "benchmark_id": "2026-retail-week-24w-ablation-v4",
+  "protocol_version": "retail-benchmark-v4",
+  "label": "2026 retail-week 24-week history ablation",
+  "evaluation_start": "2025-12-29",
+  "evaluation_end": "2026-12-27",
+  "horizon_days": 28,
+  "step_days": 28,
+  "training_policy": "sliding",
+  "train_weeks": 24,
+  "selection_end": "2025-12-28",
+  "selection_policy": "fixed-pre-evaluation-windows-v1",
+  "scenarios": ["grocery", "wine", "garden", "luxury"],
+  "valid_label_rule": "is_open and not stockout and y is not null",
+  "metrics_version": "retail-metrics-v4"
+}

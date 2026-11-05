@@ -1,12 +1,14 @@
 ---
-title: "零售需求预测 2026 年度基准：52 周滑动窗口评测与 Tweedie 分布实践"
+title: "零售需求预测 2026 零售周基准：52 周滑动窗口评测与 Tweedie 分布实践"
 date: 2026-11-05T09:00:00+11:00
 draft: false
-summary: "基于墨尔本 5 年合成零售数据集，全面实施 2026 全年 52 周（13 期 × 28 天）前向滑动窗口基准评测。涵盖 Baseline、统计时间序列与三代主流 GBDT，系统验证了 Tweedie 复合泊松-伽马损失函数在零膨胀与长尾零售需求中的理论与实证突破。"
+summary: "基于墨尔本 5 年合成零售数据集，记录 52 个完整零售周上的 V3 固定 24 周历史评测；该历史快照与 V4 扩展历史主榜分开维护。"
 tags: ["Demand Forecasting", "Tweedie", "LightGBM", "XGBoost", "CatBoost", "Prophet", "Benchmark", "MLOps"]
 categories: ["时间序列预测", "机器学习工程"]
 math: true
 ---
+
+> **证据状态**：本文保留 `2026-retail-week-24w-v3` 历史快照的分析。评估范围为 2025-12-29 至 2026-12-27 的 52 个完整零售周，不等同于完整日历年，也不得与 V4 扩展历史结果混合。
 
 ## 一、 为什么传统的“留出 28 天测试集”不可靠？
 
@@ -118,10 +120,19 @@ $$
 ### 一键复现代码
 ```bash
 # 运行单个模型（例如独立重算 XGBoost Tweedie）
-uv run python scripts/run_benchmark.py --models xgboost_tweedie_p18
+uv run python scripts/run_benchmark.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --models xgboost_tweedie_p18
 
-# 零开销重新生成全局排行榜与可视化
-uv run python scripts/run_benchmark.py --compare-only
-uv run python scripts/plot_benchmark_summary.py
-uv run python scripts/generate_benchmark_report.py
+# 从显式指定的本地运行目录严格重建分场景汇总
+uv run python scripts/run_benchmark.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --compare-only \
+  --source-root runs/20261105-all-models-benchmark
+
+# 仅对人工审核并发布的不可变快照生成图表和报告数据块
+uv run python scripts/plot_benchmark_summary.py \
+  --benchmark 2026-retail-week-expanding-v4
+uv run python scripts/generate_benchmark_report.py \
+  --benchmark 2026-retail-week-expanding-v4
 ```

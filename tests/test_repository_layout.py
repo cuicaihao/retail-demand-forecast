@@ -10,6 +10,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryLayoutTests(unittest.TestCase):
+    def test_only_eight_canonical_top_level_directories_exist(self) -> None:
+        expected = {
+            "data",
+            "docs",
+            "images",
+            "notebooks",
+            "runs",
+            "scripts",
+            "src",
+            "tests",
+        }
+        actual = {
+            path.name
+            for path in ROOT.iterdir()
+            if path.is_dir() and not path.name.startswith(".")
+        }
+        self.assertEqual(actual, expected)
+
     def test_canonical_teaching_data_is_unique(self) -> None:
         teaching_dirs = [
             path
@@ -35,6 +53,11 @@ class RepositoryLayoutTests(unittest.TestCase):
         for name, expected in manifest["csv_sha256"].items():
             actual = hashlib.sha256((data_dir / name).read_bytes()).hexdigest()
             self.assertEqual(actual, expected, name)
+        spec_path = data_dir / "generation_spec.json"
+        self.assertEqual(
+            manifest.get("generation_spec_sha256"),
+            hashlib.sha256(spec_path.read_bytes()).hexdigest(),
+        )
 
     def test_notebook_code_uses_canonical_paths(self) -> None:
         forbidden = (
@@ -64,6 +87,25 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertIn("/data/**", rules)
         self.assertIn("!/data/**/.gitkeep", rules)
         self.assertTrue((ROOT / "data" / "artifacts" / "published").is_dir())
+
+    def test_benchmark_store_separates_protocols_releases_and_history(self) -> None:
+        benchmark_dir = ROOT / "data" / "benchmarks"
+        self.assertFalse((benchmark_dir / "results").exists())
+        self.assertTrue((benchmark_dir / "protocols").is_dir())
+        self.assertTrue((benchmark_dir / "published").is_dir())
+        self.assertTrue((benchmark_dir / "archive_single_cutoff_28d").is_dir())
+
+    def test_published_benchmark_release_hashes_recompute(self) -> None:
+        published = ROOT / "data" / "benchmarks" / "published"
+        for release_path in published.glob("*/release_manifest.json"):
+            release = json.loads(release_path.read_text())
+            release_dir = release_path.parent
+            for relative, expected in release["files"].items():
+                path = release_dir / relative
+                self.assertTrue(path.is_file(), relative)
+                self.assertEqual(
+                    hashlib.sha256(path.read_bytes()).hexdigest(), expected
+                )
 
     def test_reference_snapshot_provenance_is_explicit(self) -> None:
         data_dir = ROOT / "data" / "teaching"

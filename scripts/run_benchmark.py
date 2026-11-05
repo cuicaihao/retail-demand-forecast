@@ -1,33 +1,14 @@
-"""
-Unified Week-Aligned Rolling Benchmark Runner for Retail Demand Forecasting.
-
-Supports:
-1. Running all models, families, or specific models/variants:
-   --models seasonal_naive,lightgbm_default,xgboost_tweedie_p18
-2. Running single model independently:
-   --models seasonal_naive
-3. Running entire model families:
-   --family baseline
-   --family tree
-4. Evaluation modes:
-   --mode 4week (default: 13 non-overlapping 28-day periods, 364 days total)
-   --mode weekly (50 rolling steps, each predicting future 28 days)
-5. Configurable training window:
-   --train-weeks 24 (default: 24 complete weeks = 168 days)
-6. Refreshing global leaderboard only (0 re-training, milliseconds):
-   --compare-only
-7. Listing all supported models & stored models:
-   --list
-"""
+"""Run one explicit, versioned retail-demand benchmark protocol."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
+import re
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional
+from datetime import UTC, datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -36,198 +17,155 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from retail_forecast.baselines import (
-    MovingAverageForecaster,
-    SeasonalNaiveForecaster,
+from retail_forecast.benchmark_adapters import (
+    baseline_factory,
+    prophet_factory,
+    resolve_model_parameters,
+    tree_factory,
 )
+from retail_forecast.benchmark_protocol import list_benchmark_specs, load_benchmark_spec
 from retail_forecast.benchmark_registry import (
-    BENCHMARK_DIR,
-    RESULTS_DIR,
-    SUMMARY_DIR,
     ModelConfig,
-    RollingFold,
     compute_standard_metrics,
-    generate_leaderboard,
-    generate_week_aligned_folds,
-    get_model_result_dir,
-    save_rolling_benchmark_results,
+    generate_v4_summaries,
+    model_result_dir,
+    save_v4_benchmark_results,
+    validate_v4_model_result,
 )
-from retail_forecast.common import (
-    DATA_DIR,
-    HORIZON,
-    INPUT_HASHES,
-    SCENARIOS,
-    datasets,
-    sales_prediction,
-    valid_labels,
-)
-from retail_forecast.trees import fit_predict_tree_model, tune_model
+from retail_forecast.common import ROOT as PACKAGE_ROOT
+from retail_forecast.common import SCENARIOS, datasets, valid_labels
 
-# =====================================================================
-# 模型变种注册字典 (Model Registry & Configuration Matrix)
-# =====================================================================
 
-MODEL_REGISTRY: Dict[str, ModelConfig] = {
-    # 1. Baseline Family
-    "seasonal_naive": ModelConfig(
-        model_id="seasonal_naive",
-        model_name="Seasonal Naive (7d)",
+def _config(
+    model_id: str,
+    model_name: str,
+    *,
+    toolkit: str,
+    family: str,
+    factory,
+    variant: str = "default",
+    role: str = "ablation",
+    group: str | None = None,
+    params: dict | None = None,
+    description: str = "",
+) -> ModelConfig:
+    return ModelConfig(
+        model_id=model_id,
+        model_name=model_name,
+        toolkit=toolkit,
+        family=family,
+        variant=variant,
+        comparison_role=role,
+        config_group=group or toolkit,
+        adapter_factory=factory,
+        params=params or {},
+        description=description,
+    )
+
+
+MODEL_REGISTRY: dict[str, ModelConfig] = {
+    "seasonal_naive": _config(
+        "seasonal_naive",
+        "Seasonal Naive (7d)",
+        toolkit="seasonal_naive",
         family="baseline",
-        variant="default",
-        description="7-day lag seasonal repeat tiled over 28-day horizon",
+        factory=baseline_factory,
+        role="breadth",
+        params={"lag_days": 7},
+        description="Repeat the most recent complete week.",
     ),
-    "moving_average_14d": ModelConfig(
-        model_id="moving_average_14d",
-        model_name="Moving Average (14d)",
+    "moving_average_14d": _config(
+        "moving_average_14d",
+        "Moving Average (14d)",
+        toolkit="moving_average",
         family="baseline",
-        variant="default",
+        factory=baseline_factory,
+        role="breadth",
         params={"window_days": 14},
-        description="Rolling 14-day average of historical open sales",
+        description="Mean of the latest 14 open trading days.",
     ),
-    # 2. Tree / GBDT Family: LightGBM
-    "lightgbm_default": ModelConfig(
-        model_id="lightgbm_default",
-        model_name="LightGBM Default (MSE)",
-        family="tree_gbdt",
-        variant="default",
-        params={},
-        description="LightGBM with default L2 (Mean Squared Error) objective",
+    "decision_tree": _config(
+        "decision_tree",
+        "Decision Tree",
+        toolkit="decision_tree",
+        family="tree_classical",
+        factory=tree_factory,
+        role="breadth",
     ),
-    "lightgbm_tweedie_p11": ModelConfig(
-        model_id="lightgbm_tweedie_p11",
-        model_name="LightGBM Tweedie (p=1.1)",
-        family="tree_gbdt",
-        variant="tweedie_p11",
-        params={"objective": "tweedie", "tweedie_variance_power": 1.1},
-        description="LightGBM with Tweedie loss (variance power p=1.1, strong Poisson count mode)",
+    "random_forest": _config(
+        "random_forest",
+        "Random Forest",
+        toolkit="random_forest",
+        family="tree_classical",
+        factory=tree_factory,
+        role="breadth",
     ),
-    "lightgbm_tweedie_p12": ModelConfig(
-        model_id="lightgbm_tweedie_p12",
-        model_name="LightGBM Tweedie (p=1.2)",
-        family="tree_gbdt",
-        variant="tweedie_p12",
-        params={"objective": "tweedie", "tweedie_variance_power": 1.2},
-        description="LightGBM with Tweedie loss (variance power p=1.2, FMCG continuous optimal)",
-    ),
-    "lightgbm_tweedie_p15": ModelConfig(
-        model_id="lightgbm_tweedie_p15",
-        model_name="LightGBM Tweedie (p=1.5)",
-        family="tree_gbdt",
-        variant="tweedie_p15",
-        params={"objective": "tweedie", "tweedie_variance_power": 1.5},
-        description="LightGBM with Tweedie loss (variance power p=1.5, compound Poisson-gamma)",
-    ),
-    "lightgbm_tweedie_p18": ModelConfig(
-        model_id="lightgbm_tweedie_p18",
-        model_name="LightGBM Tweedie (p=1.8)",
-        family="tree_gbdt",
-        variant="tweedie_p18",
-        params={"objective": "tweedie", "tweedie_variance_power": 1.8},
-        description="LightGBM with Tweedie loss (variance power p=1.8, zero-inflated Gamma mode)",
-    ),
-    # 3. Tree / GBDT Family: XGBoost
-    "xgboost_default": ModelConfig(
-        model_id="xgboost_default",
-        model_name="XGBoost Default (MSE)",
-        family="tree_gbdt",
-        variant="default",
-        params={},
-        description="XGBoost with default reg:squarederror objective",
-    ),
-    "xgboost_tweedie_p11": ModelConfig(
-        model_id="xgboost_tweedie_p11",
-        model_name="XGBoost Tweedie (p=1.1)",
-        family="tree_gbdt",
-        variant="tweedie_p11",
-        params={"objective": "reg:tweedie", "tweedie_variance_power": 1.1},
-        description="XGBoost with Tweedie loss (p=1.1)",
-    ),
-    "xgboost_tweedie_p12": ModelConfig(
-        model_id="xgboost_tweedie_p12",
-        model_name="XGBoost Tweedie (p=1.2)",
-        family="tree_gbdt",
-        variant="tweedie_p12",
-        params={"objective": "reg:tweedie", "tweedie_variance_power": 1.2},
-        description="XGBoost with Tweedie loss (p=1.2)",
-    ),
-    "xgboost_tweedie_p15": ModelConfig(
-        model_id="xgboost_tweedie_p15",
-        model_name="XGBoost Tweedie (p=1.5)",
-        family="tree_gbdt",
-        variant="tweedie_p15",
-        params={"objective": "reg:tweedie", "tweedie_variance_power": 1.5},
-        description="XGBoost with Tweedie loss (p=1.5)",
-    ),
-    "xgboost_tweedie_p18": ModelConfig(
-        model_id="xgboost_tweedie_p18",
-        model_name="XGBoost Tweedie (p=1.8)",
-        family="tree_gbdt",
-        variant="tweedie_p18",
-        params={"objective": "reg:tweedie", "tweedie_variance_power": 1.8},
-        description="XGBoost with Tweedie loss (p=1.8, optimal for luxury zero-inflation)",
-    ),
-    # 4. Tree / GBDT Family: CatBoost
-    "catboost_default": ModelConfig(
-        model_id="catboost_default",
-        model_name="CatBoost Default (MAE)",
-        family="tree_gbdt",
-        variant="default",
-        params={},
-        description="CatBoost with default MAE loss function",
-    ),
-    "catboost_tweedie_p11": ModelConfig(
-        model_id="catboost_tweedie_p11",
-        model_name="CatBoost Tweedie (p=1.1)",
-        family="tree_gbdt",
-        variant="tweedie_p11",
-        params={"loss_function": "Tweedie:variance_power=1.1"},
-        description="CatBoost with Tweedie loss function (p=1.1)",
-    ),
-    "catboost_tweedie_p15": ModelConfig(
-        model_id="catboost_tweedie_p15",
-        model_name="CatBoost Tweedie (p=1.5)",
-        family="tree_gbdt",
-        variant="tweedie_p15",
-        params={"loss_function": "Tweedie:variance_power=1.5"},
-        description="CatBoost with Tweedie loss function (p=1.5)",
-    ),
-    "catboost_tweedie_p18": ModelConfig(
-        model_id="catboost_tweedie_p18",
-        model_name="CatBoost Tweedie (p=1.8)",
-        family="tree_gbdt",
-        variant="tweedie_p18",
-        params={"loss_function": "Tweedie:variance_power=1.8"},
-        description="CatBoost with Tweedie loss function (p=1.8)",
-    ),
-    # 5. Classical Trees
-    "random_forest": ModelConfig(
-        model_id="random_forest",
-        model_name="Random Forest",
-        family="tree_gbdt",
-        variant="default",
-        params={},
-        description="Scikit-Learn Random Forest Regressor",
-    ),
-    "decision_tree": ModelConfig(
-        model_id="decision_tree",
-        model_name="Decision Tree",
-        family="tree_gbdt",
-        variant="default",
-        params={},
-        description="Scikit-Learn Decision Tree Regressor",
-    ),
-    # 6. Statistical Models
-    "prophet": ModelConfig(
-        model_id="prophet",
-        model_name="Prophet",
+    "prophet": _config(
+        "prophet",
+        "Prophet",
+        toolkit="prophet",
         family="statistical",
-        variant="default",
-        params={},
-        description="Meta Prophet with weekly/yearly seasonality and VIC holiday regressors",
+        factory=prophet_factory,
+        role="breadth",
     ),
 }
 
-# Aliases for convenience
+
+def _register_gbdt_matrix() -> None:
+    toolkits = {
+        "lightgbm": {
+            "default_name": "LightGBM Default (MSE)",
+            "default": {},
+            "tweedie": lambda power: {
+                "objective": "tweedie",
+                "tweedie_variance_power": power,
+            },
+        },
+        "xgboost": {
+            "default_name": "XGBoost Default (MSE)",
+            "default": {},
+            "tweedie": lambda power: {
+                "objective": "reg:tweedie",
+                "tweedie_variance_power": power,
+            },
+        },
+        "catboost": {
+            "default_name": "CatBoost Default (MAE)",
+            "default": {},
+            "tweedie": lambda power: {
+                "loss_function": f"Tweedie:variance_power={power}"
+            },
+        },
+    }
+    for toolkit, values in toolkits.items():
+        default_id = f"{toolkit}_default"
+        MODEL_REGISTRY[default_id] = _config(
+            default_id,
+            values["default_name"],
+            toolkit=toolkit,
+            family="tree_gbdt",
+            factory=tree_factory,
+            role="breadth",
+            params=values["default"],
+            description=f"Representative default objective for {toolkit}.",
+        )
+        for suffix, power in (("p11", 1.1), ("p12", 1.2), ("p15", 1.5), ("p18", 1.8)):
+            model_id = f"{toolkit}_tweedie_{suffix}"
+            MODEL_REGISTRY[model_id] = _config(
+                model_id,
+                f"{toolkit.title()} Tweedie (p={power:.1f})",
+                toolkit=toolkit,
+                family="tree_gbdt",
+                factory=tree_factory,
+                variant=f"tweedie_{suffix}",
+                role="ablation",
+                params=values["tweedie"](power),
+                description="Controlled Tweedie variance-power ablation.",
+            )
+
+
+_register_gbdt_matrix()
+
 MODEL_ALIASES = {
     "lightgbm": "lightgbm_default",
     "xgboost": "xgboost_default",
@@ -235,403 +173,306 @@ MODEL_ALIASES = {
 }
 
 
-# =====================================================================
-# 核心评测执行引擎 (Core Execution Pipeline for a Single Model)
-# =====================================================================
+def _seasonal_scale(history: pd.DataFrame, lag: int = 7) -> float | None:
+    labels = history.loc[valid_labels(history), ["ds", "y"]].copy()
+    current = labels.set_index("ds").y
+    aligned = pd.concat(
+        [current, current.shift(freq=pd.Timedelta(days=lag))], axis=1
+    ).dropna()
+    if aligned.empty:
+        return None
+    value = float(np.abs(aligned.iloc[:, 0] - aligned.iloc[:, 1]).mean())
+    return value if value > 0 else None
 
 
-def _is_cache_valid(
-    model_config: ModelConfig, eval_mode: str, train_weeks: int
+def _prepare_history(history: pd.DataFrame, scenario: str) -> pd.DataFrame:
+    clean = history.copy()
+    if scenario == "grocery":
+        invalid = (~clean.is_open) | clean.stockout
+        clean.loc[invalid, "y"] = np.nan
+        clean["y"] = clean.y.interpolate().bfill().ffill()
+    return clean
+
+
+def _cache_valid(
+    path: Path,
+    spec,
+    config: ModelConfig,
+    scenarios: list[str],
+    resolved_params: dict[str, dict],
 ) -> bool:
-    """Check if model results already exist and match current input hashes & params."""
-    res_dir = get_model_result_dir(model_config.model_id, eval_mode=eval_mode)
-    manifest_path = res_dir / "manifest.json"
-    ann_path = res_dir / "metrics_annual.csv"
-    per_path = res_dir / "metrics_period.csv"
-    pred_path = res_dir / "predictions.csv"
-
-    if not (
-        manifest_path.is_file()
-        and ann_path.is_file()
-        and per_path.is_file()
-        and pred_path.is_file()
-    ):
+    if not path.is_dir():
         return False
-
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if manifest.get("eval_mode") != eval_mode:
-            return False
-        if manifest.get("train_weeks") != train_weeks:
-            return False
-        if manifest.get("params") != model_config.params:
-            return False
-        if manifest.get("input_hashes") != INPUT_HASHES:
-            return False
-        return True
-    except Exception:
+        manifest = validate_v4_model_result(path, spec, require_all_scenarios=False)
+    except (ValueError, FileNotFoundError, json.JSONDecodeError):
         return False
+    return (
+        manifest.get("model_id") == config.model_id
+        and manifest.get("scenarios") == scenarios
+        and manifest.get("resolved_params_by_scenario") == resolved_params
+    )
 
 
-def run_single_model_benchmark(
-    model_config: ModelConfig,
-    eval_mode: str = "4week",
-    train_weeks: int = 24,
-    scenarios: Optional[List[str]] = None,
-    force: bool = False,
+def run_model(
+    *,
+    config: ModelConfig,
+    spec,
+    run_root: Path,
+    scenarios: list[str],
+    force: bool,
 ) -> Path:
-    """
-    Execute full walk-forward benchmark for a single model configuration.
-    Idempotent: automatically skips if valid cache exists and force is False.
-    """
-    scenarios = scenarios or list(SCENARIOS.keys())
-
-    if not force and _is_cache_valid(model_config, eval_mode, train_weeks):
-        print(
-            f"[{model_config.model_id}] Up-to-date benchmark cache found. Skipping execution. (Use --force to recompute)"
-        )
-        return get_model_result_dir(model_config.model_id, eval_mode=eval_mode)
-
-    folds = generate_week_aligned_folds(
-        mode=eval_mode, train_weeks=train_weeks, horizon_days=HORIZON
+    selection_dir = run_root / spec.benchmark_id / "selection"
+    resolved_params, selection_record = resolve_model_parameters(
+        config, spec, selection_dir
     )
-    print(f"\n========================================================")
-    print(f"Executing Benchmark: {model_config.model_name}")
-    print(f"Model ID: {model_config.model_id} | Family: {model_config.family}")
-    print(
-        f"Evaluation Mode: {eval_mode} ({len(folds)} folds) | Train History: {train_weeks} weeks"
-    )
-    print(f"Scenarios: {scenarios}")
-    print(f"========================================================\n")
+    output_path = model_result_dir(run_root, spec.benchmark_id, config.model_id)
+    if not force and _cache_valid(
+        output_path, spec, config, scenarios, resolved_params
+    ):
+        print(f"[{config.model_id}] compatible cache found; skipping")
+        return output_path
 
-    all_preds_rows = []
-    all_period_metrics = []
-    annual_summary_rows = []
+    folds = spec.folds(min(frame.ds.min() for frame in datasets.values()))
+    prediction_parts: list[pd.DataFrame] = []
+    period_rows: list[dict] = []
+    annual_rows: list[dict] = []
+    started = time.perf_counter()
 
-    # Pre-tune base tree models if necessary
-    tree_base_params_cache = {}
-    if model_config.family == "tree_gbdt":
-        model_name_map = {
-            "lightgbm": "LightGBM",
-            "xgboost": "XGBoost",
-            "catboost": "CatBoost",
-            "random_forest": "Random Forest",
-            "decision_tree": "Decision Tree",
-        }
-        # Find base family name
-        base_family_name = None
-        for k, v in model_name_map.items():
-            if model_config.model_id.startswith(k):
-                base_family_name = v
-                break
-
-        if base_family_name:
-            for sc in scenarios:
-                best_p, _, _ = tune_model(sc, base_family_name)
-                tree_base_params_cache[sc] = best_p
-
-    prophet_params_cache = {}
-    total_start_time = time.time()
-
-    for sc in scenarios:
-        df = datasets[sc]
-        sc_period_wapes = []
-        sc_y_true_all = []
-        sc_y_pred_all = []
-
-        print(f"  >>> Evaluating Scenario: {sc.upper()}...")
-
+    for scenario in scenarios:
+        frame = datasets[scenario]
+        pooled_y: list[float] = []
+        pooled_prediction: list[float] = []
+        pooled_q10: list[float] = []
+        pooled_q90: list[float] = []
+        fold_scales: list[tuple[int, float]] = []
+        fold_wapes: list[float] = []
         for fold in folds:
-            # Slicing history and future
-            hist = df[(df.ds >= fold.train_start) & (df.ds <= fold.train_end)].copy()
-            future = df[(df.ds >= fold.test_start) & (df.ds <= fold.test_end)].copy()
-            fut_valid = valid_labels(future)
-            y_true = future.loc[fut_valid, "y"].values
-
-            # Grocery cleaning for training
-            if sc == "grocery":
-                bad_mask = (~hist["is_open"]) | hist["stockout"]
-                hist.loc[bad_mask, "y"] = np.nan
-                hist["y"] = hist["y"].interpolate().bfill().ffill()
-
-            # Execute model
-            t0 = time.perf_counter()
-            p_pred = None
-            q10_pred = None
-            q90_pred = None
-
-            if model_config.model_id == "seasonal_naive":
-                forecaster = SeasonalNaiveForecaster(lag_days=7)
-                forecaster.fit(hist, sc)
-                out = forecaster.predict(future, sc)
-                p_pred = out.point_forecast
-
-            elif model_config.model_id == "moving_average_14d":
-                forecaster = MovingAverageForecaster(window_days=14)
-                forecaster.fit(hist, sc)
-                out = forecaster.predict(future, sc)
-                p_pred = out.point_forecast
-
-            elif model_config.family == "tree_gbdt":
-                # Combine base tuned params with variant specific params
-                base_p = tree_base_params_cache.get(sc, {}).copy()
-                base_p.update(model_config.params)
-                p_pred = fit_predict_tree_model(
-                    history=hist,
-                    future=future,
-                    scenario=sc,
-                    model_name=base_family_name,
-                    params=base_p,
+            history = frame[frame.ds.between(fold.train_start, fold.train_end)].copy()
+            future = frame[frame.ds.between(fold.test_start, fold.test_end)].copy()
+            if len(future) != fold.n_test_days:
+                raise ValueError(
+                    f"{scenario}/{fold.period_name}: expected {fold.n_test_days} future rows"
                 )
-
-            elif model_config.model_id == "prophet":
-                from retail_forecast.prophet_benchmark import (
-                    fit_prophet,
-                    predict_prophet,
-                    tune_prophet,
+            scale = _seasonal_scale(history)
+            history = _prepare_history(history, scenario)
+            factory = config.adapter_factory
+            if factory is None:
+                raise RuntimeError(
+                    f"{config.model_id} has no registered adapter factory"
                 )
+            adapter = factory(config, scenario, resolved_params[scenario])
+            fold_started = time.perf_counter()
+            adapter.fit(history, scenario)
+            output = adapter.predict(future, scenario)
+            latency_ms = (time.perf_counter() - fold_started) * 1000
 
-                if sc not in prophet_params_cache:
-                    p_params, _, _ = tune_prophet(sc)
-                    prophet_params_cache[sc] = p_params
-                p_params = prophet_params_cache[sc]
-                p_model, _ = fit_prophet(hist, sc, p_params)
-                p_raw = predict_prophet(p_model, future, sc)
-                p_pred = sales_prediction(future, p_raw)
-                q10_pred = None
-                q90_pred = None
-
-            else:
-                raise NotImplementedError(
-                    f"Runner for model '{model_config.model_id}' is not yet implemented."
+            prediction = np.asarray(output.point_forecast, dtype=float)
+            if len(prediction) != len(future) or not np.isfinite(prediction).all():
+                raise ValueError(
+                    f"{scenario}/{fold.period_name}: invalid point forecast"
                 )
-
-            lat_ms = (time.perf_counter() - t0) * 1000
-
-            # Score period metrics
-            score = compute_standard_metrics(
-                y_true=y_true,
-                y_pred=p_pred[fut_valid],
-                q10=q10_pred[fut_valid] if q10_pred is not None else None,
-                q90=q90_pred[fut_valid] if q90_pred is not None else None,
+            valid = valid_labels(future).to_numpy()
+            y = future.loc[valid, "y"].to_numpy(float)
+            pred = prediction[valid]
+            q10 = (
+                np.asarray(output.q10, float)[valid] if output.q10 is not None else None
             )
-
-            sc_period_wapes.append(score["WAPE"])
-            sc_y_true_all.extend(y_true)
-            sc_y_pred_all.extend(p_pred[fut_valid])
-
-            all_period_metrics.append(
+            q90 = (
+                np.asarray(output.q90, float)[valid] if output.q90 is not None else None
+            )
+            metrics = compute_standard_metrics(
+                y, pred, q10=q10, q90=q90, seasonal_scale=scale
+            )
+            fold_wapes.append(metrics["WAPE"])
+            if scale is not None:
+                fold_scales.append((metrics["n"], scale))
+            pooled_y.extend(y)
+            pooled_prediction.extend(pred)
+            if q10 is not None and q90 is not None:
+                pooled_q10.extend(q10)
+                pooled_q90.extend(q90)
+            period_rows.append(
                 {
-                    "scenario": sc,
-                    "model_id": model_config.model_id,
-                    "model_name": model_config.model_name,
-                    "family": model_config.family,
+                    "scenario": scenario,
+                    "model_id": config.model_id,
+                    "model_name": config.model_name,
+                    "toolkit": config.toolkit,
+                    "family": config.family,
+                    "variant": config.variant,
+                    "comparison_role": config.comparison_role,
                     "fold": fold.fold_id,
                     "period": fold.period_name,
                     "test_start": str(fold.test_start.date()),
                     "test_end": str(fold.test_end.date()),
-                    "MAE": score["MAE"],
-                    "RMSE": score["RMSE"],
-                    "WAPE": score["WAPE"],
-                    "Bias": score["Bias"],
-                    "ZeroAccuracy": score["ZeroAccuracy"],
-                    "Coverage80": score["Coverage80"],
-                    "latency_ms": lat_ms,
-                    "n": score["n"],
+                    **metrics,
+                    "latency_ms": latency_ms,
                 }
             )
 
-            # Store predictions
-            sub_pred = (
-                future[["ds", "y", "is_open", "stockout"]].copy()
-                if "stockout" in future.columns
-                else future[["ds", "y", "is_open"]].copy()
-            )
-            sub_pred["scenario"] = sc
-            sub_pred["model_id"] = model_config.model_id
-            sub_pred["fold"] = fold.fold_id
-            sub_pred["period"] = fold.period_name
-            sub_pred["prediction"] = p_pred
-            sub_pred["q10"] = q10_pred if q10_pred is not None else np.nan
-            sub_pred["q90"] = q90_pred if q90_pred is not None else np.nan
-            all_preds_rows.append(sub_pred)
+            stored = future[["ds", "y", "is_open", "stockout"]].copy()
+            stored["scenario"] = scenario
+            stored["model_id"] = config.model_id
+            stored["fold"] = fold.fold_id
+            stored["period"] = fold.period_name
+            stored["forecast_origin"] = fold.train_end
+            stored["prediction"] = prediction
+            stored["q10"] = output.q10 if output.q10 is not None else np.nan
+            stored["q90"] = output.q90 if output.q90 is not None else np.nan
+            prediction_parts.append(stored)
 
-        # Compute full-horizon cumulative metrics for scenario
-        y_all = np.array(sc_y_true_all)
-        p_all = np.array(sc_y_pred_all)
-        ann_score = compute_standard_metrics(y_all, p_all)
-
-        wapes = np.array(sc_period_wapes)
-        annual_summary_rows.append(
+        annual_scale = (
+            sum(n * scale for n, scale in fold_scales) / sum(n for n, _ in fold_scales)
+            if fold_scales
+            else None
+        )
+        annual = compute_standard_metrics(
+            np.asarray(pooled_y),
+            np.asarray(pooled_prediction),
+            q10=np.asarray(pooled_q10) if pooled_q10 else None,
+            q90=np.asarray(pooled_q90) if pooled_q90 else None,
+            seasonal_scale=annual_scale,
+        )
+        annual_rows.append(
             {
-                "scenario": sc,
-                "model_id": model_config.model_id,
-                "model_name": model_config.model_name,
-                "family": model_config.family,
-                "MAE": ann_score["MAE"],
-                "RMSE": ann_score["RMSE"],
-                "WAPE": ann_score["WAPE"],
-                "Bias": ann_score["Bias"],
-                "ZeroAccuracy": ann_score["ZeroAccuracy"],
-                "Period_WAPE_Mean": float(np.nanmean(wapes)),
-                "Period_WAPE_Std": float(np.nanstd(wapes)),
-                "Total_Units": float(y_all.sum()),
-                "n": ann_score["n"],
+                "scenario": scenario,
+                "model_id": config.model_id,
+                "model_name": config.model_name,
+                "toolkit": config.toolkit,
+                "family": config.family,
+                "variant": config.variant,
+                "comparison_role": config.comparison_role,
+                "config_group": config.config_group,
+                **annual,
+                "Fold_WAPE_Mean": float(np.nanmean(fold_wapes)),
+                "Fold_WAPE_Std": float(np.nanstd(fold_wapes)),
             }
         )
-        print(
-            f"     -> Cumulative WAPE: {ann_score['WAPE'] * 100:.2f}% | Period WAPE Mean: {np.nanmean(wapes) * 100:.2f}% ± {np.nanstd(wapes) * 100:.2f}%"
+        print(f"[{config.model_id}] {scenario}: pooled WAPE={annual['WAPE']:.4f}")
+
+    return save_v4_benchmark_results(
+        base_dir=run_root,
+        spec=spec,
+        model_config=config,
+        predictions_df=pd.concat(prediction_parts, ignore_index=True),
+        metrics_period_df=pd.DataFrame(period_rows),
+        metrics_annual_df=pd.DataFrame(annual_rows),
+        folds=folds,
+        scenarios=scenarios,
+        resolved_params={scenario: resolved_params[scenario] for scenario in scenarios},
+        selection_record=selection_record,
+        elapsed_seconds=time.perf_counter() - started,
+    )
+
+
+def _validate_run_id(value: str) -> str:
+    pattern = r"\d{8}-[a-z0-9]+(?:-[a-z0-9]+)*-(?:benchmark|validation|experiment)"
+    if not re.fullmatch(pattern, value):
+        raise ValueError(
+            "run ID must match YYYYMMDD-[model]-[type] in lowercase kebab-case"
         )
-
-    preds_df = pd.concat(all_preds_rows, ignore_index=True)
-    period_df = pd.DataFrame(all_period_metrics)
-    annual_df = pd.DataFrame(annual_summary_rows)
-
-    elapsed = time.time() - total_start_time
-    print(f"\n[{model_config.model_id}] Evaluation finished in {elapsed:.2f}s")
-
-    out_dir = save_rolling_benchmark_results(
-        model_config=model_config,
-        predictions_df=preds_df,
-        metrics_period_df=period_df,
-        metrics_annual_df=annual_df,
-        eval_mode=eval_mode,
-        train_weeks=train_weeks,
-        extra_manifest={"elapsed_seconds": elapsed},
-    )
-    return out_dir
+    return value
 
 
-# =====================================================================
-# CLI 命令行入口 (Main CLI Command Parser)
-# =====================================================================
+def _default_run_id(target_models: list[str]) -> str:
+    token = target_models[0] if len(target_models) == 1 else "all-models"
+    return f"{datetime.now(UTC):%Y%m%d}-{token}-benchmark"
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Unified Week-Aligned Rolling Benchmark Runner for Retail Demand Forecasting."
-    )
+def _select_models(args: argparse.Namespace) -> list[str]:
+    if args.family:
+        return [
+            model_id
+            for model_id, config in MODEL_REGISTRY.items()
+            if args.family == "all" or config.family == args.family
+        ]
+    if args.models:
+        selected = []
+        for raw in args.models.split(","):
+            model_id = MODEL_ALIASES.get(raw.strip().lower(), raw.strip().lower())
+            if model_id not in MODEL_REGISTRY:
+                raise ValueError(f"Unknown model ID: {model_id}")
+            selected.append(model_id)
+        return selected
+    return []
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--models",
-        type=str,
-        default=None,
-        help="Comma-separated model IDs to execute (e.g. 'seasonal_naive,xgboost_default,xgboost_tweedie_p18').",
+        "--benchmark", help="Explicit benchmark ID from data/benchmarks/protocols."
     )
+    parser.add_argument("--models", help="Comma-separated registered model IDs.")
     parser.add_argument(
         "--family",
-        type=str,
-        default=None,
-        choices=["baseline", "tree_gbdt", "statistical", "all"],
-        help="Execute all models within a specified model family.",
+        choices=["baseline", "tree_classical", "tree_gbdt", "statistical", "all"],
     )
     parser.add_argument(
-        "--mode",
-        type=str,
-        default="4week",
-        choices=["4week", "weekly"],
-        help="Evaluation window mode: '4week' (13 non-overlapping 28-day blocks) or 'weekly' (50 rolling steps).",
+        "--scenarios", help="Comma-separated subset for local diagnostics only."
     )
+    parser.add_argument("--run-id", help="Local runs/ directory name.")
     parser.add_argument(
-        "--train-weeks",
-        type=int,
-        default=24,
-        help="Number of historical complete weeks used for training (default: 24 weeks = 168 days).",
+        "--source-root",
+        type=Path,
+        help="Root containing <benchmark-id>/models for --compare-only.",
     )
-    parser.add_argument(
-        "--scenarios",
-        type=str,
-        default=None,
-        help="Comma-separated scenarios to evaluate (default: all 4: 'grocery,wine,garden,luxury').",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force recomputation even if cached results match input hashes.",
-    )
-    parser.add_argument(
-        "--compare-only",
-        action="store_true",
-        help="Only aggregate all existing results in data/benchmarks/results/ and refresh the global leaderboard.",
-    )
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List all registered benchmark models and stored results.",
-    )
-
+    parser.add_argument("--compare-only", action="store_true")
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--list", action="store_true")
     args = parser.parse_args()
 
     if args.list:
-        print("=" * 70)
-        print("REGISTERED BENCHMARK MODELS:")
-        print("=" * 70)
-        for mid, cfg in sorted(MODEL_REGISTRY.items()):
-            print(f"  [{cfg.family:<12}] {mid:<24} : {cfg.description}")
-        print("\nSTORED MODEL RESULTS (in data/benchmarks/results/):")
-        if RESULTS_DIR.exists():
-            for p in sorted(RESULTS_DIR.iterdir()):
-                if p.is_dir() and not p.name.startswith("."):
-                    m_file = p / "metrics_annual.csv"
-                    status = (
-                        "Week-Aligned Rolling v3"
-                        if m_file.exists()
-                        else "Legacy 28-Day"
-                    )
-                    print(f"  * {p.name:<26} ({status})")
+        print("BENCHMARK PROTOCOLS")
+        for spec in list_benchmark_specs():
+            print(f"  {spec.benchmark_id}: {spec.label}")
+        print("\nREGISTERED MODELS")
+        for model_id, config in sorted(MODEL_REGISTRY.items()):
+            print(
+                f"  [{config.family:<14}] {model_id:<28} "
+                f"toolkit={config.toolkit:<14} role={config.comparison_role}"
+            )
         return
 
+    if not args.benchmark:
+        parser.error("--benchmark is required for execution and aggregation")
+    spec = load_benchmark_spec(args.benchmark)
     if args.compare_only:
-        print(f"Refreshing benchmark leaderboard for mode '{args.mode}'...")
-        generate_leaderboard(eval_mode=args.mode)
+        if args.source_root is None:
+            parser.error(
+                "--compare-only requires --source-root; implicit latest-result scans are forbidden"
+            )
+        generate_v4_summaries(base_dir=args.source_root, spec=spec)
         return
 
-    # Resolve target models
-    target_models = []
-    if args.family:
-        if args.family == "all":
-            target_models = list(MODEL_REGISTRY.keys())
-        else:
-            target_models = [
-                mid for mid, cfg in MODEL_REGISTRY.items() if cfg.family == args.family
-            ]
-    elif args.models:
-        for m in args.models.split(","):
-            m = m.strip().lower()
-            m = MODEL_ALIASES.get(m, m)
-            if m in MODEL_REGISTRY:
-                target_models.append(m)
-            else:
-                print(
-                    f"Warning: Unknown model ID '{m}'. Run with --list to view valid models."
-                )
-
+    target_models = _select_models(args)
     if not target_models:
-        print(
-            "No models selected. Use --models <keys>, --family <name>, or --compare-only."
-        )
-        return
-
+        parser.error("select --models or --family")
     scenarios = (
-        [s.strip().lower() for s in args.scenarios.split(",") if s.strip()]
+        [value.strip() for value in args.scenarios.split(",")]
         if args.scenarios
-        else list(SCENARIOS.keys())
+        else list(spec.scenarios)
     )
+    unknown_scenarios = set(scenarios) - set(spec.scenarios) - set(SCENARIOS)
+    if unknown_scenarios:
+        parser.error(f"unknown scenarios: {sorted(unknown_scenarios)}")
 
-    print(
-        f"Selected models for benchmark: {target_models} across scenarios: {scenarios}"
-    )
-    for mid in target_models:
-        cfg = MODEL_REGISTRY[mid]
-        run_single_model_benchmark(
-            model_config=cfg,
-            eval_mode=args.mode,
-            train_weeks=args.train_weeks,
+    run_id = _validate_run_id(args.run_id or _default_run_id(target_models))
+    run_root = PACKAGE_ROOT / "runs" / run_id
+    for model_id in target_models:
+        run_model(
+            config=MODEL_REGISTRY[model_id],
+            spec=spec,
+            run_root=run_root,
             scenarios=scenarios,
             force=args.force,
         )
-
-    print(f"\nRefreshing global leaderboard for mode '{args.mode}'...")
-    generate_leaderboard(eval_mode=args.mode)
+    if set(scenarios) == set(spec.scenarios):
+        generate_v4_summaries(base_dir=run_root, spec=spec)
+        print(f"Compatible summaries written under {run_root / spec.benchmark_id}")
+    else:
+        print(
+            "Partial-scenario diagnostics completed; release aggregation intentionally skipped."
+        )
 
 
 if __name__ == "__main__":

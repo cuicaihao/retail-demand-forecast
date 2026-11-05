@@ -39,3 +39,8 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/plot_scenario_distributions.py" = ["C408"]
+"scripts/plot_tweedie_rolling_results.py" = ["C408"]
+"scripts/plot_tweedie_spectrum.py" = ["C408"]

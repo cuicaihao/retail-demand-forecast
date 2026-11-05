@@ -6,7 +6,7 @@ with variance power p in [1.1, 1.2, 1.5, 1.8], especially on Scenario 4 (luxury 
 
 STRICT ISOLATION GUARANTEE:
 Outputs ONLY to runs/20261103-gbdt-tweedie-experiment/ and DOES NOT overwrite any existing
-benchmark results in data/benchmarks/results/ or data/benchmarks/summary/.
+published benchmark snapshot in data/benchmarks/published/.
 """
 
 from __future__ import annotations

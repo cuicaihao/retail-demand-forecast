@@ -10,15 +10,15 @@ Generates:
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-SUMMARY_DIR = ROOT / "data" / "benchmarks" / "summary"
+PUBLISHED_DIR = ROOT / "data" / "benchmarks" / "published"
 IMAGE_DIR = ROOT / "images" / "benchmarks"
-IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def set_academic_style():
@@ -267,16 +267,16 @@ def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame):
     plt.close(fig)
 
 
-def plot_fig04_zero_accuracy(df_scenario: pd.DataFrame):
-    """Fig 4: Zero accuracy on intermittent demand."""
-    print("Generating Fig 4: Zero Accuracy Comparison...")
+def plot_fig04_zero_recall(df_scenario: pd.DataFrame):
+    """Fig 4: Explicit zero-day recall on intermittent demand."""
+    print("Generating Fig 4: Zero Recall Comparison...")
     fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
 
     lux = df_scenario[df_scenario["scenario"] == "luxury"].copy()
-    lux = lux.dropna(subset=["ZeroAccuracy"]).sort_values(
-        "ZeroAccuracy", ascending=True
+    lux = lux.dropna(subset=["ZeroRecallAt05"]).sort_values(
+        "ZeroRecallAt05", ascending=True
     )
-    lux["Zero_pct"] = lux["ZeroAccuracy"] * 100
+    lux["Zero_pct"] = lux["ZeroRecallAt05"] * 100
 
     colors = [
         "#D62728"
@@ -291,11 +291,11 @@ def plot_fig04_zero_accuracy(df_scenario: pd.DataFrame):
     )
 
     ax.set_title(
-        "Zero-Demand Day Accuracy on Luxury Handbags (Prediction < 0.05 when Sales = 0)",
+        "Zero-Demand Recall on Luxury Handbags (Prediction < 0.5 when Sales = 0)",
         fontsize=11,
         fontweight="bold",
     )
-    ax.set_xlabel("Zero-Value Accuracy (%) [Higher is Better]", fontsize=9)
+    ax.set_xlabel("ZeroRecall@0.5 (%) [Higher is Better]", fontsize=9)
     ax.grid(True, axis="x", linestyle=":", alpha=0.6)
     ax.set_xlim(0, 108)
 
@@ -315,13 +315,20 @@ def plot_fig04_zero_accuracy(df_scenario: pd.DataFrame):
 
 
 def main():
+    global IMAGE_DIR
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--benchmark", required=True)
+    args = parser.parse_args()
     set_academic_style()
-    sc_file = SUMMARY_DIR / "scenario_leaderboard.csv"
-    per_file = SUMMARY_DIR / "period_trajectories.csv"
+    summary_dir = PUBLISHED_DIR / args.benchmark / "summary"
+    IMAGE_DIR = ROOT / "images" / "benchmarks" / args.benchmark
+    IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    sc_file = summary_dir / "scenario_leaderboard.csv"
+    per_file = summary_dir / "period_trajectories.csv"
 
     if not sc_file.is_file():
         print(
-            f"Error: {sc_file} not found. Please run scripts/run_benchmark.py --compare-only first."
+            f"Error: {sc_file} not found. Publish benchmark {args.benchmark!r} first."
         )
         return
 
@@ -332,8 +339,8 @@ def main():
     if not df_period.empty:
         plot_fig02_trajectories(df_period)
     plot_fig03_tweedie_ablation(df_scenario)
-    plot_fig04_zero_accuracy(df_scenario)
-    print("\nAll academic & blog figures successfully rendered to images/benchmarks/!")
+    plot_fig04_zero_recall(df_scenario)
+    print(f"\nFigures rendered to {IMAGE_DIR}")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,7 +43,7 @@ SCENARIOS = {
     },
 }
 datasets = {}
-for name, c in SCENARIOS.items():
+for name in SCENARIOS:
     f = (
         pd.read_csv(DATA_DIR / f"{name}_scenario_data.csv", parse_dates=["ds"])
         .sort_values("ds")

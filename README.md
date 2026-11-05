@@ -6,10 +6,10 @@
 
 本仓库配套的技术博客与量化实证报告深度拆解了零售需求预测的建模机制、调参诊断、缺货去偏、Tweedie 损失函数与 52 周前向滑动窗口基准评测：
 
-- **[零售需求预测 2026 年度基准：52 周滑动窗口评测与 Tweedie 分布实践](docs/articles/2026-retail-demand-forecast-benchmark.md)**  
-  全面实施 2026 全年 52 周（13 期 $\times$ 28 天无重叠块步进）前向滑动窗口基准评测。涵盖 Baseline、统计时间序列与三代主流 GBDT，系统验证了 Tweedie 复合泊松-伽马损失函数在零膨胀与长尾零售需求中的理论与实证突破。
-- **[2026 全年 52 周前向滑动窗口零售需求预测技术验证报告](docs/reports/2026-annual-retail-forecast-benchmark.md)**  
-  详细记录 15 种模型及配置在四大场景 52 个测试切片下的综合榜单、跨四季动态轨迹、残差稳定性分析与生产系统分级路由落地建议。
+- **[零售需求预测 2026 零售周基准：52 周滑动窗口评测与 Tweedie 分布实践](docs/articles/2026-retail-demand-forecast-benchmark.md)**
+  记录 V3 固定 24 周历史快照在 52 个完整零售周上的结果。该历史报告不等同于 V4 扩展历史主榜。
+- **[2026 零售周 52 周前向滑动窗口技术验证报告](docs/reports/2026-annual-retail-forecast-benchmark.md)**
+  保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
 - **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
   深入探讨指数离散族（Exponential Dispersion Family）、Compound Poisson-Gamma 分布的极大似然估计、一阶梯度与二阶 Hessian 推导及其在 LightGBM / XGBoost C++ 源码中的工程映射。
 - **[零售需求预测实战：基于 Prophet 的建模、调参、诊断与局限性分析](https://cuicaihao.github.io/zh/posts/2026-10-01-prophet-retail-demand-forecast/)**  
@@ -23,23 +23,27 @@
 
 | 场景 | 数据文件 (`data/teaching/`) | 核心需求形态与业务机制 | 已知业务协变量 (Known Future Covariates) | 核心评测挑战与不可自愈陷阱 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. 商超日用杂货 (Grocery)** | `grocery_scenario_data.csv` | 高频连续消费（均值 ~109.5）+ 强周/年周期 | `is_open`, `is_closed_holiday`, `discount`（每 14 天前 7 天 8 折）, VIC 公共假日 | 含 **24 个随机缺货截断日**（`stockout=True` 时销量被硬截断为 20 件），考验模型对**缺货删失（Censoring）去偏**能力 |
-| **2. 红酒促销 (Wine)** | `wine_scenario_data.csv` | 泊松计数脉冲（均值 ~10.4，$\widehat{\mathrm{ADI}}=1.013$） | `promo_case_buy`（每 28 天前 3 天成箱促销）, `is_party_event`, `is_december_peak` | 强烈短时促销脉冲与年末峰值，检验平滑先验与非线性特征吸收能力 |
-| **3. 庭院耗材 (Garden)** | `garden_scenario_data.csv` | 强年度正弦周期 + 周末效应（均值 ~64.9） | `is_long_weekend_diy`（长周末 DIY 旺季）, `is_end_of_autumn_clearance` | 极长的冬夏跨季振幅与长周末叠加效应，检验跨年长周期先验与季节项（加法 vs. 乘法） |
-| **4. 奢侈品手袋 (Luxury)** | `luxury_scenario_data.csv` | **极端稀疏间歇性需求**（营业日零值率 **93.58%**，$\widehat{\mathrm{ADI}}=15.571$） | `is_saturday`, `is_sunday`, `is_december_peak`, `is_vip_event`, `discount` | 零膨胀序列（Zero-Inflated），检验点预测保守全零陷阱、概率发生率与分位数校准 |
+| **1. 商超日用杂货 (Grocery)** | `grocery_scenario_data.csv` | 高频连续消费 + 强周/年周期 | `is_open`, `is_closed_holiday`, `discount`, VIC 公共假日 | 随机缺货截断与闭店，检验**缺货删失（Censoring）去偏**能力 |
+| **2. 红酒促销 (Wine)** | `wine_scenario_data.csv` | 泊松计数脉冲 | `promo_case_buy`, `is_party_event`, `is_december_peak` | 短时促销脉冲与年末峰值，检验非线性特征吸收能力 |
+| **3. 庭院耗材 (Garden)** | `garden_scenario_data.csv` | 强年度正弦周期 + 周末效应 | `is_long_weekend_diy`, `is_end_of_autumn_clearance` | 冬夏跨季振幅与长周末叠加，检验跨年长周期先验 |
+| **4. 奢侈品手袋 (Luxury)** | `luxury_scenario_data.csv` | 极端稀疏间歇性需求 | `is_saturday`, `is_sunday`, `is_december_peak`, `is_vip_event`, `discount` | 零膨胀序列，检验全零陷阱、需求事件识别与分位数校准 |
+
+精确均值、零值率、ADI、CV² 和缺货天数由 `scenario_diagnostics.csv` 生成，并由 `generation_metadata.json` 记录哈希；README 不再复制一份可能漂移的统计值。
 
 ![四场景需求形态与 ADI-CV 分布](images/retail-demand-profile-adi-cv.png)
 
 ---
 
-## 🏆 2026 全年 52 周滑动窗口基准库 (2026 Annual Benchmark Store)
+## 🏆 2026 零售周 52 周基准库 (2026 Retail-Week Benchmark Store)
 
-为彻底解决单一切片评估（Single 28-day Cutoff）因大促或淡季偶发性带来的测试偏差，本仓库全面升级至 **V3 周对齐前向滑动窗口基准评测体系（Walk-Forward Rolling Evaluation）**：
+当前使用声明式 **V4 周对齐前向滚动协议**。主榜与训练历史消融使用相同测试 fold，但禁止交叉聚合：
 
-- **52 周完整覆盖**：将 2026 年（`2025-12-29` 至 `2026-12-27`，共 364 天）划分为 **13 个无重叠 28 天分块（P01 至 P13）**，历史训练固定采用预测起点前 **24 完整周（168 天）** 动态滚动；
-- **标准五契约持久化**：每个模型在 `data/benchmarks/results/<model_key>/` 下固化保存 `predictions.csv`、`metrics_period.csv`、`metrics_annual.csv`、`manifest.json` 与独立报告 `model_report.md`；
-- **多模式物理隔离**：支持 13 期无重叠分块步进（`--mode 4week`）与 50 期每周重叠步进（`--mode weekly`），存储路径完全隔离，互不覆盖；
-- **零重训报告与出图**：毫秒级并入全景基准排行榜，支持随时重新合成图表与分析报告。
+- **主榜 `2026-retail-week-expanding-v4`**：每个预测起点使用此前全部可用历史；
+- **消融 `2026-retail-week-24w-ablation-v4`**：仅使用最近 24 完整周，用于量化短历史影响；
+- **严格兼容性**：协议、数据哈希、场景、fold、forecast origin、有效标签集合和冻结参数必须全部一致；
+- **发布分层**：本地结果写入 `runs/`，审核后的轻量快照写入 `data/benchmarks/published/<benchmark-id>/`。
+
+> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照。V4 主榜完成发布前，不把这些数字解释为扩展历史结论。
 
 ### 四大零售场景独立排行榜 (Scenario-Specific Annual Leaderboards - 52 Weeks)
 
@@ -162,16 +166,19 @@
 uv run python scripts/run_benchmark.py --list
 
 # 独立运行指定模型（支持单个或逗号分隔列表）
-uv run python scripts/run_benchmark.py --models xgboost_tweedie_p18
+uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models xgboost_tweedie_p18
 
 # 按模型家族批量运行（如仅重跑 GBDT 系列）
-uv run python scripts/run_benchmark.py --family tree_gbdt
+uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --family tree_gbdt
 
-# 启动 50 步周度重叠高频回测（结果自动隔离存入 results_weekly/，不覆盖主基准）
-uv run python scripts/run_benchmark.py --models seasonal_naive --mode weekly
+# 仅聚合一个明确的结果根目录；禁止隐式扫描与跨协议混合
+uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --compare-only --source-root runs/20261105-all-models-benchmark
 
-# 仅刷新全景排行榜（0 重训，毫秒级更新 summary/）
-uv run python scripts/run_benchmark.py --compare-only
+# 两套协议都完成后，生成训练历史策略消融表
+uv run python scripts/compare_training_histories.py \
+  --source-root runs/20261105-all-models-benchmark \
+  --main-benchmark 2026-retail-week-expanding-v4 \
+  --ablation-benchmark 2026-retail-week-24w-ablation-v4
 ```
 
 ### 2. 零重训图表与报告生成工具
@@ -180,10 +187,10 @@ uv run python scripts/run_benchmark.py --compare-only
 
 ```bash
 # 渲染 4 组出版级基准全景图表 (生成至 images/benchmarks/)
-uv run python scripts/plot_benchmark_summary.py
+uv run python scripts/plot_benchmark_summary.py --benchmark 2026-retail-week-expanding-v4
 
-# 自动生成 2026 年度技术验证报告与 Hugo 博客文章 (Markdown)
-uv run python scripts/generate_benchmark_report.py
+# 从已发布快照生成受控 Markdown 数据块，不覆盖人工叙事
+uv run python scripts/generate_benchmark_report.py --benchmark 2026-retail-week-expanding-v4
 
 # 重新渲染 4 个场景的时序全貌图与 ADI-CV 分布图 (生成至 images/)
 uv run python scripts/plot_teaching_scenarios.py
@@ -195,7 +202,7 @@ uv run python scripts/plot_teaching_scenarios.py
 1. **查阅开发规程**：阅读 [`docs/reports/model-onboarding-protocol.md`](docs/reports/model-onboarding-protocol.md)；
 2. **实现接口契约**：在 `src/retail_forecast/` 中继承 `BaseRetailForecaster`；
 3. **注册运行器**：在 `scripts/run_benchmark.py` 的 `MODEL_REGISTRY` 注册配置与参数；
-4. **一键执行并网**：运行 `uv run python scripts/run_benchmark.py --models <model_key>`。
+4. **一键执行并网**：运行 `uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models <model_key>`。
 
 > 🤖 **面向 AI Coding Agents**：参与本项目的 AI 助手请严格遵循根目录顶级指引文档 **[`AGENTS.md`](AGENTS.md)** 中的架构红线与开发规程。
 
@@ -209,9 +216,9 @@ retail-demand-forecast/
 │   ├── teaching/               # 5 年合成场景 CSV (260 周 / 1,820 天) 与哈希清单
 │   ├── artifacts/              # 经审核的参考快照 (published/) 与中间产物
 │   ├── benchmarks/             # 🏆 核心基准结果持久化库
-│   │   ├── results/            # 13 期无重叠 4-week 年度基准标准五契约存储
-│   │   ├── summary/            # 全局排行榜与周期演进大表 (annual_leaderboard.csv)
-│   │   └── archive_single_cutoff_28d/ # v0.2.0 单一切片历史基准归档
+│   │   ├── protocols/          # 可哈希的 V4 评估协议声明
+│   │   ├── published/          # 经审核的不可变轻量发布快照
+│   │   └── archive_single_cutoff_28d/ # V2 单一切片历史基准归档
 │   └── models/                 # 教学参考模型权重快照 (data/models/reference/)
 ├── docs/                       # 📚 统一文档中心 (系列博客、技术报告与学术文献)
 │   ├── articles/               # 对外发布的系列长文 (*-retail-demand-forecast.md)
@@ -227,7 +234,9 @@ retail-demand-forecast/
 │   └── retail_forecast/        # 核心 Python 库与生产 SQL 资产
 │       ├── common.py           # 数据加载、SHA256 校验与统一评价指标
 │       ├── baselines.py        # Seasonal Naive 与 Moving Average 基准实现
-│       ├── benchmark_registry.py # V3 周对齐滚动评测切片器、存储契约与汇聚引擎
+│       ├── benchmark_protocol.py # V4 声明式协议与 fold 生成
+│       ├── benchmark_registry.py # 严格结果契约、指标与汇聚引擎
+│       ├── benchmark_adapters.py # 模型适配器与正式评估前参数冻结
 │       ├── trees.py            # Decision Tree, Random Forest, LightGBM, XGBoost, CatBoost
 │       ├── prophet_benchmark.py# Prophet 建模与评测模块
 │       ├── arima.py            # SARIMAX / 动态回归实现
