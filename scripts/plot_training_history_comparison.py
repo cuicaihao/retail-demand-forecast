@@ -47,24 +47,33 @@ def plot_comparison(comparison_id: str, release_id: str) -> Path:
         ax.set_title(scenario.capitalize(), fontweight="bold")
         ax.set_xlabel("24-week WAPE minus expanding-history WAPE (percentage points)")
         ax.grid(True, axis="x", linestyle=":", alpha=0.55)
-        offset = max(abs(frame.delta_pp).max() * 0.02, 0.08)
+        span = max(frame.delta_pp.max() - frame.delta_pp.min(), 1.0)
+        padding = max(span * 0.08, 0.5)
+        ax.set_xlim(
+            min(0.0, frame.delta_pp.min()) - padding,
+            max(0.0, frame.delta_pp.max()) + padding,
+        )
+        offset = max(span * 0.015, 0.08)
         for bar, value in zip(bars, frame.delta_pp, strict=True):
+            negative = value < 0
             ax.text(
-                value + (offset if value >= 0 else -offset),
+                value + offset,
                 bar.get_y() + bar.get_height() / 2,
                 f"{value:+.2f}",
                 va="center",
-                ha="left" if value >= 0 else "right",
+                ha="left",
                 fontsize=8,
+                color="white" if negative else "#111111",
             )
         if scenario == "luxury":
             ax.text(
                 0.01,
-                0.01,
+                0.98,
                 "WAPE view only; consult event recall and F1 tables.",
                 transform=ax.transAxes,
                 fontsize=8,
                 color="#555555",
+                va="top",
             )
 
     fig.suptitle(
