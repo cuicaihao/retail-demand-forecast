@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -16,6 +17,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from generate_benchmark_report import replace_marked_block
 from publish_benchmark import (
+    _publishing_source_provenance,
     _validate_release_id,
     publish,
     published_release_root,
@@ -147,6 +149,42 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         self.assertEqual(path.parent.parent.name, "2026-retail-week-expanding-v4")
         with self.assertRaisesRegex(ValueError, "YYYYMMDD"):
             _validate_release_id("latest")
+
+    def test_publish_cleanliness_allows_only_pending_release_outputs(self) -> None:
+        provenance = {
+            "git_commit": "a" * 40,
+            "git_dirty": True,
+            "source_tree_sha256": "b" * 64,
+        }
+        with (
+            patch(
+                "publish_benchmark.current_source_provenance",
+                return_value=provenance,
+            ),
+            patch(
+                "publish_benchmark.subprocess.run",
+                return_value=SimpleNamespace(
+                    stdout=(
+                        "?? data/benchmarks/published/example/releases/20261106-v1/\n"
+                    )
+                ),
+            ),
+        ):
+            result = _publishing_source_provenance()
+            self.assertFalse(result["git_dirty"])
+            self.assertEqual(len(result["pending_release_outputs"]), 1)
+        with (
+            patch(
+                "publish_benchmark.current_source_provenance",
+                return_value=provenance,
+            ),
+            patch(
+                "publish_benchmark.subprocess.run",
+                return_value=SimpleNamespace(stdout=" M README.md\n"),
+            ),
+            self.assertRaisesRegex(ValueError, "README.md"),
+        ):
+            _publishing_source_provenance()
 
 
 class BenchmarkV4ResultValidationTests(unittest.TestCase):
@@ -307,11 +345,7 @@ class BenchmarkV4ResultValidationTests(unittest.TestCase):
             with (
                 patch("publish_benchmark.PUBLISHED_DIR", published),
                 patch(
-                    "publish_benchmark.current_source_provenance",
-                    return_value=provenance,
-                ),
-                patch(
-                    "retail_forecast.benchmark_registry.current_source_provenance",
+                    "publish_benchmark._publishing_source_provenance",
                     return_value=provenance,
                 ),
             ):

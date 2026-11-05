@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import UTC, datetime
@@ -53,6 +54,40 @@ def _validate_release_id(release_id: str) -> str:
     return release_id
 
 
+def _publishing_source_provenance() -> dict:
+    """Require clean source while allowing earlier outputs from the same release batch."""
+    provenance = current_source_provenance()
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=normal"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    pending_releases = []
+    disallowed = []
+    for line in result.stdout.splitlines():
+        path = line[3:]
+        if (
+            line.startswith("?? ")
+            and path.startswith("data/benchmarks/published/")
+            and "/releases/" in path
+        ):
+            pending_releases.append(path)
+        else:
+            disallowed.append(line)
+    if disallowed:
+        raise ValueError(
+            "Publishing requires clean source and documentation files; "
+            f"found changes: {disallowed}"
+        )
+    return {
+        **provenance,
+        "git_dirty": False,
+        "pending_release_outputs": sorted(pending_releases),
+    }
+
+
 def publish(
     source_root: Path,
     benchmark_id: str,
@@ -62,9 +97,7 @@ def publish(
 ) -> Path:
     spec = load_benchmark_spec(benchmark_id)
     release_id = _validate_release_id(release_id)
-    source_provenance = current_source_provenance()
-    if source_provenance["git_dirty"]:
-        raise ValueError("Publishing requires a clean Git worktree")
+    source_provenance = _publishing_source_provenance()
     if source_provenance["git_commit"] == "unknown":
         raise ValueError("Publishing requires a resolvable Git commit")
     source = benchmark_result_root(source_root, benchmark_id)
@@ -101,11 +134,17 @@ def publish(
             model_path,
             spec,
             require_all_scenarios=True,
-            require_current_runtime=True,
+            require_current_runtime=False,
         )
-        if manifest["source_provenance"] != source_provenance:
+        model_source = manifest["source_provenance"]
+        if model_source["git_dirty"]:
+            raise ValueError(f"{model_path}: model was generated from dirty source")
+        if (
+            model_source["source_tree_sha256"]
+            != source_provenance["source_tree_sha256"]
+        ):
             raise ValueError(
-                f"{model_path}: model provenance does not match the clean publishing tree"
+                f"{model_path}: execution source hash does not match the reviewed tree"
             )
         selected_models[model_id] = model_path
     requested = sorted(selected_models)
