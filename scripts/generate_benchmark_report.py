@@ -76,14 +76,14 @@ def replace_marked_block(document: str, block_name: str, content: str) -> str:
     return f"{before}{start}\n{content.rstrip()}\n{end}{after}"
 
 
-def generate_blocks(benchmark_id: str) -> Path:
+def generate_blocks(benchmark_id: str, release_id: str) -> Path:
     spec = load_benchmark_spec(benchmark_id)
-    root = benchmark_result_root(PUBLISHED_DIR, benchmark_id)
+    root = benchmark_result_root(PUBLISHED_DIR, benchmark_id) / "releases" / release_id
     release_path = root / "release_manifest.json"
     if not release_path.is_file():
         raise FileNotFoundError(f"Benchmark is not published: {release_path}")
     scenario = pd.read_csv(root / "summary" / "scenario_leaderboard.csv")
-    output = GENERATED_REPORTS / benchmark_id
+    output = GENERATED_REPORTS / benchmark_id / release_id
     output.mkdir(parents=True, exist_ok=True)
 
     general_columns = [
@@ -127,6 +127,7 @@ def generate_blocks(benchmark_id: str) -> Path:
     release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
     provenance = (
         f"> Benchmark ID: `{benchmark_id}`  \n"
+        f"> Release ID: `{release_id}`  \n"
         f"> Protocol hash: `{spec.protocol_hash}`  \n"
         f"> Release manifest SHA-256: `{release_digest}`  \n"
         "> Fold uncertainty intervals are descriptive; they are not claims of statistical significance.\n"
@@ -138,6 +139,7 @@ def generate_blocks(benchmark_id: str) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--benchmark", required=True)
+    parser.add_argument("--release", required=True)
     parser.add_argument(
         "--sync-target",
         type=Path,
@@ -146,7 +148,7 @@ def main() -> None:
         help="Markdown file containing scenario_leaderboards and provenance marker pairs.",
     )
     args = parser.parse_args()
-    output = generate_blocks(args.benchmark)
+    output = generate_blocks(args.benchmark, args.release)
     blocks = {
         "scenario_leaderboards": (output / "scenario_leaderboards.md").read_text(),
         "provenance": (output / "provenance.md").read_text(),

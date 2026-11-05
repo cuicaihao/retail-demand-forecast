@@ -205,10 +205,10 @@ def model_result_dir(base_dir: Path, benchmark_id: str, model_id: str) -> Path:
     return benchmark_result_root(base_dir, benchmark_id) / "models" / model_id
 
 
-def _git_commit() -> str:
+def _git_output(*args: str) -> str:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+            ["git", *args],
             cwd=ROOT,
             capture_output=True,
             text=True,
@@ -217,6 +217,37 @@ def _git_commit() -> str:
         return result.stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return "unknown"
+
+
+def _source_tree_sha256() -> str:
+    """Hash benchmark code and environment declarations, including dirty files."""
+    paths = [
+        *sorted((ROOT / "src" / "retail_forecast").rglob("*.py")),
+        ROOT / "scripts" / "run_benchmark.py",
+        ROOT / "pyproject.toml",
+        ROOT / "uv.lock",
+    ]
+    digest = hashlib.sha256()
+    for path in paths:
+        if not path.is_file():
+            continue
+        relative = path.relative_to(ROOT).as_posix().encode()
+        digest.update(len(relative).to_bytes(4, "big"))
+        digest.update(relative)
+        content = path.read_bytes()
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
+def current_source_provenance() -> dict[str, Any]:
+    """Describe the exact source state used by a local benchmark execution."""
+    status = _git_output("status", "--porcelain", "--untracked-files=normal")
+    return {
+        "git_commit": _git_output("rev-parse", "HEAD"),
+        "git_dirty": status not in {"", "unknown"},
+        "source_tree_sha256": _source_tree_sha256(),
+    }
 
 
 def _json_sha256(value: Any) -> str:
@@ -295,6 +326,7 @@ def save_v4_benchmark_results(
     stored_predictions = predictions_df.copy()
     stored_predictions["ds"] = pd.to_datetime(stored_predictions.ds)
     valid_label_provenance = _valid_label_provenance(stored_predictions)
+    source_provenance = current_source_provenance()
     manifest = {
         "result_schema_version": "benchmark-result-v4",
         "benchmark_id": spec.benchmark_id,
@@ -323,7 +355,8 @@ def save_v4_benchmark_results(
         "input_hashes": INPUT_HASHES,
         "software_versions": _software_versions(),
         "random_seed": SEED,
-        "git_commit": _git_commit(),
+        "git_commit": source_provenance["git_commit"],
+        "source_provenance": source_provenance,
         "updated_at": datetime.now(UTC).isoformat(),
         "elapsed_seconds": elapsed_seconds,
     }
@@ -336,7 +369,11 @@ def save_v4_benchmark_results(
 
 
 def validate_v4_model_result(
-    path: Path, spec: Any, *, require_all_scenarios: bool = True
+    path: Path,
+    spec: Any,
+    *,
+    require_all_scenarios: bool = True,
+    require_current_runtime: bool = True,
 ) -> dict[str, Any]:
     """Fail closed for incomplete or incompatible results."""
     required = {
@@ -356,14 +393,42 @@ def validate_v4_model_result(
         "protocol_hash": spec.protocol_hash,
         "metrics_version": spec.metrics_version,
         "input_hashes": INPUT_HASHES,
-        "software_versions": _software_versions(),
-        "random_seed": SEED,
     }
     for key, value in expected.items():
         if manifest.get(key) != value:
             raise ValueError(
                 f"{path}: incompatible {key}: {manifest.get(key)!r} != {value!r}"
             )
+    required_provenance = {
+        "software_versions": dict,
+        "random_seed": int,
+        "source_provenance": dict,
+    }
+    for key, expected_type in required_provenance.items():
+        if not isinstance(manifest.get(key), expected_type):
+            raise TypeError(f"{path}: missing or invalid {key}")
+    source_provenance = manifest["source_provenance"]
+    required_source_fields = {
+        "git_commit": str,
+        "git_dirty": bool,
+        "source_tree_sha256": str,
+    }
+    for key, expected_type in required_source_fields.items():
+        if not isinstance(source_provenance.get(key), expected_type):
+            raise TypeError(f"{path}: missing or invalid source_provenance.{key}")
+    if manifest.get("git_commit") != source_provenance["git_commit"]:
+        raise ValueError(f"{path}: git_commit does not match source provenance")
+    if require_current_runtime:
+        runtime_expected = {
+            "software_versions": _software_versions(),
+            "random_seed": SEED,
+            "source_provenance": current_source_provenance(),
+        }
+        for key, value in runtime_expected.items():
+            if manifest.get(key) != value:
+                raise ValueError(
+                    f"{path}: incompatible {key}: {manifest.get(key)!r} != {value!r}"
+                )
     selected_path = path / "selected_config.json"
     selected_hash = hashlib.sha256(selected_path.read_bytes()).hexdigest()
     if manifest.get("selected_config_sha256") != selected_hash:
@@ -464,10 +529,21 @@ def _paired_fold_wins(period: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_v4_summaries(
-    *, base_dir: Path, spec: Any, require_all_scenarios: bool = True
+    *,
+    spec: Any,
+    base_dir: Path | None = None,
+    result_root: Path | None = None,
+    require_all_scenarios: bool = True,
+    require_current_runtime: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """Aggregate only models compatible with one explicit benchmark ID."""
-    root = benchmark_result_root(base_dir, spec.benchmark_id)
+    if (base_dir is None) == (result_root is None):
+        raise ValueError("Provide exactly one of base_dir or result_root")
+    root = (
+        benchmark_result_root(base_dir, spec.benchmark_id)
+        if base_dir is not None
+        else Path(result_root)
+    )
     models_dir = root / "models"
     if not models_dir.is_dir():
         raise FileNotFoundError(f"No model results found under {models_dir}")
@@ -477,7 +553,10 @@ def generate_v4_summaries(
     for path in sorted(item for item in models_dir.iterdir() if item.is_dir()):
         manifests.append(
             validate_v4_model_result(
-                path, spec, require_all_scenarios=require_all_scenarios
+                path,
+                spec,
+                require_all_scenarios=require_all_scenarios,
+                require_current_runtime=require_current_runtime,
             )
         )
         annual_parts.append(pd.read_csv(path / "metrics_annual.csv"))

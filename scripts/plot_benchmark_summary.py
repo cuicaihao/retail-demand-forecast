@@ -318,10 +318,11 @@ def main():
     global IMAGE_DIR
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--benchmark", required=True)
+    parser.add_argument("--release", required=True)
     args = parser.parse_args()
     set_academic_style()
-    summary_dir = PUBLISHED_DIR / args.benchmark / "summary"
-    IMAGE_DIR = ROOT / "images" / "benchmarks" / args.benchmark
+    summary_dir = PUBLISHED_DIR / args.benchmark / "releases" / args.release / "summary"
+    IMAGE_DIR = ROOT / "images" / "benchmarks" / args.benchmark / args.release
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     sc_file = summary_dir / "scenario_leaderboard.csv"
     per_file = summary_dir / "period_trajectories.csv"

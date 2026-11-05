@@ -132,7 +132,9 @@ uv run python scripts/run_benchmark.py \
 
 # 仅对人工审核并发布的不可变快照生成图表和报告数据块
 uv run python scripts/plot_benchmark_summary.py \
-  --benchmark 2026-retail-week-expanding-v4
+  --benchmark 2026-retail-week-expanding-v4 \
+  --release 20261106-first-stage-v1
 uv run python scripts/generate_benchmark_report.py \
-  --benchmark 2026-retail-week-expanding-v4
+  --benchmark 2026-retail-week-expanding-v4 \
+  --release 20261106-first-stage-v1
 ```

@@ -97,7 +97,7 @@ class RepositoryLayoutTests(unittest.TestCase):
 
     def test_published_benchmark_release_hashes_recompute(self) -> None:
         published = ROOT / "data" / "benchmarks" / "published"
-        for release_path in published.glob("*/release_manifest.json"):
+        for release_path in published.glob("**/release_manifest.json"):
             release = json.loads(release_path.read_text())
             release_dir = release_path.parent
             for relative, expected in release["files"].items():

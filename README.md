@@ -41,7 +41,7 @@
 - **主榜 `2026-retail-week-expanding-v4`**：每个预测起点使用此前全部可用历史；
 - **消融 `2026-retail-week-24w-ablation-v4`**：仅使用最近 24 完整周，用于量化短历史影响；
 - **严格兼容性**：协议、数据哈希、场景、fold、forecast origin、有效标签集合和冻结参数必须全部一致；
-- **发布分层**：本地结果写入 `runs/`，审核后的轻量快照写入 `data/benchmarks/published/<benchmark-id>/`。
+- **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 
 > 下方数值表属于 `2026-retail-week-24w-v3` 历史快照。V4 主榜完成发布前，不把这些数字解释为扩展历史结论。
 
@@ -187,10 +187,14 @@ uv run python scripts/compare_training_histories.py \
 
 ```bash
 # 渲染 4 组出版级基准全景图表 (生成至 images/benchmarks/)
-uv run python scripts/plot_benchmark_summary.py --benchmark 2026-retail-week-expanding-v4
+uv run python scripts/plot_benchmark_summary.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --release 20261106-first-stage-v1
 
 # 从已发布快照生成受控 Markdown 数据块，不覆盖人工叙事
-uv run python scripts/generate_benchmark_report.py --benchmark 2026-retail-week-expanding-v4
+uv run python scripts/generate_benchmark_report.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --release 20261106-first-stage-v1
 
 # 重新渲染 4 个场景的时序全貌图与 ADI-CV 分布图 (生成至 images/)
 uv run python scripts/plot_teaching_scenarios.py

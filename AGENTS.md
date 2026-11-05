@@ -41,7 +41,7 @@ retail-demand-forecast/
 ```
 
 ### Critical Rules for AI Agents:
-- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, local benchmark runs belong in `runs/`, and reviewed releases belong in `data/benchmarks/published/<benchmark-id>/`.
+- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, local benchmark runs belong in `runs/`, and reviewed releases belong in `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`.
 - **Rule 2 (Notebook Invariant)**: All Jupyter Notebooks (`notebooks/*.ipynb`) must NOT contain saved execution outputs. Cells must have `"outputs": []` and `"execution_count": null`. The test suite strictly asserts this.
 - **Rule 3 (PEP 518/621 Layout)**: `tests/` must remain in the root directory and never be merged into `src/`.
 - **Rule 4 (No Data Leakage)**: Evaluation dates are frozen by the selected file in `data/benchmarks/protocols/`. Parameter selection must end before formal evaluation. During inference, future `y` and diagnostic ground-truth columns must be invisible. Future known covariates (`is_open`, planned discounts, holidays) are permitted.

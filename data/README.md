@@ -22,6 +22,8 @@ overwrite protection described above.
 
 `benchmarks/protocols/` contains immutable, declarative comparison contracts.
 Local benchmark work is written below `runs/`; only reviewed lightweight
-snapshots are promoted to `benchmarks/published/<benchmark-id>/`. Results from
-different benchmark IDs must never be aggregated. The historical V2
+snapshots are promoted to
+`benchmarks/published/<benchmark-id>/releases/<release-id>/`. Release IDs are
+immutable; later model additions create a new release rather than rewriting an
+old one. Results from different benchmark IDs must never be aggregated. The historical V2
 single-cutoff results remain isolated in `benchmarks/archive_single_cutoff_28d/`.

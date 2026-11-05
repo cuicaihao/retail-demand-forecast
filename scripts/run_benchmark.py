@@ -205,7 +205,7 @@ def _cache_valid(
         return False
     try:
         manifest = validate_v4_model_result(path, spec, require_all_scenarios=False)
-    except (ValueError, FileNotFoundError, json.JSONDecodeError):
+    except (TypeError, ValueError, FileNotFoundError, json.JSONDecodeError):
         return False
     return (
         manifest.get("model_id") == config.model_id

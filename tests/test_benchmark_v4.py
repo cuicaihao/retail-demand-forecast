@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -14,7 +15,13 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from generate_benchmark_report import replace_marked_block
+from publish_benchmark import (
+    _validate_release_id,
+    publish,
+    published_release_root,
+)
 from run_benchmark import MODEL_REGISTRY
+from validate_benchmark_release import validate_release
 
 from retail_forecast.benchmark_adapters import TREE_TOOLKITS, _selection_windows_end
 from retail_forecast.benchmark_protocol import load_benchmark_spec
@@ -132,6 +139,15 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         self.assertTrue(changed.endswith("\nafter\n"))
         self.assertIn("\nnew\n", changed)
 
+    def test_release_ids_and_paths_are_versioned_below_benchmark(self) -> None:
+        release_id = _validate_release_id("20261106-first-stage-v1")
+        path = published_release_root("2026-retail-week-expanding-v4", release_id)
+        self.assertEqual(path.name, release_id)
+        self.assertEqual(path.parent.name, "releases")
+        self.assertEqual(path.parent.parent.name, "2026-retail-week-expanding-v4")
+        with self.assertRaisesRegex(ValueError, "YYYYMMDD"):
+            _validate_release_id("latest")
+
 
 class BenchmarkV4ResultValidationTests(unittest.TestCase):
     def _write_valid_result(self, root: Path, scenarios: list[str] | None = None):
@@ -237,6 +253,18 @@ class BenchmarkV4ResultValidationTests(unittest.TestCase):
             manifest_path.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(ValueError, "software_versions"):
                 validate_v4_model_result(path, spec)
+            validate_v4_model_result(path, spec, require_current_runtime=False)
+
+    def test_source_change_invalidates_cache_but_not_historical_integrity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            spec, path = self._write_valid_result(Path(directory))
+            manifest_path = path / "manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["source_provenance"]["source_tree_sha256"] = "changed"
+            manifest_path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "source_provenance"):
+                validate_v4_model_result(path, spec)
+            validate_v4_model_result(path, spec, require_current_runtime=False)
 
     def test_valid_label_date_set_change_invalidates_result(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -260,6 +288,58 @@ class BenchmarkV4ResultValidationTests(unittest.TestCase):
             predictions.to_csv(predictions_path, index=False)
             with self.assertRaisesRegex(ValueError, "duplicate|incomplete"):
                 validate_v4_model_result(path, spec)
+
+    def test_versioned_release_is_immutable_and_self_validating(self) -> None:
+        provenance = {
+            "git_commit": "a" * 40,
+            "git_dirty": False,
+            "source_tree_sha256": "b" * 64,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch(
+                "retail_forecast.benchmark_registry.current_source_provenance",
+                return_value=provenance,
+            ):
+                spec, _ = self._write_valid_result(root)
+            published = root / "published"
+            release_id = "20261106-test-v1"
+            with (
+                patch("publish_benchmark.PUBLISHED_DIR", published),
+                patch(
+                    "publish_benchmark.current_source_provenance",
+                    return_value=provenance,
+                ),
+                patch(
+                    "retail_forecast.benchmark_registry.current_source_provenance",
+                    return_value=provenance,
+                ),
+            ):
+                destination = publish(
+                    root,
+                    spec.benchmark_id,
+                    release_id,
+                    model_ids=["test_model"],
+                )
+                release = validate_release(destination)
+                self.assertEqual(release["release_id"], release_id)
+                self.assertEqual(release["model_ids"], ["test_model"])
+                inherited = publish(
+                    root,
+                    spec.benchmark_id,
+                    "20261106-test-v2",
+                    model_ids=["test_model"],
+                    base_release_id=release_id,
+                )
+                inherited_release = validate_release(inherited)
+                self.assertEqual(inherited_release["base_release_id"], release_id)
+                with self.assertRaises(FileExistsError):
+                    publish(
+                        root,
+                        spec.benchmark_id,
+                        release_id,
+                        model_ids=["test_model"],
+                    )
 
 
 if __name__ == "__main__":

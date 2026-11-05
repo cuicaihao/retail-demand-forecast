@@ -54,10 +54,19 @@ uv run python scripts/compare_training_histories.py \
 # 审核后发布不可变轻量快照
 uv run python scripts/publish_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --source-root runs/20261105-all-models-benchmark
+  --release 20261106-first-stage-v1 \
+  --source-root runs/20261106-first-stage-validation
+
+# 后续仅审核新模型；旧模型从上一 release 原样继承
+uv run python scripts/publish_benchmark.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --release 20261120-expanded-models-v2 \
+  --base-release 20261106-first-stage-v1 \
+  --models arima \
+  --source-root runs/20261120-arima-validation
 ```
 
-本地拟合产物保存在 `runs/YYYYMMDD-[model]-[type]/`。发布操作只复制逐日预测、fold 指标、pooled 指标、冻结配置和 manifest；模型权重不进入 Git。
+本地拟合产物保存在 `runs/YYYYMMDD-[model]-[type]/`。发布前 Git 工作区必须干净，新增或替换模型 manifest 的 commit、源码哈希和软件版本必须与发布环境一致。发布操作只复制逐日预测、fold 指标、pooled 指标、冻结配置和 manifest；模型权重不进入 Git。每个 release ID 不可变，后续模型通过新的 release ID 发布，并从 `--base-release` 继承已审核模型。release manifest 分别记录每个模型的源码 provenance，因此不同模型可以来自不同的已审核提交。
 
 ## 4. V4 结果契约
 
@@ -67,7 +76,7 @@ uv run python scripts/publish_benchmark.py \
 - `metrics_period.csv`：fold 指标、WAPE 分母、样本数和耗时；
 - `metrics_annual.csv`：从全部有效逐日预测重新计算的 pooled 指标；
 - `selected_config.json`：正式评估前冻结的完整场景参数；
-- `manifest.json`：协议、fold、场景、有效标签数、输入哈希、参数哈希和代码版本。
+- `manifest.json`：协议、fold、场景、有效标签数、输入哈希、参数哈希、软件版本、Git 状态和源码树哈希。
 
 聚合器会拒绝缺日期、重复日期、forecast origin 错位、部分场景、输入哈希变化或协议不一致的结果，不再兼容性回退到 V2 `metrics.csv`。
 
