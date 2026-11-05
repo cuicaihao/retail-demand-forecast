@@ -123,7 +123,7 @@ def plot_fig01_annual_leaderboard(df_scenario: pd.DataFrame):
             )
 
     fig.suptitle(
-        "Melbourne Retail Demand Forecasting 2026 Annual Benchmark: Model Families & Objectives",
+        "Melbourne Retail Demand Forecasting 2026 Retail-Week Benchmark: Model Families & Objectives",
         fontsize=14,
         fontweight="bold",
         y=1.02,
@@ -186,22 +186,43 @@ def plot_fig02_trajectories(df_period: pd.DataFrame):
     plt.close(fig)
 
 
-def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame):
+def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame, df_ablation: pd.DataFrame):
     """Fig 3: GBDT Tweedie variance power p ablation deep dive."""
     print("Generating Fig 3: GBDT Tweedie Ablation...")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), constrained_layout=True)
 
+    xgb_default = df_scenario[df_scenario["model_id"] == "xgboost_default"]
+    xgb_tweedie = df_ablation[
+        df_ablation["model_id"].str.startswith("xgboost_tweedie_")
+    ]
+    xgb = pd.concat([xgb_default, xgb_tweedie], ignore_index=True)
+    label_by_id = {
+        "xgboost_default": "XGBoost Default (MSE)",
+        "xgboost_tweedie_p11": "XGBoost Tweedie (p=1.1)",
+        "xgboost_tweedie_p12": "XGBoost Tweedie (p=1.2)",
+        "xgboost_tweedie_p15": "XGBoost Tweedie (p=1.5)",
+        "xgboost_tweedie_p18": "XGBoost Tweedie (p=1.8)",
+    }
+    expected_ids = set(label_by_id)
+    for scenario_name in ("grocery", "luxury"):
+        actual_ids = set(xgb.loc[xgb["scenario"] == scenario_name, "model_id"])
+        if actual_ids != expected_ids:
+            raise ValueError(
+                f"Incomplete XGBoost ablation for {scenario_name}: "
+                f"expected {sorted(expected_ids)}, got {sorted(actual_ids)}"
+            )
+    xgb["plot_label"] = xgb["model_id"].map(label_by_id)
+
     # Luxury scenario
-    lux = df_scenario[df_scenario["scenario"] == "luxury"].copy()
-    xgb_lux = lux[lux["model_name"].str.startswith("XGBoost")].sort_values("WAPE")
+    xgb_lux = xgb[xgb["scenario"] == "luxury"].sort_values("WAPE")
     xgb_lux["WAPE_pct"] = xgb_lux["WAPE"] * 100
 
     bars1 = ax1.bar(
-        xgb_lux["model_name"],
+        xgb_lux["plot_label"],
         xgb_lux["WAPE_pct"],
         color=[
             "#D62728" if "p=1.8" in m else "#2CA02C" if "Default" in m else "#FF7F0E"
-            for m in xgb_lux["model_name"]
+            for m in xgb_lux["plot_label"]
         ],
         alpha=0.88,
         width=0.55,
@@ -211,7 +232,7 @@ def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame):
         fontsize=11,
         fontweight="bold",
     )
-    ax1.set_ylabel("Annual WAPE (%) [Lower is Better]", fontsize=9)
+    ax1.set_ylabel("Pooled retail-week WAPE (%) [Lower is Better]", fontsize=9)
     ax1.tick_params(axis="x", rotation=25)
     ax1.grid(True, axis="y", linestyle=":", alpha=0.6)
     for bar in bars1:
@@ -226,16 +247,15 @@ def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame):
         )
 
     # Grocery scenario
-    groc = df_scenario[df_scenario["scenario"] == "grocery"].copy()
-    xgb_groc = groc[groc["model_name"].str.startswith("XGBoost")].sort_values("WAPE")
+    xgb_groc = xgb[xgb["scenario"] == "grocery"].sort_values("WAPE")
     xgb_groc["WAPE_pct"] = xgb_groc["WAPE"] * 100
 
     bars2 = ax2.bar(
-        xgb_groc["model_name"],
+        xgb_groc["plot_label"],
         xgb_groc["WAPE_pct"],
         color=[
             "#D62728" if "p=1.2" in m else "#2CA02C" if "Default" in m else "#FF7F0E"
-            for m in xgb_groc["model_name"]
+            for m in xgb_groc["plot_label"]
         ],
         alpha=0.88,
         width=0.55,
@@ -243,7 +263,7 @@ def plot_fig03_tweedie_ablation(df_scenario: pd.DataFrame):
     ax2.set_title(
         "Grocery FMCG: Continuous Demand (WAPE %)", fontsize=11, fontweight="bold"
     )
-    ax2.set_ylabel("Annual WAPE (%) [Lower is Better]", fontsize=9)
+    ax2.set_ylabel("Pooled retail-week WAPE (%) [Lower is Better]", fontsize=9)
     ax2.tick_params(axis="x", rotation=25)
     ax2.grid(True, axis="y", linestyle=":", alpha=0.6)
     for bar in bars2:
@@ -326,6 +346,7 @@ def main():
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     sc_file = summary_dir / "scenario_leaderboard.csv"
     per_file = summary_dir / "period_trajectories.csv"
+    ablation_file = summary_dir / "configuration_ablations.csv"
 
     if not sc_file.is_file():
         print(
@@ -335,11 +356,16 @@ def main():
 
     df_scenario = pd.read_csv(sc_file)
     df_period = pd.read_csv(per_file) if per_file.is_file() else pd.DataFrame()
+    df_ablation = (
+        pd.read_csv(ablation_file) if ablation_file.is_file() else pd.DataFrame()
+    )
 
     plot_fig01_annual_leaderboard(df_scenario)
     if not df_period.empty:
         plot_fig02_trajectories(df_period)
-    plot_fig03_tweedie_ablation(df_scenario)
+    if df_ablation.empty:
+        raise FileNotFoundError(f"Required ablation summary not found: {ablation_file}")
+    plot_fig03_tweedie_ablation(df_scenario, df_ablation)
     plot_fig04_zero_recall(df_scenario)
     print(f"\nFigures rendered to {IMAGE_DIR}")
 

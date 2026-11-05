@@ -65,6 +65,18 @@ def _markdown_table(frame: pd.DataFrame, columns: list[str]) -> str:
     return "\n".join(lines)
 
 
+def _normalise_display_names(frame: pd.DataFrame) -> pd.DataFrame:
+    """Keep acronym casing stable in generated presentation blocks."""
+    result = frame.copy()
+    result["model_name"] = (
+        result["model_name"]
+        .str.replace("Xgboost", "XGBoost", regex=False)
+        .str.replace("Lightgbm", "LightGBM", regex=False)
+        .str.replace("Catboost", "CatBoost", regex=False)
+    )
+    return result
+
+
 def replace_marked_block(document: str, block_name: str, content: str) -> str:
     """Replace only a generator-owned region and preserve all surrounding prose."""
     start = f"<!-- BENCHMARK_BLOCK:{block_name}:START -->"
@@ -82,7 +94,11 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
     release_path = root / "release_manifest.json"
     if not release_path.is_file():
         raise FileNotFoundError(f"Benchmark is not published: {release_path}")
-    scenario = pd.read_csv(root / "summary" / "scenario_leaderboard.csv")
+    summary = root / "summary"
+    breadth = _normalise_display_names(pd.read_csv(summary / "breadth_scorecard.csv"))
+    ablations = _normalise_display_names(
+        pd.read_csv(summary / "configuration_ablations.csv")
+    )
     output = GENERATED_REPORTS / benchmark_id / release_id
     output.mkdir(parents=True, exist_ok=True)
 
@@ -111,7 +127,7 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
     ]
     blocks = []
     for scenario_name in spec.scenarios:
-        subset = scenario[scenario.scenario.eq(scenario_name)]
+        subset = breadth[breadth.scenario.eq(scenario_name)]
         columns = luxury_columns if scenario_name == "luxury" else general_columns
         blocks.extend(
             [
@@ -123,6 +139,29 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
         )
     tables = "\n".join(blocks).rstrip() + "\n"
     (output / "scenario_leaderboards.md").write_text(tables, encoding="utf-8")
+
+    tree_defaults = breadth[breadth.toolkit.isin(["lightgbm", "xgboost", "catboost"])]
+    configuration = pd.concat([tree_defaults, ablations], ignore_index=True)
+    ablation_blocks = []
+    for scenario_name in spec.scenarios:
+        columns = luxury_columns if scenario_name == "luxury" else general_columns
+        for toolkit in ["lightgbm", "xgboost", "catboost"]:
+            subset = configuration[
+                configuration.scenario.eq(scenario_name)
+                & configuration.toolkit.eq(toolkit)
+            ].sort_values("WAPE")
+            ablation_blocks.extend(
+                [
+                    f"## {scenario_name} / {toolkit}",
+                    "",
+                    _markdown_table(subset, columns),
+                    "",
+                ]
+            )
+    ablation_tables = "\n".join(ablation_blocks).rstrip() + "\n"
+    (output / "configuration_ablations.md").write_text(
+        ablation_tables, encoding="utf-8"
+    )
 
     release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
     provenance = (
@@ -145,12 +184,13 @@ def main() -> None:
         type=Path,
         action="append",
         default=[],
-        help="Markdown file containing scenario_leaderboards and provenance marker pairs.",
+        help="Markdown file containing all generated benchmark marker pairs.",
     )
     args = parser.parse_args()
     output = generate_blocks(args.benchmark, args.release)
     blocks = {
         "scenario_leaderboards": (output / "scenario_leaderboards.md").read_text(),
+        "configuration_ablations": (output / "configuration_ablations.md").read_text(),
         "provenance": (output / "provenance.md").read_text(),
     }
     for target in args.sync_target:
