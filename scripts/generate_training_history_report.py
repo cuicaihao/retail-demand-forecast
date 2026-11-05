@@ -12,6 +12,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from generate_benchmark_report import replace_marked_block
 from validate_benchmark_release import validate_release
 
 from retail_forecast.benchmark_registry import PUBLISHED_DIR
@@ -130,8 +131,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--comparison", required=True)
     parser.add_argument("--release", required=True)
+    parser.add_argument(
+        "--sync-target",
+        type=Path,
+        action="append",
+        default=[],
+        help="Markdown file containing the three training-history marker pairs.",
+    )
     args = parser.parse_args()
     output = generate_blocks(args.comparison, args.release)
+    blocks = {
+        "history_policy_summary": (output / "history_policy_summary.md").read_text(),
+        "history_policy_breadth": (output / "history_policy_breadth.md").read_text(),
+        "history_provenance": (output / "provenance.md").read_text(),
+    }
+    for target in args.sync_target:
+        document = target.read_text(encoding="utf-8")
+        for name, content in blocks.items():
+            document = replace_marked_block(document, name, content)
+        target.write_text(document, encoding="utf-8")
     print(f"Generated training-history report blocks: {output}")
 
 

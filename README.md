@@ -10,6 +10,8 @@
   记录 V3 固定 24 周历史快照在 52 个完整零售周上的结果。该历史报告不等同于 V4 扩展历史主榜。
 - **[2026 零售周 52 周前向滑动窗口技术验证报告](docs/reports/2026-annual-retail-forecast-benchmark.md)**
   保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
+- **[2026 零售周 V4 首阶段基准报告](docs/reports/2026-retail-week-v4-first-stage-report.md)**
+  使用审核后的扩展历史主榜、24 周消融和不可变跨协议 comparison release，分开呈现工具包广度、配置深度与训练历史影响。
 - **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
   深入探讨指数离散族（Exponential Dispersion Family）、Compound Poisson-Gamma 分布的极大似然估计、一阶梯度与二阶 Hessian 推导及其在 LightGBM / XGBoost C++ 源码中的工程映射。
 - **[零售需求预测实战：基于 Prophet 的建模、调参、诊断与局限性分析](https://cuicaihao.github.io/zh/posts/2026-10-01-prophet-retail-demand-forecast/)**  
@@ -44,7 +46,7 @@
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 - **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
 
-> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照。V4 主榜完成发布前，不把这些数字解释为扩展历史结论。
+> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。当前 V4 结果及其发布 provenance 请以[首阶段 V4 报告](docs/reports/2026-retail-week-v4-first-stage-report.md)为准。
 
 ### 四大零售场景独立排行榜 (Scenario-Specific Annual Leaderboards - 52 Weeks)
 
