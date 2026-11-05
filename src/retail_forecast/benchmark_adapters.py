@@ -9,6 +9,7 @@ from typing import Any
 
 import pandas as pd
 
+from .arima import fit_arima, forecast_arima
 from .baselines import MovingAverageForecaster, SeasonalNaiveForecaster
 from .benchmark_registry import BaseRetailForecaster, ForecastOutput, ModelConfig
 from .common import INPUT_HASHES, datasets, sales_prediction, windows
@@ -55,6 +56,36 @@ class ProphetForecasterAdapter(BaseRetailForecaster):
         return ForecastOutput(point_forecast=sales_prediction(future, raw))
 
 
+class ARIMAForecasterAdapter(BaseRetailForecaster):
+    """Statsmodels regression with ARIMA errors and known-future covariates."""
+
+    def __init__(self, params: dict[str, Any]):
+        super().__init__(name="Regression + ARIMA", family="statistical")
+        self.params = params
+        self.bundle: dict[str, Any] | None = None
+        self.history: pd.DataFrame | None = None
+
+    def fit(self, history: pd.DataFrame, scenario: str) -> None:
+        self.history = history.copy()
+        self.bundle, details = fit_arima(
+            history, scenario, "Regression + ARIMA", self.params
+        )
+        if not details["converged"]:
+            raise RuntimeError(f"ARIMA did not converge for {scenario}")
+
+    def predict(self, future: pd.DataFrame, scenario: str) -> ForecastOutput:
+        if self.bundle is None or self.history is None:
+            raise RuntimeError("ARIMA adapter must be fitted before prediction")
+        raw, interval = forecast_arima(
+            self.bundle, self.history, future, scenario, alpha=0.2
+        )
+        return ForecastOutput(
+            point_forecast=sales_prediction(future, raw),
+            q10=sales_prediction(future, interval[:, 0]),
+            q90=sales_prediction(future, interval[:, 1]),
+        )
+
+
 TREE_TOOLKITS = {
     "decision_tree": "Decision Tree",
     "random_forest": "Random Forest",
@@ -87,6 +118,13 @@ def prophet_factory(
 ) -> BaseRetailForecaster:
     del config, scenario
     return ProphetForecasterAdapter(params)
+
+
+def arima_factory(
+    config: ModelConfig, scenario: str, params: dict[str, Any]
+) -> BaseRetailForecaster:
+    del config, scenario
+    return ARIMAForecasterAdapter(params)
 
 
 def _selection_windows_end(scenario: str) -> pd.Timestamp:
@@ -137,6 +175,8 @@ def _select_base_params(
                 )
             selected, _, _ = tune_model(scenario, model_name)
             base[scenario] = selected
+    elif config.model_id == "arima":
+        base = {scenario: {} for scenario in spec.scenarios}
     elif config.toolkit == "prophet":
         base = {}
         for scenario in spec.scenarios:

@@ -26,7 +26,11 @@ from publish_benchmark import (
 from run_benchmark import MODEL_REGISTRY
 from validate_benchmark_release import validate_release
 
-from retail_forecast.benchmark_adapters import TREE_TOOLKITS, _selection_windows_end
+from retail_forecast.benchmark_adapters import (
+    TREE_TOOLKITS,
+    ARIMAForecasterAdapter,
+    _selection_windows_end,
+)
 from retail_forecast.benchmark_protocol import load_benchmark_spec
 from retail_forecast.benchmark_registry import (
     ModelConfig,
@@ -50,8 +54,8 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
             {"decision_tree", "random_forest", "lightgbm", "xgboost", "catboost"},
         )
 
-    def test_first_stage_registry_has_symmetric_gbdt_ablations(self) -> None:
-        self.assertEqual(len(MODEL_REGISTRY), 20)
+    def test_registry_has_symmetric_first_stage_gbdt_ablations(self) -> None:
+        self.assertEqual(len(MODEL_REGISTRY), 21)
         expected_variants = {
             "default",
             "tweedie_p11",
@@ -66,6 +70,35 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
                 if config.toolkit == toolkit
             }
             self.assertEqual(variants, expected_variants)
+
+    def test_arima_is_a_predeclared_breadth_configuration(self) -> None:
+        config = MODEL_REGISTRY["arima"]
+        self.assertEqual(config.toolkit, "statsmodels")
+        self.assertEqual(config.family, "statistical")
+        self.assertEqual(config.comparison_role, "breadth")
+        self.assertEqual(config.params["order"], [1, 0, 1])
+        self.assertTrue(config.params["use_exog"])
+
+    def test_arima_prediction_does_not_read_future_targets(self) -> None:
+        frame = datasets["grocery"]
+        history = frame.iloc[:400].copy()
+        future = frame.iloc[400:428].copy()
+        adapter = ARIMAForecasterAdapter(MODEL_REGISTRY["arima"].params)
+        adapter.fit(history, "grocery")
+
+        expected = adapter.predict(future, "grocery")
+        changed = future.copy()
+        changed["y"] = changed["y"] + 1_000_000
+        for column in ("conditional_mean", "latent_demand"):
+            if column in changed:
+                changed[column] = changed[column] + 1_000_000
+        actual = adapter.predict(changed, "grocery")
+
+        np.testing.assert_allclose(actual.point_forecast, expected.point_forecast)
+        np.testing.assert_allclose(actual.q10, expected.q10)
+        np.testing.assert_allclose(actual.q90, expected.q90)
+        self.assertTrue(np.isfinite(actual.point_forecast).all())
+        self.assertTrue((actual.q10 <= actual.q90).all())
 
     def test_parameter_selection_windows_precede_formal_evaluation(self) -> None:
         spec = load_benchmark_spec("2026-retail-week-expanding-v4")

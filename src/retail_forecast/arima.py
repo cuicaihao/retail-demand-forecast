@@ -1,9 +1,21 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from scipy.linalg import qr
+from sklearn.preprocessing import StandardScaler
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-from .common import *
+from .common import (
+    HORIZON,
+    RUNS_DIR,
+    TRAIN_END,
+    datasets,
+    make_features,
+    masked_y,
+    valid_labels,
+)
 
 NAMES = [
     "ARIMA",
@@ -14,8 +26,32 @@ NAMES = [
 ]
 
 
+def _arima_parameters(name, parameter_config):
+    config = parameter_config or {}
+    default_exog = name in ["Business regression", "Regression + ARIMA"]
+    default_order = (
+        (0, 0, 0)
+        if name == "Business regression"
+        else (1, 0, 1)
+        if default_exog
+        else (1, 1, 1)
+    )
+    default_seasonal = (1, 0, 0, 7) if name == "SARIMA weekly" else (0, 0, 0, 0)
+    return {
+        "use_exog": bool(config.get("use_exog", default_exog)),
+        "order": tuple(config.get("order", default_order)),
+        "seasonal_order": tuple(config.get("seasonal_order", default_seasonal)),
+        "trend": config.get("trend", "c"),
+        "maxiter": int(config.get("maxiter", 200)),
+        "retry_maxiter": int(config.get("retry_maxiter", 600)),
+        "enforce_stationarity": bool(config.get("enforce_stationarity", True)),
+        "enforce_invertibility": bool(config.get("enforce_invertibility", True)),
+    }
+
+
 def fit_arima(history, scenario, name, window):
-    exog = name in ["Business regression", "Regression + ARIMA"]
+    parameters = _arima_parameters(name, window)
+    exog = parameters["use_exog"]
     scaler = None
     cols = []
     selected = []
@@ -33,23 +69,25 @@ def fit_arima(history, scenario, name, window):
         rank = int((abs(np.diag(r)) > 1e-8).sum())
         selected = sorted(int(j - 1) for j in pivot[:rank] if j > 0)
         X = a[:, selected]
-    order = (
-        (0, 0, 0) if name == "Business regression" else (1, 0, 1) if exog else (1, 1, 1)
-    )
-    seasonal = (1, 0, 0, 7) if name == "SARIMA weekly" else (0, 0, 0, 0)
+    order = parameters["order"]
+    seasonal = parameters["seasonal_order"]
     y = masked_y(history).to_numpy()
     model = SARIMAX(
         y,
         exog=X,
         order=order,
         seasonal_order=seasonal,
-        trend="c",
-        enforce_stationarity=True,
-        enforce_invertibility=True,
+        trend=parameters["trend"],
+        enforce_stationarity=parameters["enforce_stationarity"],
+        enforce_invertibility=parameters["enforce_invertibility"],
     )
-    fitted = model.fit(disp=False, maxiter=200)
+    fitted = model.fit(disp=False, maxiter=parameters["maxiter"])
     if not fitted.mle_retvals.get("converged", False):
-        fitted = model.fit(start_params=fitted.params, disp=False, maxiter=600)
+        fitted = model.fit(
+            start_params=fitted.params,
+            disp=False,
+            maxiter=parameters["retry_maxiter"],
+        )
     bundle = {
         "result": fitted,
         "scaler": scaler,
@@ -57,6 +95,7 @@ def fit_arima(history, scenario, name, window):
         "selected": selected,
         "exog": X,
         "y": y,
+        "parameters": parameters,
     }
     return bundle, {
         "order": str(order),
@@ -76,7 +115,7 @@ def arima_exog(bundle, frame, scenario):
     )
 
 
-def predict_arima(bundle, history, future, scenario, name):
+def forecast_arima(bundle, history, future, scenario, alpha=0.2):
     result = bundle["result"]
     end = len(history)
     if end < len(bundle["y"]):
@@ -85,11 +124,17 @@ def predict_arima(bundle, history, future, scenario, name):
             exog=None if bundle["exog"] is None else bundle["exog"][:end],
             refit=False,
         )
-    return np.asarray(
-        result.get_forecast(
-            len(future), exog=arima_exog(bundle, future, scenario)
-        ).predicted_mean
+    forecast = result.get_forecast(
+        len(future), exog=arima_exog(bundle, future, scenario)
     )
+    interval = np.asarray(forecast.conf_int(alpha=alpha), dtype=float)
+    return np.asarray(forecast.predicted_mean, dtype=float), interval
+
+
+def predict_arima(bundle, history, future, scenario, name):
+    del name
+    prediction, _ = forecast_arima(bundle, history, future, scenario)
+    return prediction
 
 
 def diagnose_arima(finals):

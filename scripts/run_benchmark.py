@@ -18,6 +18,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from retail_forecast.benchmark_adapters import (
+    arima_factory,
     baseline_factory,
     prophet_factory,
     resolve_model_parameters,
@@ -107,6 +108,26 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         family="statistical",
         factory=prophet_factory,
         role="breadth",
+    ),
+    "arima": _config(
+        "arima",
+        "Regression + ARIMA (1,0,1)",
+        toolkit="statsmodels",
+        family="statistical",
+        factory=arima_factory,
+        role="breadth",
+        group="arima",
+        params={
+            "use_exog": True,
+            "order": [1, 0, 1],
+            "seasonal_order": [0, 0, 0, 0],
+            "trend": "c",
+            "maxiter": 200,
+            "retry_maxiter": 600,
+            "enforce_stationarity": True,
+            "enforce_invertibility": True,
+        },
+        description="Known-future business regression with ARIMA(1,0,1) errors.",
     ),
 }
 
