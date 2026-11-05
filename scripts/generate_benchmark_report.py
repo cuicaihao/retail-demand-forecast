@@ -54,50 +54,65 @@ def format_table(
     return "\n".join(lines)
 
 
+def format_scenario_table(
+    df: pd.DataFrame,
+    columns: list[str],
+    rename_cols: dict[str, str],
+    float_formats: dict[str, str],
+) -> str:
+    sub = df.sort_values("WAPE").reset_index(drop=True)
+    ranks = []
+    for i in range(len(sub)):
+        if i == 0:
+            ranks.append("🥇")
+        elif i == 1:
+            ranks.append("🥈")
+        elif i == 2:
+            ranks.append("🥉")
+        else:
+            ranks.append(str(i + 1))
+    sub.insert(0, "rank", ranks)
+
+    target_cols = ["rank"] + columns
+    sub = sub[target_cols].copy()
+
+    for col, fmt in float_formats.items():
+        if col in sub.columns:
+            sub[col] = sub[col].apply(
+                lambda x, f=fmt: f.format(x) if pd.notnull(x) else "-"
+            )
+
+    full_rename = {"rank": "排名", **rename_cols}
+    sub = sub.rename(columns=full_rename)
+    headers = list(sub.columns)
+    aligns = [
+        ":---:"
+        if h in ["排名", "零值准确率", "跨期波动 Std", "Bias"]
+        else (":---:" if "WAPE" in h or h in ["MAE", "RMSE"] else "---")
+        for h in headers
+    ]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(aligns) + " |",
+    ]
+    for _, row in sub.iterrows():
+        vals = [str(row[h]) for h in headers]
+        lines.append("| " + " | ".join(vals) + " |")
+    return "\n".join(lines)
+
+
 def generate_technical_report(
     annual_df: pd.DataFrame, scenario_df: pd.DataFrame, trajectories_df: pd.DataFrame
 ):
     report_path = REPORTS_DIR / "2026-annual-retail-forecast-benchmark.md"
 
-    # Leaderboard table
-    annual_table = format_table(
-        annual_df,
-        columns=[
-            "model_name",
-            "Mean_WAPE",
-            "Mean_MAE",
-            "Mean_RMSE",
-            "Mean_Bias",
-            "Mean_ZeroAccuracy",
-            "Stability_Std",
-        ],
-        rename_cols={
-            "model_name": "模型与配置",
-            "Mean_WAPE": "全场景平均 WAPE",
-            "Mean_MAE": "平均 MAE",
-            "Mean_RMSE": "平均 RMSE",
-            "Mean_Bias": "平均 Bias",
-            "Mean_ZeroAccuracy": "零值准确率",
-            "Stability_Std": "周期波动性 Std",
-        },
-        float_formats={
-            "Mean_WAPE": "{:.2%}",
-            "Mean_MAE": "{:.3f}",
-            "Mean_RMSE": "{:.3f}",
-            "Mean_Bias": "{:+.3f}",
-            "Mean_ZeroAccuracy": "{:.1%}",
-            "Stability_Std": "{:.3f}",
-        },
-    )
-
     # Scenarios breakdown
     scenarios = ["grocery", "wine", "garden", "luxury"]
     scenario_tables = {}
     for sc in scenarios:
-        sc_data = scenario_df[scenario_df["scenario"] == sc].sort_values("WAPE")
-        scenario_tables[sc] = format_table(
-            sc_data,
-            columns=[
+        sc_data = scenario_df[scenario_df["scenario"] == sc]
+        if sc == "luxury":
+            cols = [
                 "model_name",
                 "WAPE",
                 "MAE",
@@ -106,17 +121,41 @@ def generate_technical_report(
                 "ZeroAccuracy",
                 "Period_WAPE_Mean",
                 "Period_WAPE_Std",
-            ],
-            rename_cols={
-                "model_name": "模型",
-                "WAPE": "年度累计 WAPE",
+            ]
+            renames = {
+                "model_name": "模型与配置",
+                "WAPE": "2026 全年 WAPE",
                 "MAE": "MAE",
                 "RMSE": "RMSE",
                 "Bias": "Bias",
                 "ZeroAccuracy": "零值准确率",
                 "Period_WAPE_Mean": "13期均值 WAPE",
                 "Period_WAPE_Std": "跨期波动 Std",
-            },
+            }
+        else:
+            cols = [
+                "model_name",
+                "WAPE",
+                "MAE",
+                "RMSE",
+                "Bias",
+                "Period_WAPE_Mean",
+                "Period_WAPE_Std",
+            ]
+            renames = {
+                "model_name": "模型与配置",
+                "WAPE": "2026 全年 WAPE",
+                "MAE": "MAE",
+                "RMSE": "RMSE",
+                "Bias": "Bias",
+                "Period_WAPE_Mean": "13期均值 WAPE",
+                "Period_WAPE_Std": "跨期波动 Std",
+            }
+
+        scenario_tables[sc] = format_scenario_table(
+            sc_data,
+            columns=cols,
+            rename_cols=renames,
             float_formats={
                 "WAPE": "{:.2%}",
                 "MAE": "{:.3f}",
@@ -146,83 +185,78 @@ def generate_technical_report(
 
 ### 核心发现与业务洞察：
 
-1. **CatBoost (MAE) 与 XGBoost Tweedie (p=1.8) 荣登年度全场景综合前两强**：
-   - **CatBoost Default (MAE)** 取得了 **40.99%** 的全场景平均 WAPE，在奢侈品场景采取极度保守策略将 MAE 压至 0.084；
-   - **XGBoost Tweedie (p=1.8)** 取得 **41.92%** 全场景平均 WAPE，同时在周期稳定性标准差上表现卓越（$\\sigma=0.097$），在商超（6.87%）、红酒（27.90%）、庭院（16.68%）、奢侈品（116.22%）均保持第一梯队竞争力。
+1. **需求形态决定模型优势，四大场景独立分治（零售无单一通用最优解）**：
+   - 跨场景简单算术平均会掩盖真实的业务与统计差异。四大零售场景因底层生成分布迥异（连续平稳、泊松脉冲、正弦气候、极端零膨胀），各由不同优势模型主导：
+     - **商超 (Grocery, FMCG)**: **XGBoost Tweedie ($p=1.2$)** 夺冠（WAPE 6.59%），微观复合泊松-伽马似然为平稳连续销售带来有效正则化；
+     - **红酒 (Wine, 泊松脉冲大促)**: **XGBoost Tweedie ($p=1.8$)** 夺冠（WAPE 27.90%），高阶方差幂对非线性大促突刺与成箱购买具有极强适应力；
+     - **庭院 (Garden, 正弦天气季节性)**: **Prophet** 夺冠（WAPE 14.02%），显式傅里叶分解完美拟合跨年天气平滑波动；
+     - **奢侈品 (Luxury, 零膨胀长尾)**: **CatBoost Default (MAE)**（104.63%）与 **XGBoost Tweedie ($p=1.8$)**（116.22%）大幅领先，彻底终结了高斯 MSE 输出浮点虚假库存的弊端。
 2. **Tweedie 目标函数在大促脉冲与零膨胀间歇性需求上形成质的突破**：
    - 在 **奢侈品手袋场景**（93.6% 零销量），标准 MSE 的 XGBoost 将 WAPE 推高至 **187.54%**，生成了大量 0.05~0.15 的浮点噪声预测（零值准确率仅 46.3%）。
    - **XGBoost Tweedie (p=1.8)** 将 WAPE 骤降至 **116.22%**（相对改善 **71.3 个百分点**），零值分类准确率提升至 **88.0%**，跨期波动标准差从 0.803 压缩至 **0.225**。
    - 在 **商超快消品连续需求** 下，**XGBoost Tweedie (p=1.2)**（6.59%）甚至超越了默认 MSE（6.83%），打破了“Tweedie 只适用于间歇数据”的传统认知。
-3. **不同零售形态的绝对主导模型**：
-   - **商超 (Grocery, FMCG)**: **XGBoost Tweedie ($p=1.2$)** 夺冠（WAPE 6.59%），紧随其后的是 LightGBM 与 Prophet。
-   - **红酒 (Wine, 泊松脉冲大促)**: **XGBoost Tweedie ($p=1.8$)** 夺冠（WAPE 27.90%），Random Forest 与其他 XGBoost 变体紧随其后。
-   - **庭院 (Garden, 正弦天气季节性)**: **Prophet** 夺冠（WAPE 14.02%），充分体现了广义可加模型在显式傅里叶分解长周期年度波动的强大能力。
-   - **奢侈品 (Luxury, 零膨胀长尾)**: **CatBoost Default (MAE)** 与 **XGBoost Tweedie ($p=1.8$)** 形成绝对断层式优势。
 
 ![2026 全年 52 周各场景排行榜](../../images/benchmarks/fig-01-annual-leaderboard-all-scenarios.png)
 
 ---
 
-## 二、 2026 全年总榜单 (Global Annual Leaderboard)
+## 二、 2026 全年四大场景排行榜与深度剖析 (Scenario Leaderboards & Breakdown)
 
-以下为 15 种模型及配置在 2026 年（13 个 28 天周期，四场景共 52 次独立滚动前向评测）的加权平均汇总指标：
+> ⚠️ **为什么不能简单将四大场景的 WAPE 进行算术平均建“总榜”？**  
+> 零售四类场景的需求生成机制与统计分布具有根本性差异：
+> - **商超 (Grocery)** 为高频连续快消需求（日均 ~109.5 件，WAPE 约 6%~10%）；
+> - **红酒 (Wine)** 为脉冲促销计数需求（日均 ~10.4 件，WAPE 约 25%~35%）；
+> - **庭院 (Garden)** 具备强正弦天气气候季节性（日均 ~64.9 件，WAPE 约 14%~20%）；
+> - **奢侈品 (Luxury)** 为极端零膨胀间歇需求（93.58% 营业日零销量，日均仅 0.08 件，WAPE 普遍高达 100%~200%）。
+> 
+> 若将四者算术平均，奢侈品高位百分比（>100%）在数学上完全主导并扭曲了综合平均值，不仅掩盖了商超和红酒场景的精度分水岭，在业务供应链实际落地中亦毫无决策意义。**因此，基准严格按照四大业务场景独立建榜与评估。**
 
-{annual_table}
+### 2.1 场景 1：商超高频快消品 (Grocery - Continuous FMCG)
 
-> **指标说明**：
-> - **Mean_WAPE**: 4 个场景 2026 全年累计 WAPE 的简单算术平均。
-> - **Mean_ZeroAccuracy**: 对实际为 0 的标签，模型预测值落在 $[0, 0.05)$ 内的准确率。
-> - **Stability_Std**: 该模型在 13 个独立评价周期（P01-P13）中 WAPE 的标准差，越小代表模型抗季节性剧烈波动的鲁棒性越强。
-
----
-
-## 三、 四类零售形态深度剖析 (Scenario Breakdown)
-
-### 3.1 商超高频快消品 (Grocery)
-
-商超品类日均销量约 109.5 件，需求高度连续，受每周工作日/周末循环及折扣强度驱动。
+- **业务特征**：日均销量约 109.5 件，需求高度连续，受每周工作日/周末循环及折扣强度驱动，包含 24 天缺货右截断与法定闭店日。
 
 {scenario_tables["grocery"]}
 
-- **分析**: 在高信噪比连续需求场景下，所有现代 GBDT 模型均将 WAPE 控制在 7.5% 以内。**XGBoost Tweedie ($p=1.2$)** 获得最低误差（6.59%），证明微调 Tweedie 幂方指数使损失函数偏向复合泊松-伽马特征对轻微右偏的日常零售数据同样具有微观正则化增益。
+- **深度洞察**: 在高信噪比连续需求场景下，所有现代 GBDT 模型均将 WAPE 控制在 7.5% 以内。**XGBoost Tweedie ($p=1.2$)** 获得最低误差（6.59%），证明微调 Tweedie 幂方指数使损失函数偏向复合泊松-伽马特征对轻微右偏的日常零售数据同样具有微观正则化增益，优于纯高斯假设的 MSE（6.83%）。
 
-### 3.2 单 SKU 红酒泊松脉冲 (Wine)
+### 2.2 场景 2：单 SKU 红酒泊松脉冲 (Wine - Poisson Pulse Promotions)
 
-单 SKU 红酒日均销量约 10.4 件，具有典型的“成箱购买（Case Buy）”非线性大促突刺、派对事件与 12 月节日高峰。
+- **业务特征**：单 SKU 红酒日均销量约 10.4 件，具有典型的“成箱购买（Case Buy）”非线性大促突刺、派对事件与 12 月节日高峰。
 
 {scenario_tables["wine"]}
 
-- **分析**: **XGBoost Tweedie ($p=1.8$)** 实现了 **27.90%** 的最优 WAPE。树模型在成箱促销等阶跃信号上明显优于 Prophet（29.91%）和 Seasonal Naive（49.26%）。
+- **深度洞察**: **XGBoost Tweedie ($p=1.8$)** 实现了 **27.90%** 的最优 WAPE。树模型在成箱促销等阶跃信号上明显优于 Prophet（29.91%）和 Seasonal Naive（49.26%）。高阶方差幂 $p=1.8$ 有效吸收了非线性促销突刺，避免对极值大促过度拟合。
 
-### 3.3 庭院用品强季节性 (Garden)
+### 2.3 场景 3：庭院用品强季节性 (Garden - Sinusoidal Weather Seasonality)
 
-庭院用品日均销量约 64.9 件，呈现极为显著的跨年正弦波天气季节性（春秋旺、冬季低谷）与长周末 DIY 脉冲。
+- **业务特征**：庭院用品日均销量约 64.9 件，呈现极为显著的跨年正弦波天气季节性（春秋旺、冬季低谷）与长周末 DIY 脉冲。
 
 {scenario_tables["garden"]}
 
-- **分析**: **Prophet** 以 **14.02%** 的 WAPE 拔得头筹！Prophet 的先验傅里叶级数对长达一年的平滑气候波动拟合得非常自然，而树模型受限于仅有 24 周（约半年）的历史窗口，对跨年季节性周期的外推相对吃力（XGBoost MSE 为 14.94%）。
+- **深度洞察**: **Prophet** 以 **14.02%** 的 WAPE 拔得头筹！Prophet 的先验傅里叶级数对长达一年的平滑气候波动拟合得非常自然，而树模型受限于仅有 24 周（约半年）的历史窗口，对跨年季节性周期的外推相对吃力（XGBoost MSE 为 14.94%）。
 
-### 3.4 奢侈品手袋极端零膨胀 (Luxury)
+### 2.4 场景 4：奢侈品手袋极端零膨胀 (Luxury - Zero-Inflated Intermittent)
 
-93.6% 的营业日销量为 0，年均仅有十余次偶发购买，属于典型的极端间歇性（Intermittent & Zero-Inflated）需求。
+- **业务特征**：93.58% 的营业日销量为 0，年均仅有十余次偶发购买，属于典型的极端间歇性（Intermittent & Zero-Inflated）需求。
 
 {scenario_tables["luxury"]}
 
-- **分析**: 这是检验模型损失函数成色最严酷的试金石。
+- **深度洞察**: 这是检验模型损失函数成色最严酷的试金石。
   - 传统基于高斯正态假设的 MSE 模型（如 XGBoost Default MSE 和 LightGBM Default MSE）彻底失效，WAPE 高达 **182%~187%**，它们因试图规避大残差惩罚而倾向于对每天均预测一个微小的正浮点数（~0.1），导致 50% 以上的无销量日产生虚假库存预测。
-  - **XGBoost Tweedie ($p=1.8$)** 凭借其对零点质量集中的似然建模，将 WAPE 压低至 **116.22%**，并将零值预测准确率拉升至 **88.0%**！
+  - **XGBoost Tweedie ($p=1.8$)** 凭借其对零点质量集中的似然建模，将 WAPE 压低至 **116.22%**（相对 MSE 暴降 71.3 个百分点），并将零值预测准确率拉升至 **88.0%**！
+  - **CatBoost Default (MAE)** 则因 L1 损失中位数的数学特性，在零膨胀率超过 50% 时天然收缩至 0，取得了 104.63% 的名义最低 WAPE 与 97.9% 的零值准确率。
 
 ![零销售日混淆与浮点噪声预测对比](../../images/benchmarks/fig-04-intermittent-zero-confusion.png)
 
 ---
 
-## 四、 GBDT Tweedie 目标函数消融实验深度分析
+## 三、 GBDT Tweedie 目标函数消融实验深度分析
 
 为了深入探索 Tweedie 方差幂指数 $p$（Variance Power Parameter, $Var(Y) = \\phi \\mu^p$）在不同需求分布中的连续响应，我们在 XGBoost、LightGBM 与 CatBoost 上实施了系统的超参退火分析：
 
 ![GBDT Tweedie 目标函数消融深度剖析](../../images/benchmarks/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
-### 4.1 数学原理映射与梯度行为
+### 3.1 数学原理映射与梯度行为
 
 在 $1 < p < 2$ 时，Tweedie 对应 Compound Poisson–Gamma 分布。损失函数（负对数似然）对预测对数对数值 $s = \\log \\mu$ 的一阶梯度（Gradient）与二阶导（Hessian）为：
 $$
@@ -235,7 +269,7 @@ $$
 - 当 $y_i = 0$ 时，梯度简化为 $g_i = \\exp\\left((2-p) s_i\\right) > 0$，强力推动模型将预测值推向负无穷大（即 $\\mu \\to 0$）；
 - 当 $p \\to 2$ 时，$2-p \\to 0$，残差对正样本大值的相对尺度保持尺度不变性（Scale-invariant Gamma 效应），从而抑制了离群极值对树分裂的过度牵引。
 
-### 4.2 消融实验核心结论
+### 3.2 消融实验核心结论
 
 1. **随着 $p$ 从 1.1 递增至 1.8，间歇性场景指标单调显著改善**：在 Luxury 场景中，XGBoost 的 WAPE 从 $p=1.1$ 的 175.13% 单调降至 $p=1.5$ 的 140.92%，再降至 $p=1.8$ 的 116.22%。
 2. **平滑连续数据对 $p \\in [1.1, 1.2]$ 表现极佳**：Grocery 场景中，$p=1.2$ 获得 6.59% 最低 WAPE。
@@ -243,7 +277,7 @@ $$
 
 ---
 
-## 五、 13 期前向滑动轨迹与季节波动稳定性
+## 四、 13 期前向滑动轨迹与季节波动稳定性
 
 单一切片评测往往掩盖了模型在不同淡旺季的剧烈性能波动。通过跟踪 13 期（P01 至 P13）的连续 WAPE 轨迹，我们揭示了各模型的动态鲁棒性：
 
@@ -255,7 +289,7 @@ $$
 
 ---
 
-## 六、 生产落地与架构推荐
+## 五、 生产落地与架构推荐
 
 根据本 2026 全年基准测试结果，我们为零售企业时序补货与预测系统提出以下分层落地建议：
 
@@ -276,29 +310,12 @@ def generate_blog_article(
 ):
     article_path = ARTICLES_DIR / "2026-retail-demand-forecast-benchmark.md"
 
-    annual_top5 = format_table(
-        annual_df.head(6),
-        columns=[
-            "model_name",
-            "Mean_WAPE",
-            "Mean_MAE",
-            "Mean_ZeroAccuracy",
-            "Stability_Std",
-        ],
-        rename_cols={
-            "model_name": "模型与配置",
-            "Mean_WAPE": "平均 WAPE",
-            "Mean_MAE": "平均 MAE",
-            "Mean_ZeroAccuracy": "零值准确率",
-            "Stability_Std": "跨期波动 Std",
-        },
-        float_formats={
-            "Mean_WAPE": "{:.2%}",
-            "Mean_MAE": "{:.3f}",
-            "Mean_ZeroAccuracy": "{:.1%}",
-            "Stability_Std": "{:.3f}",
-        },
-    )
+    champions_table = """| 零售场景 | 需求分布与特征 | 夺冠模型 | 2026 全年 WAPE | 核心制胜机理 |
+| :--- | :--- | :--- | :---: | :--- |
+| **商超快消 (Grocery)** | 高频连续 (~109.5 件/日)，周中/周末强循环，24 天缺货右截断 | **XGBoost Tweedie (p=1.2)** | **6.59%** | 微观复合泊松-伽马似然对右偏连续零售数据带来微观正则化增益 |
+| **单 SKU 红酒 (Wine)** | 泊松脉冲 (~10.4 件/日)，成箱大促阶跃，派对事件突刺 | **XGBoost Tweedie (p=1.8)** | **27.90%** | 高阶方差幂对非线性大促突刺具有出色的吸收能力，防过拟合长尾 |
+| **庭院用品 (Garden)** | 跨年强正弦天气季节性 (~64.9 件/日)，长周末 DIY 脉冲 | **Prophet** | **14.02%** | 显式先验傅里叶级数分解长周期平滑气候曲线，外推能力显著超越纯滑动树模型 |
+| **奢侈品手袋 (Luxury)** | 极端零膨胀间歇性 (93.58% 零销售)，VIP 偶发消费 | **CatBoost (MAE)** / **XGBoost Tweedie (p=1.8)** | **104.63%** / **116.22%** | 绝对误差损失与 Tweedie 零点质量似然从数学根源消除了虚假浮点库存噪声 |"""
 
     lux_comp = format_table(
         scenario_df[scenario_df["scenario"] == "luxury"].sort_values("WAPE").head(7),
@@ -342,16 +359,22 @@ math: true
 
 ---
 
-## 二、 2026 全年榜单：谁统治了零售时序？
+## 二、 四大场景年度榜单：谁统治了零售时序？
 
-在整整 13 个测试期、涵盖商超快消、脉冲红酒、强季节庭院与极端零膨胀奢侈品的 52 次严格盲测中，前五名模型脱颖而出：
+在零售需求预测中，不存在一个跨越所有业务形态的“通用万能模型”。
+- 商超连续快消需求（日均 ~109.5 件）的 WAPE 仅在 6%~10%；
+- 红酒成箱促销（日均 ~10.4 件）的 WAPE 处于 27%~35%；
+- 庭院正弦季节性（日均 ~64.9 件）的 WAPE 约为 14%~20%；
+- 奢侈品长尾（93.6% 零销量）因分母极小，WAPE 普遍高达 100%~200%。
 
-{annual_top5}
+若简单做跨场景算术平均，奢侈品的大数额百分比会完全淹没其他品类的关键精度差距。因此，我们严格分场景对 15 种模型及配置进行穿透评测：
+
+{champions_table}
 
 ### 核心结论一览：
-1. **CatBoost (MAE) 凭借极度保守性拿下全场景加权第一**（40.99% WAPE），在极度零膨胀的奢侈品场景几乎全押零值，从而取得了极低的名义绝对误差；
-2. **XGBoost Tweedie (p=1.8) 成为工业界最具实战价值的通用王者**（41.92% WAPE），且稳定性极高（$\\sigma=0.097$），在连续需求（商超 6.87%）、脉冲需求（红酒 27.90%）和零膨胀长尾（奢侈品 116.22%）中展现了全面碾压传统 MSE 的统治力；
-3. **Prophet 在年度长周期正弦拟合上依旧不可替代**，在庭院场景以 14.02% 斩获第一。
+1. **需求形态决定模型归属**：连续快消场景 GBDT（特别是轻微复合泊松似然的 Tweedie $p=1.2$）以 6.59% 稳居第一；大促脉冲场景高阶 Tweedie $p=1.8$ 以 27.90% 领先；
+2. **Prophet 在年度长周期正弦拟合上依旧不可替代**：在强气候物理背景的庭院场景，Prophet 以 14.02% 斩获第一，在历史训练窗口仅有半年时展现出极强的全局季节性外推优势；
+3. **Tweedie 与 MAE 终结零膨胀长尾噩梦**：在奢侈品长尾场景，传统高斯 MSE 被浮点噪声彻底击穿，而通过复合泊松-伽马似然建模的 XGBoost Tweedie ($p=1.8$) 与 CatBoost (MAE) 实现了降维打击。
 
 ---
 
