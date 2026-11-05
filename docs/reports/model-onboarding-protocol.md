@@ -51,6 +51,12 @@ uv run python scripts/compare_training_histories.py \
   --main-benchmark 2026-retail-week-expanding-v4 \
   --ablation-benchmark 2026-retail-week-24w-ablation-v4
 
+# 从两套审核后的 release 发布不可变历史策略比较
+uv run python scripts/publish_training_history_comparison.py \
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-first-stage-v1 \
+  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-first-stage-v1 \
+  --release 20261106-first-stage-v1
+
 # 审核后发布不可变轻量快照
 uv run python scripts/publish_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
@@ -67,6 +73,8 @@ uv run python scripts/publish_benchmark.py \
 ```
 
 本地拟合产物保存在 `runs/YYYYMMDD-[model]-[type]/`。发布前 Git 工作区必须干净，新增或替换模型 manifest 的 commit、源码哈希和软件版本必须与发布环境一致。发布操作只复制逐日预测、fold 指标、pooled 指标、冻结配置和 manifest；模型权重不进入 Git。每个 release ID 不可变，后续模型通过新的 release ID 发布，并从 `--base-release` 继承已审核模型。release manifest 分别记录每个模型的源码 provenance，因此不同模型可以来自不同的已审核提交。
+
+训练历史比较只能从两套已经发布且通过复算的 release 生成。比较 release 固定两个源 release manifest 的 SHA-256，并从源场景榜重新计算逐模型差值和胜负；不得把 `runs/` 中的临时比较 CSV 直接作为发布证据。
 
 ## 4. V4 结果契约
 

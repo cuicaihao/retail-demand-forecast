@@ -25,5 +25,9 @@ Local benchmark work is written below `runs/`; only reviewed lightweight
 snapshots are promoted to
 `benchmarks/published/<benchmark-id>/releases/<release-id>/`. Release IDs are
 immutable; later model additions create a new release rather than rewriting an
-old one. Results from different benchmark IDs must never be aggregated. The historical V2
-single-cutoff results remain isolated in `benchmarks/archive_single_cutoff_28d/`.
+old one. A reviewed comparison of two compatible releases is stored separately
+under `benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`;
+its manifest pins both source release manifests by SHA-256. Results from
+different benchmark IDs must never be aggregated except through such an
+explicit, validated comparison. The historical V2 single-cutoff results remain
+isolated in `benchmarks/archive_single_cutoff_28d/`.

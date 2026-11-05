@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from generate_benchmark_report import replace_marked_block
 from publish_benchmark import (
+    _contains_only_release_outputs,
     _publishing_source_provenance,
     _validate_release_id,
     publish,
@@ -35,6 +36,11 @@ from retail_forecast.benchmark_registry import (
     validate_v4_model_result,
 )
 from retail_forecast.common import datasets, valid_labels
+from retail_forecast.history_comparison import (
+    METRIC_COLUMNS,
+    build_training_history_comparison,
+    summarize_training_history_comparison,
+)
 
 
 class BenchmarkV4ProtocolTests(unittest.TestCase):
@@ -189,6 +195,53 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "README.md"),
         ):
             _publishing_source_provenance()
+
+    def test_comparison_release_paths_are_accepted_as_pending_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pending = (
+                root
+                / "data/benchmarks/published/comparisons/a--vs--b/releases/20261106-test-v1"
+            )
+            pending.mkdir(parents=True)
+            (pending / "scenario_summary.csv").write_text("scenario\n")
+            with patch("publish_benchmark.ROOT", root):
+                self.assertTrue(
+                    _contains_only_release_outputs(
+                        "data/benchmarks/published/comparisons/a--vs--b/"
+                        "releases/20261106-test-v1/"
+                    )
+                )
+
+    def test_training_history_comparison_is_paired_and_scenario_specific(self) -> None:
+        expanding = load_benchmark_spec("2026-retail-week-expanding-v4")
+        sliding = load_benchmark_spec("2026-retail-week-24w-ablation-v4")
+        identity = {
+            "scenario": "grocery",
+            "model_id": "test_model",
+            "model_name": "Test Model",
+            "toolkit": "test",
+            "family": "test",
+            "variant": "default",
+            "comparison_role": "breadth",
+            "config_group": "test",
+        }
+        metrics = {metric: np.nan for metric in METRIC_COLUMNS}
+        metrics.update({"WAPE": 0.1, "MAE": 1.0, "n": 10})
+        main = pd.DataFrame([{**identity, **metrics}])
+        ablation_metrics = {**metrics, "WAPE": 0.2, "MAE": 2.0}
+        ablation = pd.DataFrame([{**identity, **ablation_metrics}])
+        comparison = build_training_history_comparison(
+            main,
+            ablation,
+            main_spec=expanding,
+            ablation_spec=sliding,
+        )
+        self.assertAlmostEqual(comparison.loc[0, "WAPE_delta_24w_minus_expanding"], 0.1)
+        self.assertEqual(comparison.loc[0, "WAPE_winner"], "expanding")
+        summary = summarize_training_history_comparison(comparison).iloc[0]
+        self.assertEqual(summary["expanding_wins"], 1)
+        self.assertEqual(summary["sliding_24w_wins"], 0)
 
 
 class BenchmarkV4ResultValidationTests(unittest.TestCase):

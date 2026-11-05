@@ -66,7 +66,15 @@ def _contains_only_release_outputs(path_text: str) -> bool:
             relative = file_path.relative_to(published_root)
         except ValueError:
             return False
-        if len(relative.parts) < 4 or relative.parts[1] != "releases":
+        is_benchmark_release = (
+            len(relative.parts) >= 4 and relative.parts[1] == "releases"
+        )
+        is_comparison_release = (
+            len(relative.parts) >= 5
+            and relative.parts[0] == "comparisons"
+            and relative.parts[2] == "releases"
+        )
+        if not (is_benchmark_release or is_comparison_release):
             return False
     return True
 

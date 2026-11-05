@@ -8,11 +8,75 @@ import json
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from retail_forecast.benchmark_protocol import load_benchmark_spec
 from retail_forecast.benchmark_registry import validate_v4_model_result
+from retail_forecast.history_comparison import (
+    build_training_history_comparison,
+    summarize_training_history_comparison,
+)
+
+COMPARISON_SCHEMA_VERSION = "training-history-comparison-release-v1"
+
+
+def _validate_comparison_release(path: Path, release: dict) -> None:
+    if release.get("release_id") != path.name:
+        raise ValueError("Comparison release ID does not match its directory")
+    if path.parent.name != "releases" or path.parent.parent.name != release.get(
+        "comparison_id"
+    ):
+        raise ValueError("Comparison ID does not match its directory")
+    provenance = release.get("published_by_source_provenance")
+    if not isinstance(provenance, dict) or provenance.get("git_dirty"):
+        raise ValueError("Comparison releases require clean publishing provenance")
+    if set(release["files"]) != {
+        "training_history_ablation.csv",
+        "scenario_summary.csv",
+    }:
+        raise ValueError("Unexpected comparison release file inventory")
+
+    published_root = path.parents[3]
+    source_records = []
+    for key in ("main_source_release", "ablation_source_release"):
+        descriptor = release.get(key)
+        if not isinstance(descriptor, dict):
+            raise TypeError(f"Comparison release is missing {key}")
+        source_path = published_root / descriptor["relative_path"]
+        source_release = validate_release(source_path)
+        source_hash = hashlib.sha256(
+            (source_path / "release_manifest.json").read_bytes()
+        ).hexdigest()
+        if source_hash != descriptor["release_manifest_sha256"]:
+            raise ValueError(f"{key} manifest hash does not match")
+        for field in ("benchmark_id", "release_id", "protocol_hash"):
+            if source_release[field] != descriptor[field]:
+                raise ValueError(f"{key} {field} does not match")
+        source_records.append((source_path, source_release))
+
+    (main_path, main_release), (ablation_path, ablation_release) = source_records
+    main_spec = load_benchmark_spec(main_release["benchmark_id"])
+    ablation_spec = load_benchmark_spec(ablation_release["benchmark_id"])
+    expected = build_training_history_comparison(
+        pd.read_csv(main_path / "summary/scenario_leaderboard.csv"),
+        pd.read_csv(ablation_path / "summary/scenario_leaderboard.csv"),
+        main_spec=main_spec,
+        ablation_spec=ablation_spec,
+    )
+    actual = pd.read_csv(path / "training_history_ablation.csv")
+    pd.testing.assert_frame_equal(actual, expected, check_exact=False, rtol=1e-12)
+    expected_summary = summarize_training_history_comparison(expected)
+    actual_summary = pd.read_csv(path / "scenario_summary.csv")
+    pd.testing.assert_frame_equal(
+        actual_summary, expected_summary, check_exact=False, rtol=1e-12
+    )
+    if release["model_ids"] != sorted(main_release["model_ids"]):
+        raise ValueError("Comparison model inventory does not match its source")
+    if release["scenarios"] != list(main_spec.scenarios):
+        raise ValueError("Comparison scenario inventory does not match its source")
 
 
 def validate_release(path: Path) -> dict:
@@ -37,6 +101,9 @@ def validate_release(path: Path) -> dict:
         actual = hashlib.sha256(file_path.read_bytes()).hexdigest()
         if actual != expected:
             raise ValueError(f"Release hash mismatch: {relative}")
+    if release.get("release_schema_version") == COMPARISON_SCHEMA_VERSION:
+        _validate_comparison_release(path, release)
+        return release
     if release.get("protocol_hash"):
         spec = load_benchmark_spec(release["benchmark_id"])
         if release["protocol_hash"] != spec.protocol_hash:
@@ -83,7 +150,7 @@ def main() -> None:
     args = parser.parse_args()
     release = validate_release(args.release)
     print(
-        f"Validated {release['benchmark_id']}"
+        f"Validated {release.get('benchmark_id', release.get('comparison_id'))}"
         f"/{release.get('release_id', 'legacy')}: "
         f"{len(release['model_ids'])} models, {len(release['files'])} files"
     )

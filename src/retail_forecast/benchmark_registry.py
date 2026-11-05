@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from .common import INPUT_HASHES, ROOT, SEED, datasets
+from .history_comparison import build_training_history_comparison
 
 BENCHMARK_DIR = ROOT / "data" / "benchmarks"
 PUBLISHED_DIR = BENCHMARK_DIR / "published"
@@ -621,33 +622,6 @@ def generate_training_history_ablation(
     ablation_spec: Any,
 ) -> Path:
     """Compare two protocols that differ only in their training-history policy."""
-    comparable_fields = (
-        "protocol_version",
-        "evaluation_start",
-        "evaluation_end",
-        "horizon_days",
-        "step_days",
-        "selection_end",
-        "selection_policy",
-        "scenarios",
-        "valid_label_rule",
-        "metrics_version",
-    )
-    mismatches = [
-        field_name
-        for field_name in comparable_fields
-        if getattr(main_spec, field_name) != getattr(ablation_spec, field_name)
-    ]
-    if mismatches:
-        raise ValueError(
-            "Training-history protocols differ outside history policy: "
-            + ", ".join(mismatches)
-        )
-    if main_spec.training_policy == ablation_spec.training_policy:
-        raise ValueError(
-            "Training-history ablation requires different history policies"
-        )
-
     summaries = {}
     manifest_hashes: dict[str, dict[str, str]] = {}
     model_sets = []
@@ -662,63 +636,12 @@ def generate_training_history_ablation(
         summary_manifest = json.loads(summary_manifest_path.read_text(encoding="utf-8"))
         manifest_hashes[label] = summary_manifest["source_manifest_hashes"]
         model_sets.append(set(summary_manifest["model_ids"]))
-    if model_sets[0] != model_sets[1]:
-        missing_main = sorted(model_sets[1] - model_sets[0])
-        missing_ablation = sorted(model_sets[0] - model_sets[1])
-        raise ValueError(
-            "Training-history model sets differ: "
-            f"missing from main={missing_main}, missing from ablation={missing_ablation}"
-        )
-
-    identity = [
-        "scenario",
-        "model_id",
-        "model_name",
-        "toolkit",
-        "family",
-        "variant",
-        "comparison_role",
-        "config_group",
-    ]
-    metrics = [
-        "MAE",
-        "RMSE",
-        "WAPE",
-        "Bias",
-        "MASE",
-        "ZeroRecallAt05",
-        "DemandRecallAt05",
-        "DemandEventF1At05",
-        "PositiveDemandMAE",
-        "Coverage80",
-        "MeanIntervalWidth80",
-        "PinballLoss80",
-        "n",
-    ]
-    main = summaries["main"][identity + metrics].copy()
-    ablation = summaries["ablation"][identity + metrics].copy()
-    comparison = main.merge(
-        ablation,
-        on=identity,
-        how="outer",
-        validate="one_to_one",
-        suffixes=("_expanding", "_24w"),
-        indicator=True,
+    comparison = build_training_history_comparison(
+        summaries["main"],
+        summaries["ablation"],
+        main_spec=main_spec,
+        ablation_spec=ablation_spec,
     )
-    if not comparison._merge.eq("both").all():
-        raise ValueError("Training-history scenario/model identities do not match")
-    comparison = comparison.drop(columns="_merge")
-    for metric in metrics:
-        comparison[f"{metric}_delta_24w_minus_expanding"] = (
-            comparison[f"{metric}_24w"] - comparison[f"{metric}_expanding"]
-        )
-    wape_delta = comparison["WAPE_delta_24w_minus_expanding"]
-    comparison["WAPE_winner"] = np.select(
-        [wape_delta > 0, wape_delta < 0],
-        [main_spec.training_policy, ablation_spec.training_policy],
-        default="tie",
-    )
-    comparison = comparison.sort_values(["scenario", "model_id"])
 
     comparison_id = f"{main_spec.benchmark_id}--vs--{ablation_spec.benchmark_id}"
     output_dir = Path(base_dir) / "comparisons" / comparison_id

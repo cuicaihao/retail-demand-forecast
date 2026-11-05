@@ -42,6 +42,7 @@
 - **消融 `2026-retail-week-24w-ablation-v4`**：仅使用最近 24 完整周，用于量化短历史影响；
 - **严格兼容性**：协议、数据哈希、场景、fold、forecast origin、有效标签集合和冻结参数必须全部一致；
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
+- **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
 
 > 下方数值表属于 `2026-retail-week-24w-v3` 历史快照。V4 主榜完成发布前，不把这些数字解释为扩展历史结论。
 
@@ -179,6 +180,12 @@ uv run python scripts/compare_training_histories.py \
   --source-root runs/20261105-all-models-benchmark \
   --main-benchmark 2026-retail-week-expanding-v4 \
   --ablation-benchmark 2026-retail-week-24w-ablation-v4
+
+# 审核两套模型 release 后，发布可复算的训练历史比较
+uv run python scripts/publish_training_history_comparison.py \
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-first-stage-v1 \
+  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-first-stage-v1 \
+  --release 20261106-first-stage-v1
 ```
 
 ### 2. 零重训图表与报告生成工具
