@@ -1,5 +1,0 @@
-scenario,model_count,expanding_wins,sliding_24w_wins,ties,median_WAPE_delta_24w_minus_expanding,breadth_median_WAPE_delta_24w_minus_expanding
-garden,20,18,0,2,0.08824080177325784,0.06792412641215705
-grocery,20,18,0,2,0.0212822546775419,0.021235189386954848
-luxury,20,9,9,2,0.0,-0.06221050398019323
-wine,20,18,0,2,0.06960590886891019,0.05031131232967828

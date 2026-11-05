@@ -1,13 +1,13 @@
 # 零售需求预测模型接入协议（V4）
 
 > 当前主协议：`2026-retail-week-expanding-v4`<br>
-> 历史策略消融：`2026-retail-week-24w-ablation-v4`<br>
+> 生产滚动实验：`2026-retail-week-104w-rolling-v4`<br>
 > 测试范围：2025-12-29 至 2026-12-27，共 52 个完整零售周，不等同于完整日历年。
 
 ## 1. 公平比较边界
 
 - 正式比较必须显式指定 `benchmark_id`；不同 benchmark ID 的结果不得聚合。
-- 主榜在每个 forecast origin 使用此前全部历史；24 周滑窗只用于训练历史消融。
+- 主榜在每个 forecast origin 使用此前全部历史；生产滚动实验使用此前最近 104 个完整周训练并预测随后 4 周。
 - 参数选择窗口必须结束于正式评估开始之前。选择完成后生成 `selected_config.json`，正式 fold 不重新选择配置。
 - 预测期 `y`、`conditional_mean`、`latent_demand`、`occurrence_probability` 和 `positive_demand` 均不得作为推理特征。
 - 日历、开店状态、计划促销及公共假日等已知未来协变量可以使用。
@@ -34,9 +34,9 @@ uv run python scripts/run_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
   --models seasonal_naive
 
-# 24 周历史消融
+# 生产式两年滚动历史：104 周训练，随后 4 周预测
 uv run python scripts/run_benchmark.py \
-  --benchmark 2026-retail-week-24w-ablation-v4 \
+  --benchmark 2026-retail-week-104w-rolling-v4 \
   --models seasonal_naive
 
 # 只聚合某个明确的本地结果根目录
@@ -49,13 +49,13 @@ uv run python scripts/run_benchmark.py \
 uv run python scripts/compare_training_histories.py \
   --source-root runs/20261105-all-models-benchmark \
   --main-benchmark 2026-retail-week-expanding-v4 \
-  --ablation-benchmark 2026-retail-week-24w-ablation-v4
+  --fixed-window-benchmark 2026-retail-week-104w-rolling-v4
 
 # 从两套审核后的 release 发布不可变历史策略比较
 uv run python scripts/publish_training_history_comparison.py \
   --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-arima-v1 \
-  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-arima-v1 \
-  --release 20261106-arima-v1
+  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-104w-v1 \
+  --release 20261106-104w-v1
 
 # 审核后发布不可变轻量快照
 uv run python scripts/publish_benchmark.py \

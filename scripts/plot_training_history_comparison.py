@@ -32,10 +32,12 @@ def plot_comparison(comparison_id: str, release_id: str) -> Path:
         PUBLISHED_DIR / "comparisons" / comparison_id / "releases" / release_id
     )
     validate_release(release_root)
-    comparison = pd.read_csv(release_root / "training_history_ablation.csv")
+    manifest = validate_release(release_root)
+    comparison = pd.read_csv(release_root / "training_history_comparison.csv")
     comparison = comparison[comparison.comparison_role.eq("breadth")].copy()
     comparison["model_name"] = comparison["model_name"].map(_display_name)
-    comparison["delta_pp"] = comparison["WAPE_delta_24w_minus_expanding"] * 100
+    comparison["delta_pp"] = comparison["WAPE_delta_fixed_window_minus_expanding"] * 100
+    fixed_window_weeks = int(manifest["fixed_window_weeks"])
 
     scenarios = ["grocery", "wine", "garden", "luxury"]
     fig, axes = plt.subplots(2, 2, figsize=(15, 11), constrained_layout=True)
@@ -47,7 +49,7 @@ def plot_comparison(comparison_id: str, release_id: str) -> Path:
         ax.set_xscale("symlog", linthresh=15, linscale=1)
         ax.set_title(scenario.capitalize(), fontweight="bold")
         ax.set_xlabel(
-            "24-week WAPE minus expanding-history WAPE "
+            f"{fixed_window_weeks}-week WAPE minus expanding-history WAPE "
             "(percentage points, symmetric-log scale)"
         )
         ax.grid(True, axis="x", linestyle=":", alpha=0.55)
@@ -77,7 +79,7 @@ def plot_comparison(comparison_id: str, release_id: str) -> Path:
             )
 
     fig.suptitle(
-        "Training-History Ablation: 24 Weeks vs Expanding History\n"
+        f"Training-History Comparison: {fixed_window_weeks} Weeks vs Expanding History\n"
         "Positive values favor expanding history; representative breadth configurations only",
         fontsize=14,
         fontweight="bold",

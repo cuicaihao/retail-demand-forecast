@@ -26,7 +26,7 @@ from retail_forecast.history_comparison import (
     summarize_training_history_comparison,
 )
 
-COMPARISON_SCHEMA_VERSION = "training-history-comparison-release-v1"
+COMPARISON_SCHEMA_VERSION = "training-history-comparison-release-v2"
 
 
 def _sha256(path: Path) -> str:
@@ -56,29 +56,29 @@ def _source_descriptor(path: Path, release: dict) -> dict:
 def publish_comparison(
     *,
     main_release_path: Path,
-    ablation_release_path: Path,
+    fixed_window_release_path: Path,
     release_id: str,
 ) -> Path:
     """Validate two model releases and atomically publish their paired comparison."""
     release_id = _validate_release_id(release_id)
     provenance = _publishing_source_provenance()
     main_release = validate_release(main_release_path)
-    ablation_release = validate_release(ablation_release_path)
+    fixed_window_release = validate_release(fixed_window_release_path)
     main_spec = load_benchmark_spec(main_release["benchmark_id"])
-    ablation_spec = load_benchmark_spec(ablation_release["benchmark_id"])
+    fixed_window_spec = load_benchmark_spec(fixed_window_release["benchmark_id"])
 
     main_frame = pd.read_csv(main_release_path / "summary/scenario_leaderboard.csv")
-    ablation_frame = pd.read_csv(
-        ablation_release_path / "summary/scenario_leaderboard.csv"
+    fixed_window_frame = pd.read_csv(
+        fixed_window_release_path / "summary/scenario_leaderboard.csv"
     )
     comparison = build_training_history_comparison(
         main_frame,
-        ablation_frame,
+        fixed_window_frame,
         main_spec=main_spec,
-        ablation_spec=ablation_spec,
+        fixed_window_spec=fixed_window_spec,
     )
     summary = summarize_training_history_comparison(comparison)
-    identifier = comparison_id(main_spec.benchmark_id, ablation_spec.benchmark_id)
+    identifier = comparison_id(main_spec.benchmark_id, fixed_window_spec.benchmark_id)
     destination = published_comparison_root(identifier, release_id)
     if destination.exists():
         raise FileExistsError(
@@ -89,7 +89,7 @@ def publish_comparison(
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{release_id}-", dir=destination.parent))
     try:
-        comparison.to_csv(staging / "training_history_ablation.csv", index=False)
+        comparison.to_csv(staging / "training_history_comparison.csv", index=False)
         summary.to_csv(staging / "scenario_summary.csv", index=False)
         files = sorted(path for path in staging.rglob("*") if path.is_file())
         manifest = {
@@ -99,9 +99,10 @@ def publish_comparison(
             "published_at": datetime.now(UTC).isoformat(),
             "published_by_source_provenance": provenance,
             "main_source_release": _source_descriptor(main_release_path, main_release),
-            "ablation_source_release": _source_descriptor(
-                ablation_release_path, ablation_release
+            "fixed_window_source_release": _source_descriptor(
+                fixed_window_release_path, fixed_window_release
             ),
+            "fixed_window_weeks": fixed_window_spec.train_weeks,
             "model_ids": sorted(main_release["model_ids"]),
             "scenarios": list(main_spec.scenarios),
             "files": {str(path.relative_to(staging)): _sha256(path) for path in files},
@@ -120,12 +121,12 @@ def publish_comparison(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--main-release", type=Path, required=True)
-    parser.add_argument("--ablation-release", type=Path, required=True)
+    parser.add_argument("--fixed-window-release", type=Path, required=True)
     parser.add_argument("--release", required=True)
     args = parser.parse_args()
     destination = publish_comparison(
         main_release_path=args.main_release,
-        ablation_release_path=args.ablation_release,
+        fixed_window_release_path=args.fixed_window_release,
         release_id=args.release,
     )
     print(f"Published immutable training-history comparison: {destination}")

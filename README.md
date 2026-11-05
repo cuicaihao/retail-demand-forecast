@@ -11,7 +11,7 @@
 - **[2026 零售周 52 周前向滑动窗口技术验证报告](docs/reports/2026-annual-retail-forecast-benchmark.md)**
   保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
 - **[2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA）](docs/reports/2026-retail-week-v4-first-stage-report.md)**
-  使用审核后的扩展历史主榜、24 周消融和不可变跨协议 comparison release，分开呈现工具包广度、配置深度与训练历史影响。
+  使用审核后的扩展历史主榜和生产式 104 周滚动实验，分开呈现工具包广度、配置深度与训练历史影响。
 - **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
   深入探讨指数离散族（Exponential Dispersion Family）、Compound Poisson-Gamma 分布的极大似然估计、一阶梯度与二阶 Hessian 推导及其在 LightGBM / XGBoost C++ 源码中的工程映射。
 - **[零售需求预测实战：基于 Prophet 的建模、调参、诊断与局限性分析](https://cuicaihao.github.io/zh/posts/2026-10-01-prophet-retail-demand-forecast/)**  
@@ -38,10 +38,10 @@
 
 ## 🏆 2026 零售周 52 周基准库 (2026 Retail-Week Benchmark Store)
 
-当前使用声明式 **V4 周对齐前向滚动协议**。主榜与训练历史消融使用相同测试 fold，但禁止交叉聚合：
+当前使用声明式 **V4 周对齐前向滚动协议**。主榜与生产模拟实验使用相同测试 fold，但禁止交叉聚合：
 
 - **主榜 `2026-retail-week-expanding-v4`**：每个预测起点使用此前全部可用历史；
-- **消融 `2026-retail-week-24w-ablation-v4`**：仅使用最近 24 完整周，用于量化短历史影响；
+- **生产模拟 `2026-retail-week-104w-rolling-v4`**：每个月使用此前最近 104 个完整周训练，预测随后 4 个完整周；
 - **严格兼容性**：协议、数据哈希、场景、fold、forecast origin、有效标签集合和冻结参数必须全部一致；
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 - **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
@@ -177,17 +177,17 @@ uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4
 # 仅聚合一个明确的结果根目录；禁止隐式扫描与跨协议混合
 uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --compare-only --source-root runs/20261105-all-models-benchmark
 
-# 两套协议都完成后，生成训练历史策略消融表
+# 两套协议都完成后，生成训练历史策略比较表
 uv run python scripts/compare_training_histories.py \
   --source-root runs/20261105-all-models-benchmark \
   --main-benchmark 2026-retail-week-expanding-v4 \
-  --ablation-benchmark 2026-retail-week-24w-ablation-v4
+  --fixed-window-benchmark 2026-retail-week-104w-rolling-v4
 
 # 审核两套模型 release 后，发布可复算的训练历史比较
 uv run python scripts/publish_training_history_comparison.py \
   --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-arima-v1 \
-  --ablation-release data/benchmarks/published/2026-retail-week-24w-ablation-v4/releases/20261106-arima-v1 \
-  --release 20261106-arima-v1
+  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-104w-v1 \
+  --release 20261106-104w-v1
 ```
 
 ### 2. 零重训图表与报告生成工具

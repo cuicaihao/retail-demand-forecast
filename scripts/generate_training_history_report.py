@@ -58,9 +58,11 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
     )
     manifest = validate_release(release_root)
     comparison = _display_names(
-        pd.read_csv(release_root / "training_history_ablation.csv")
+        pd.read_csv(release_root / "training_history_comparison.csv")
     )
     summary = pd.read_csv(release_root / "scenario_summary.csv")
+    fixed_window_weeks = int(manifest["fixed_window_weeks"])
+    fixed_window_label = f"{fixed_window_weeks} 周"
     output = GENERATED_REPORTS / comparison_id / release_id
     output.mkdir(parents=True, exist_ok=True)
 
@@ -68,15 +70,15 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
         ("scenario", "场景", "text"),
         ("model_count", "配置数", "integer"),
         ("expanding_wins", "扩展历史胜", "integer"),
-        ("sliding_24w_wins", "24 周胜", "integer"),
+        ("fixed_window_wins", f"{fixed_window_label}胜", "integer"),
         ("ties", "平局", "integer"),
         (
-            "median_WAPE_delta_24w_minus_expanding",
-            "WAPE 差值中位数 (24w-expanding)",
+            "median_WAPE_delta_fixed_window_minus_expanding",
+            f"WAPE 差值中位数 ({fixed_window_weeks}w-expanding)",
             "points",
         ),
         (
-            "breadth_median_WAPE_delta_24w_minus_expanding",
+            "breadth_median_WAPE_delta_fixed_window_minus_expanding",
             "广度配置 WAPE 差值中位数",
             "points",
         ),
@@ -91,17 +93,21 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
         ("model_name", "代表模型", "text"),
         ("toolkit", "工具包", "text"),
         ("WAPE_expanding", "扩展历史 WAPE", "percent"),
-        ("WAPE_24w", "24 周 WAPE", "percent"),
-        ("WAPE_delta_24w_minus_expanding", "差值", "points"),
+        ("WAPE_fixed_window", f"{fixed_window_label} WAPE", "percent"),
+        ("WAPE_delta_fixed_window_minus_expanding", "差值", "points"),
         ("WAPE_winner", "WAPE 胜者", "text"),
     ]
     luxury_columns = common_columns + [
         ("DemandEventF1At05_expanding", "扩展历史 Event F1", "percent"),
-        ("DemandEventF1At05_24w", "24 周 Event F1", "percent"),
+        (
+            "DemandEventF1At05_fixed_window",
+            f"{fixed_window_label} Event F1",
+            "percent",
+        ),
     ]
     for scenario in manifest["scenarios"]:
         frame = breadth[breadth.scenario.eq(scenario)].sort_values(
-            "WAPE_delta_24w_minus_expanding", ascending=False
+            "WAPE_delta_fixed_window_minus_expanding", ascending=False
         )
         columns = luxury_columns if scenario == "luxury" else common_columns
         detail_blocks.extend(
@@ -117,8 +123,9 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
         f"> Release ID: `{release_id}`<br>\n"
         f"> Main source: `{manifest['main_source_release']['benchmark_id']}` / "
         f"`{manifest['main_source_release']['release_id']}`<br>\n"
-        f"> Ablation source: `{manifest['ablation_source_release']['benchmark_id']}` / "
-        f"`{manifest['ablation_source_release']['release_id']}`<br>\n"
+        f"> Fixed-window source: "
+        f"`{manifest['fixed_window_source_release']['benchmark_id']}` / "
+        f"`{manifest['fixed_window_source_release']['release_id']}`<br>\n"
         f"> Comparison release manifest SHA-256: "
         f"`{hashlib.sha256(manifest_path.read_bytes()).hexdigest()}`<br>\n"
         "> WAPE differences are paired descriptive results, not statistical significance claims.\n"

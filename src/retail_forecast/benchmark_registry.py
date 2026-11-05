@@ -615,17 +615,17 @@ def generate_v4_summaries(
     return outputs
 
 
-def generate_training_history_ablation(
+def generate_training_history_comparison(
     *,
     base_dir: Path,
     main_spec: Any,
-    ablation_spec: Any,
+    fixed_window_spec: Any,
 ) -> Path:
     """Compare two protocols that differ only in their training-history policy."""
     summaries = {}
     manifest_hashes: dict[str, dict[str, str]] = {}
     model_sets = []
-    for label, spec in (("main", main_spec), ("ablation", ablation_spec)):
+    for label, spec in (("main", main_spec), ("fixed_window", fixed_window_spec)):
         generated = generate_v4_summaries(base_dir=base_dir, spec=spec)
         summaries[label] = generated["scenario_leaderboard"]
         summary_manifest_path = (
@@ -638,22 +638,23 @@ def generate_training_history_ablation(
         model_sets.append(set(summary_manifest["model_ids"]))
     comparison = build_training_history_comparison(
         summaries["main"],
-        summaries["ablation"],
+        summaries["fixed_window"],
         main_spec=main_spec,
-        ablation_spec=ablation_spec,
+        fixed_window_spec=fixed_window_spec,
     )
 
-    comparison_id = f"{main_spec.benchmark_id}--vs--{ablation_spec.benchmark_id}"
+    comparison_id = f"{main_spec.benchmark_id}--vs--{fixed_window_spec.benchmark_id}"
     output_dir = Path(base_dir) / "comparisons" / comparison_id
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "training_history_ablation.csv"
+    output_path = output_dir / "training_history_comparison.csv"
     comparison.to_csv(output_path, index=False)
     manifest = {
-        "comparison_schema_version": "training-history-ablation-v1",
+        "comparison_schema_version": "training-history-comparison-v2",
         "main_benchmark_id": main_spec.benchmark_id,
         "main_protocol_hash": main_spec.protocol_hash,
-        "ablation_benchmark_id": ablation_spec.benchmark_id,
-        "ablation_protocol_hash": ablation_spec.protocol_hash,
+        "fixed_window_benchmark_id": fixed_window_spec.benchmark_id,
+        "fixed_window_protocol_hash": fixed_window_spec.protocol_hash,
+        "fixed_window_weeks": fixed_window_spec.train_weeks,
         "model_ids": sorted(model_sets[0]),
         "source_manifest_hashes": manifest_hashes,
         "output_sha256": hashlib.sha256(output_path.read_bytes()).hexdigest(),

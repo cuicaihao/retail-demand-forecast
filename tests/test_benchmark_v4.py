@@ -105,9 +105,9 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         for scenario in spec.scenarios:
             self.assertLessEqual(_selection_windows_end(scenario), spec.selection_end)
 
-    def test_expanding_and_24_week_specs_share_formal_folds(self) -> None:
+    def test_expanding_and_104_week_specs_share_formal_folds(self) -> None:
         expanding = load_benchmark_spec("2026-retail-week-expanding-v4")
-        sliding = load_benchmark_spec("2026-retail-week-24w-ablation-v4")
+        sliding = load_benchmark_spec("2026-retail-week-104w-rolling-v4")
         data_start = datasets["grocery"].ds.min()
         expanding_folds = expanding.folds(data_start)
         sliding_folds = sliding.folds(data_start)
@@ -119,7 +119,7 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         self.assertEqual(expanding_folds[0].train_start, data_start)
         self.assertEqual(
             (sliding_folds[0].train_end - sliding_folds[0].train_start).days + 1,
-            168,
+            728,
         )
         evaluation_dates = [
             date
@@ -248,7 +248,7 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
 
     def test_training_history_comparison_is_paired_and_scenario_specific(self) -> None:
         expanding = load_benchmark_spec("2026-retail-week-expanding-v4")
-        sliding = load_benchmark_spec("2026-retail-week-24w-ablation-v4")
+        sliding = load_benchmark_spec("2026-retail-week-104w-rolling-v4")
         identity = {
             "scenario": "grocery",
             "model_id": "test_model",
@@ -262,19 +262,22 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         metrics = {metric: np.nan for metric in METRIC_COLUMNS}
         metrics.update({"WAPE": 0.1, "MAE": 1.0, "n": 10})
         main = pd.DataFrame([{**identity, **metrics}])
-        ablation_metrics = {**metrics, "WAPE": 0.2, "MAE": 2.0}
-        ablation = pd.DataFrame([{**identity, **ablation_metrics}])
+        fixed_window_metrics = {**metrics, "WAPE": 0.2, "MAE": 2.0}
+        fixed_window = pd.DataFrame([{**identity, **fixed_window_metrics}])
         comparison = build_training_history_comparison(
             main,
-            ablation,
+            fixed_window,
             main_spec=expanding,
-            ablation_spec=sliding,
+            fixed_window_spec=sliding,
         )
-        self.assertAlmostEqual(comparison.loc[0, "WAPE_delta_24w_minus_expanding"], 0.1)
+        self.assertAlmostEqual(
+            comparison.loc[0, "WAPE_delta_fixed_window_minus_expanding"], 0.1
+        )
+        self.assertEqual(comparison.loc[0, "fixed_window_weeks"], 104)
         self.assertEqual(comparison.loc[0, "WAPE_winner"], "expanding")
         summary = summarize_training_history_comparison(comparison).iloc[0]
         self.assertEqual(summary["expanding_wins"], 1)
-        self.assertEqual(summary["sliding_24w_wins"], 0)
+        self.assertEqual(summary["fixed_window_wins"], 0)
 
 
 class BenchmarkV4ResultValidationTests(unittest.TestCase):

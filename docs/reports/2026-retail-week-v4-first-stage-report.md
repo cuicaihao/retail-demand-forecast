@@ -1,7 +1,7 @@
 # 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA）
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
-`2026-retail-week-24w-ablation-v4` 量化固定 24 周训练历史带来的影响。正式评估覆盖
+`2026-retail-week-104w-rolling-v4` 模拟每月以此前两年数据训练、预测随后 4 周的生产流程。正式评估覆盖
 2025-12-29 至 2026-12-27，共 13 个互不重叠的 28 天 fold，也就是 52 个完整零售周
 和 364 个评估日；它不是完整日历年。
 
@@ -16,11 +16,8 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 - 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
   `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
   这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
-- 固定 24 周下，同一 ARIMA 配置的四场景 WAPE 分别恶化到 `172.84%`、`679.55%`、
-  `271.15%`、`10928.55%`。24 周无法覆盖完整年度周期，年度谐波与多项回归系数的
-  外推极不稳定；该消融保留原始结果，不利用正式测试标签重新调参。
-- Luxury 呈现 10 胜、9 负、2 平，且 WAPE 与需求事件 F1 并不总是同向。因此这里不能
-  得出“历史越长一定越好”或基于 WAPE 的单一冠军结论。
+- 104 周生产滚动实验与扩展历史使用相同的模型配置、预测日期和已知未来信息，只改变
+  每个 forecast origin 可见的训练历史范围；结果将在新 release 中重新生成。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
 - 所有区间和 fold 分布只用于描述稳定性。本报告没有进行预注册的显著性检验，也不把
@@ -232,7 +229,7 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 - [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
 - [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
-## 5. 训练历史策略消融
+## 5. 生产式训练历史比较：104 周训练 → 4 周预测
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
 > Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4`<br>
@@ -313,14 +310,14 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | LightGBM Default (MSE) | lightgbm | 239.15% | 183.86% | -55.29 pp | sliding_24w | 7.41% | 0.00% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
 
-[训练历史 WAPE 配对差值图](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-24w-ablation-v4/20261106-arima-v1/fig-01-training-history-wape-delta.png)
+生产滚动比较图将在 104 周 release 审核后由发布数据重新生成。
 只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释。
 
 ## 6. 局限与后续工作
 
 1. 数据为固定生成协议下的教学合成数据，支持受控机制分析，但不能直接外推到真实企业。
-2. 24 周窗口刻意构成短历史消融。它不包含一个完整年度周期，不能作为年度季节模型的
-   公平主榜；Prophet 在该设置下也会提示年度季节性所需的历史不足。
+2. 104 周窗口代表两个完整的 52 周零售周期，用于模拟现实中每月滚动重训、预测未来
+   4 周的 MLOps 流程；它不是对所有企业历史保留策略的普遍建议。
 3. 除 ARIMA 外，当前模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为
    不适用。ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、
    `80.66%`、`94.75%`；这些是未校准的模型区间，不能直接解释为库存服务水平。

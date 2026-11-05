@@ -20,7 +20,7 @@ from retail_forecast.history_comparison import (
     summarize_training_history_comparison,
 )
 
-COMPARISON_SCHEMA_VERSION = "training-history-comparison-release-v1"
+COMPARISON_SCHEMA_VERSION = "training-history-comparison-release-v2"
 
 
 def _validate_comparison_release(path: Path, release: dict) -> None:
@@ -34,14 +34,14 @@ def _validate_comparison_release(path: Path, release: dict) -> None:
     if not isinstance(provenance, dict) or provenance.get("git_dirty"):
         raise ValueError("Comparison releases require clean publishing provenance")
     if set(release["files"]) != {
-        "training_history_ablation.csv",
+        "training_history_comparison.csv",
         "scenario_summary.csv",
     }:
         raise ValueError("Unexpected comparison release file inventory")
 
     published_root = path.parents[3]
     source_records = []
-    for key in ("main_source_release", "ablation_source_release"):
+    for key in ("main_source_release", "fixed_window_source_release"):
         descriptor = release.get(key)
         if not isinstance(descriptor, dict):
             raise TypeError(f"Comparison release is missing {key}")
@@ -57,16 +57,18 @@ def _validate_comparison_release(path: Path, release: dict) -> None:
                 raise ValueError(f"{key} {field} does not match")
         source_records.append((source_path, source_release))
 
-    (main_path, main_release), (ablation_path, ablation_release) = source_records
+    (main_path, main_release), (fixed_path, fixed_release) = source_records
     main_spec = load_benchmark_spec(main_release["benchmark_id"])
-    ablation_spec = load_benchmark_spec(ablation_release["benchmark_id"])
+    fixed_spec = load_benchmark_spec(fixed_release["benchmark_id"])
+    if release.get("fixed_window_weeks") != fixed_spec.train_weeks:
+        raise ValueError("Comparison fixed-window length does not match its protocol")
     expected = build_training_history_comparison(
         pd.read_csv(main_path / "summary/scenario_leaderboard.csv"),
-        pd.read_csv(ablation_path / "summary/scenario_leaderboard.csv"),
+        pd.read_csv(fixed_path / "summary/scenario_leaderboard.csv"),
         main_spec=main_spec,
-        ablation_spec=ablation_spec,
+        fixed_window_spec=fixed_spec,
     )
-    actual = pd.read_csv(path / "training_history_ablation.csv")
+    actual = pd.read_csv(path / "training_history_comparison.csv")
     pd.testing.assert_frame_equal(actual, expected, check_exact=False, rtol=1e-12)
     expected_summary = summarize_training_history_comparison(expected)
     actual_summary = pd.read_csv(path / "scenario_summary.csv")
