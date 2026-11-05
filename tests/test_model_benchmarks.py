@@ -19,6 +19,7 @@ from retail_forecast.common import SCENARIOS, datasets, valid_labels
 from retail_forecast.model_comparison import CORE_MODELS
 from retail_forecast.neural import NEURAL_CANDIDATES, inputs, preprocessor
 from retail_forecast.prophet_benchmark import PROPHET_CANDIDATES, prophet_frame
+from retail_forecast.tft import tft_inference_dataset, training_dataset
 
 
 class ModelBenchmarkProtocolTests(unittest.TestCase):
@@ -47,6 +48,20 @@ class ModelBenchmarkProtocolTests(unittest.TestCase):
         second = inputs(history, future, "grocery", prep)
         pd.testing.assert_frame_equal(pd.DataFrame(first[0]), pd.DataFrame(second[0]))
         pd.testing.assert_frame_equal(pd.DataFrame(first[1]), pd.DataFrame(second[1]))
+
+    def test_tft_sliding_history_uses_positional_origin(self):
+        frame = datasets["grocery"].iloc[500:1256].copy()
+        history = frame.iloc[:728].copy()
+        future = frame.iloc[728:756].copy()
+        dataset, mean, std = training_dataset(history, "grocery")
+        bundle = {"dataset": dataset, "mean": mean, "std": std}
+        inference = tft_inference_dataset(
+            bundle,
+            pd.concat([history, future]),
+            "grocery",
+            origin=len(history) - 1,
+        )
+        self.assertEqual(inference.max_prediction_length, 28)
 
     def test_core_model_order(self):
         self.assertEqual(len(CORE_MODELS), 10)

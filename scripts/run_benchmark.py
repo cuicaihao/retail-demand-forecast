@@ -20,6 +20,7 @@ if str(ROOT / "src") not in sys.path:
 from retail_forecast.benchmark_adapters import (
     arima_factory,
     baseline_factory,
+    neural_factory,
     prophet_factory,
     resolve_model_parameters,
     tree_factory,
@@ -130,6 +131,33 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
             "enforce_invertibility": True,
         },
         description="Known-future business regression with ARIMA(1,0,1) errors.",
+    ),
+    "mlp": _config(
+        "mlp",
+        "MLP",
+        toolkit="pytorch_mlp",
+        family="neural",
+        factory=neural_factory,
+        role="breadth",
+        description="Direct 28-day MLP with an 84-day target encoder.",
+    ),
+    "lstm": _config(
+        "lstm",
+        "LSTM",
+        toolkit="pytorch_lstm",
+        family="neural",
+        factory=neural_factory,
+        role="breadth",
+        description="Direct 28-day LSTM with an 84-day target-feature encoder.",
+    ),
+    "tft": _config(
+        "tft",
+        "TFT",
+        toolkit="pytorch_forecasting",
+        family="neural",
+        factory=neural_factory,
+        role="breadth",
+        description="Temporal Fusion Transformer with a 28-day decoder.",
     ),
 }
 
@@ -245,7 +273,7 @@ def run_model(
     scenarios: list[str],
     force: bool,
 ) -> Path:
-    selection_dir = run_root / spec.benchmark_id / "selection"
+    selection_dir = run_root / "selection"
     resolved_params, selection_record = resolve_model_parameters(
         config, spec, selection_dir
     )
@@ -428,7 +456,14 @@ def main() -> None:
     parser.add_argument("--models", help="Comma-separated registered model IDs.")
     parser.add_argument(
         "--family",
-        choices=["baseline", "tree_classical", "tree_gbdt", "statistical", "all"],
+        choices=[
+            "baseline",
+            "tree_classical",
+            "tree_gbdt",
+            "statistical",
+            "neural",
+            "all",
+        ],
     )
     parser.add_argument(
         "--scenarios", help="Comma-separated subset for local diagnostics only."

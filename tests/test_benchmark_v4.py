@@ -29,6 +29,7 @@ from validate_benchmark_release import validate_release
 from retail_forecast.benchmark_adapters import (
     TREE_TOOLKITS,
     ARIMAForecasterAdapter,
+    NeuralForecasterAdapter,
     _selection_windows_end,
 )
 from retail_forecast.benchmark_protocol import load_benchmark_spec
@@ -55,7 +56,7 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         )
 
     def test_registry_has_symmetric_first_stage_gbdt_ablations(self) -> None:
-        self.assertEqual(len(MODEL_REGISTRY), 21)
+        self.assertEqual(len(MODEL_REGISTRY), 24)
         expected_variants = {
             "default",
             "tweedie_p11",
@@ -70,6 +71,36 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
                 if config.toolkit == toolkit
             }
             self.assertEqual(variants, expected_variants)
+
+    def test_neural_models_are_predeclared_breadth_configurations(self) -> None:
+        expected = {
+            "mlp": ("MLP", "pytorch_mlp"),
+            "lstm": ("LSTM", "pytorch_lstm"),
+            "tft": ("TFT", "pytorch_forecasting"),
+        }
+        for model_id, (name, toolkit) in expected.items():
+            config = MODEL_REGISTRY[model_id]
+            self.assertEqual(config.model_name, name)
+            self.assertEqual(config.toolkit, toolkit)
+            self.assertEqual(config.family, "neural")
+            self.assertEqual(config.comparison_role, "breadth")
+
+    def test_neural_adapter_does_not_read_future_targets(self) -> None:
+        frame = datasets["grocery"]
+        history = frame.iloc[:500].copy()
+        future = frame.iloc[500:528].copy()
+        adapter = NeuralForecasterAdapter(
+            "MLP",
+            {"hidden": 16, "learning_rate": 0.003, "weight_decay": 0.0001},
+        )
+        adapter.fit(history, "grocery")
+        expected = adapter.predict(future, "grocery").point_forecast
+        changed = future.copy()
+        changed["y"] = 1_000_000
+        changed["conditional_mean"] = -1_000_000
+        changed["latent_demand"] = 1_000_000
+        actual = adapter.predict(changed, "grocery").point_forecast
+        np.testing.assert_allclose(actual, expected)
 
     def test_arima_is_a_predeclared_breadth_configuration(self) -> None:
         config = MODEL_REGISTRY["arima"]

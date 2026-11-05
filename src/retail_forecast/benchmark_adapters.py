@@ -13,6 +13,12 @@ from .arima import fit_arima, forecast_arima
 from .baselines import MovingAverageForecaster, SeasonalNaiveForecaster
 from .benchmark_registry import BaseRetailForecaster, ForecastOutput, ModelConfig
 from .common import INPUT_HASHES, datasets, sales_prediction, windows
+from .neural import (
+    NEURAL_CANDIDATES,
+    fit_neural_config,
+    predict_neural_config,
+    tune_neural,
+)
 from .prophet_benchmark import fit_prophet, predict_prophet, tune_prophet
 from .trees import fit_model, predict_model, tune_model
 
@@ -86,6 +92,40 @@ class ARIMAForecasterAdapter(BaseRetailForecaster):
         )
 
 
+class NeuralForecasterAdapter(BaseRetailForecaster):
+    """Origin-frozen MLP, LSTM, or TFT trained independently for every fold."""
+
+    def __init__(self, model_name: str, params: dict[str, Any]):
+        super().__init__(name=model_name, family="neural")
+        self.model_name = model_name
+        self.params = params
+        self.bundle: dict[str, Any] | None = None
+        self.history: pd.DataFrame | None = None
+
+    def fit(self, history: pd.DataFrame, scenario: str) -> None:
+        self.history = history.copy()
+        self.bundle, _ = fit_neural_config(
+            history,
+            scenario,
+            self.model_name,
+            self.params,
+            checkpoint_tag=f"v4_{self.model_name.lower()}_{scenario}",
+            save_checkpoint=False,
+        )
+
+    def predict(self, future: pd.DataFrame, scenario: str) -> ForecastOutput:
+        if self.bundle is None or self.history is None:
+            raise RuntimeError("Neural adapter must be fitted before prediction")
+        raw = predict_neural_config(
+            self.bundle,
+            self.history,
+            future,
+            scenario,
+            self.model_name,
+        )
+        return ForecastOutput(point_forecast=sales_prediction(future, raw))
+
+
 TREE_TOOLKITS = {
     "decision_tree": "Decision Tree",
     "random_forest": "Random Forest",
@@ -127,6 +167,13 @@ def arima_factory(
     return ARIMAForecasterAdapter(params)
 
 
+def neural_factory(
+    config: ModelConfig, scenario: str, params: dict[str, Any]
+) -> BaseRetailForecaster:
+    del scenario
+    return NeuralForecasterAdapter(config.model_name, params)
+
+
 def _selection_windows_end(scenario: str) -> pd.Timestamp:
     frame = datasets[scenario]
     ends = []
@@ -136,17 +183,26 @@ def _selection_windows_end(scenario: str) -> pd.Timestamp:
     return max(ends)
 
 
-def _selection_cache_path(cache_dir: Path, toolkit: str) -> Path:
-    return cache_dir / f"{toolkit}.json"
+def _selection_identity(config: ModelConfig) -> str:
+    if config.family == "neural":
+        return config.model_id
+    return config.toolkit
 
 
-def _selection_cache_key(spec: Any, toolkit: str) -> str:
+def _selection_cache_path(cache_dir: Path, selection_identity: str) -> Path:
+    return cache_dir / f"{selection_identity}.json"
+
+
+def _selection_cache_key(spec: Any, config: ModelConfig) -> str:
+    selection_identity = _selection_identity(config)
     value = {
         "selection_policy": spec.selection_policy,
         "selection_end": str(spec.selection_end.date()),
-        "toolkit": toolkit,
+        "selection_identity": selection_identity,
         "input_hashes": INPUT_HASHES,
     }
+    if config.family == "neural":
+        value["candidate_grid"] = NEURAL_CANDIDATES[config.model_name]
     payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(payload).hexdigest()
 
@@ -156,13 +212,15 @@ def _select_base_params(
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Select base capacity only on fixed windows before formal evaluation."""
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = _selection_cache_path(cache_dir, config.toolkit)
-    cache_key = _selection_cache_key(spec, config.toolkit)
+    selection_identity = _selection_identity(config)
+    cache_path = _selection_cache_path(cache_dir, selection_identity)
+    cache_key = _selection_cache_key(spec, config)
     if cache_path.is_file():
         cached = json.loads(cache_path.read_text(encoding="utf-8"))
         if cached.get("selection_cache_key") == cache_key:
             return cached["base_params_by_scenario"], cached
 
+    selection_details: dict[str, Any] = {}
     if config.family == "baseline":
         base = {scenario: {} for scenario in spec.scenarios}
     elif config.family in {"tree_classical", "tree_gbdt"}:
@@ -186,6 +244,16 @@ def _select_base_params(
                 )
             selected, _, _ = tune_prophet(scenario)
             base[scenario] = selected
+    elif config.family == "neural":
+        base = {}
+        for scenario in spec.scenarios:
+            if _selection_windows_end(scenario) > spec.selection_end:
+                raise ValueError(
+                    f"{scenario} parameter selection crosses formal evaluation boundary"
+                )
+            selected, table, _ = tune_neural(scenario, config.model_name)
+            base[scenario] = selected
+            selection_details[scenario] = json.loads(table.to_json(orient="records"))
     else:
         raise NotImplementedError(
             f"No V4 parameter selection adapter for toolkit {config.toolkit!r}"
@@ -196,7 +264,10 @@ def _select_base_params(
         "selection_policy": spec.selection_policy,
         "selection_end": str(spec.selection_end.date()),
         "toolkit": config.toolkit,
+        "selection_identity": selection_identity,
         "input_hashes": INPUT_HASHES,
+        "candidate_grid": NEURAL_CANDIDATES.get(config.model_name),
+        "selection_details_by_scenario": selection_details,
         "base_params_by_scenario": base,
     }
     cache_path.write_text(

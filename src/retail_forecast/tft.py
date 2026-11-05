@@ -81,12 +81,14 @@ def training_dataset(frame, scenario):
 
 
 def tft_inference_dataset(bundle, full_frame, scenario, origin, placeholder=0.0):
+    """Build one origin-frozen decoder dataset from a positional origin."""
     assert origin + HORIZON < len(full_frame)
     visible = full_frame.iloc[: origin + HORIZON + 1].copy()
+    origin_time_idx = int(full_frame.iloc[origin].time_idx)
     # Hide all target labels and diagnostic truth after the origin before preprocessing.
-    visible.loc[visible.time_idx > origin, "y"] = np.nan
+    visible.loc[visible.time_idx > origin_time_idx, "y"] = np.nan
     prepared = tft_frame(visible, scenario, bundle["mean"], bundle["std"])
-    decoder = prepared.time_idx > origin
+    decoder = prepared.time_idx > origin_time_idx
     prepared.loc[decoder, "target_z"] = placeholder
     prepared.loc[decoder, "label_weight"] = 0.0
     return TimeSeriesDataSet.from_dataset(
@@ -128,7 +130,14 @@ def trainer(epochs, callbacks=()):
     )
 
 
-def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None, config=None):
+def fit_tft(
+    full_frame,
+    scenario,
+    train_end=None,
+    checkpoint_tag=None,
+    config=None,
+    save_checkpoint=True,
+):
     config = config or {}
     if train_end is None:
         train_end = TRAIN_END
@@ -172,7 +181,9 @@ def fit_tft(full_frame, scenario, train_end=None, checkpoint_tag=None, config=No
         ),
     )
     final.eval()
-    final_trainer.save_checkpoint(OUTPUT_DIR / f"{checkpoint_tag}_tft.ckpt")
+    if save_checkpoint:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        final_trainer.save_checkpoint(OUTPUT_DIR / f"{checkpoint_tag}_tft.ckpt")
     return {"model": final, "dataset": dataset, "mean": mean, "std": std}, {
         "selected_epochs": epochs,
         "validation_RMSE_original": float(choice.best_loss * selection_std),

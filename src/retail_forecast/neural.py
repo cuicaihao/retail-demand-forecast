@@ -279,7 +279,15 @@ NEURAL_CANDIDATES = {
 }
 
 
-def fit_neural_config(history, scenario, model_name, config, checkpoint_tag):
+def fit_neural_config(
+    history,
+    scenario,
+    model_name,
+    config,
+    checkpoint_tag,
+    *,
+    save_checkpoint=True,
+):
     started = time.perf_counter()
     if model_name == "TFT":
         bundle, detail = fit_tft(
@@ -288,6 +296,7 @@ def fit_neural_config(history, scenario, model_name, config, checkpoint_tag):
             train_end=len(history) - 1,
             checkpoint_tag=checkpoint_tag,
             config=config,
+            save_checkpoint=save_checkpoint,
         )
         detail["setup_seconds"] = time.perf_counter() - started
         detail["parameters"] = sum(p.numel() for p in bundle["model"].parameters())
@@ -373,7 +382,12 @@ def tune_neural(scenario, model_name):
             future = frame.iloc[origin + 1 : origin + 1 + HORIZON].copy()
             tag = f"tune_{model_name.lower()}_{scenario}_{candidate_id}_{window['regime']}"
             bundle, detail = fit_neural_config(
-                history, scenario, model_name, config, tag
+                history,
+                scenario,
+                model_name,
+                config,
+                tag,
+                save_checkpoint=False,
             )
             raw = predict_neural_config(bundle, history, future, scenario, model_name)
             predictions.append(
