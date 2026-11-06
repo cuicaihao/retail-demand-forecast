@@ -8,6 +8,10 @@ categories: ["机器学习工程"]
 math: true
 ---
 
+> 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/32c-lightgbm-tutorial.ipynb`](../../notebooks/32c-lightgbm-tutorial.ipynb) · [`notebooks/32d-xgboost-tutorial.ipynb`](../../notebooks/32d-xgboost-tutorial.ipynb) · [`notebooks/32f-tree-model-comparison.ipynb`](../../notebooks/32f-tree-model-comparison.ipynb)  
+> 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
+
 ## 一、补货问题怎样变成表格回归？
 
 超市希望知道：八折特价遇到周末，销量会上升多少？酒类商品的成箱促销在派对前夕是否更有效？庭院耗材的清仓，在旺季和低谷是否呈现不同关系？

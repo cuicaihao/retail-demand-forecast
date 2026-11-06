@@ -8,6 +8,10 @@ categories: ["机器学习工程"]
 math: true
 ---
 
+> 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/31-arima-tutorial.ipynb`](../../notebooks/31-arima-tutorial.ipynb)  
+> 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
+
 ## 一、从四周补货任务出发
 
 墨尔本一家超市要为未来四周安排意面和炖煮食材补货。工程师已经知道周末采购、秋冬季节、VIC 假日与折扣计划能够影响销量。还有一个问题需要回答：解释这些可预期规律后，昨天多卖出的部分，是否还能帮助预测今天？

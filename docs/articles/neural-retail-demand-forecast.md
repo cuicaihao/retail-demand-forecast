@@ -8,6 +8,10 @@ categories: ["机器学习工程"]
 math: true
 ---
 
+> 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/33a-mlp-tutorial.ipynb`](../../notebooks/33a-mlp-tutorial.ipynb) · [`notebooks/33b-lstm-tutorial.ipynb`](../../notebooks/33b-lstm-tutorial.ipynb) · [`notebooks/33c-tft-tutorial.ipynb`](../../notebooks/33c-tft-tutorial.ipynb) · [`notebooks/33d-neural-model-comparison.ipynb`](../../notebooks/33d-neural-model-comparison.ipynb)  
+> 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
+
 ## 一、四周预测为什么会用到神经网络？
 
 零售团队每天需要为未来四周安排采购。历史销量包含最近的需求水平、周内模式和促销后的变化；未来又有折扣、假日与营业计划。工程师希望模型共同读取这些信息，并直接产生一组未来预测。
