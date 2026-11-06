@@ -1,10 +1,12 @@
+"""Regenerate the archived V2 AutoGluon tutorial notebook."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import nbformat as nbf
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "notebooks" / "35-autogluon-timeseries-tutorial.ipynb"
 
 
@@ -57,7 +59,7 @@ REPO_ROOT = find_repo_root()
 sys.path.insert(0, str(REPO_ROOT / "src"))
 from IPython.display import Image, display
 
-from retail_forecast.autogluon_benchmark import (
+from retail_forecast.archive.autogluon_v2 import (
     AUTOGLOUON_MODEL_LIBRARY,
     EXCLUDED_FOUNDATION_MODELS,
     autogluon_frame,

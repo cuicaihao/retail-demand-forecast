@@ -257,7 +257,8 @@ retail-demand-forecast/
 │       ├── arima.py            # SARIMAX / 动态回归实现
 │       ├── neural.py           # MLP 与 LSTM 时序神经网络实现
 │       ├── tft.py              # Temporal Fusion Transformer (TFT) 实现
-│       ├── autogluon_benchmark.py # AutoGluon-TimeSeries 自动集成评测
+│       ├── autogluon_v4.py        # V4 AutoML 独立对比实验
+│       ├── archive/               # 仅供历史教程追溯的 V2/V3 实现
 │       ├── timesfm_benchmark.py# Google TimesFM 时序大模型评测
 │       └── sql/                # 生产级 BigQuery SQL (含 TimesFM AI.FORECAST 原生实验)
 └── tests/                      # 单元测试 (仓库布局规范、数据哈希一致性、模型基准测试)

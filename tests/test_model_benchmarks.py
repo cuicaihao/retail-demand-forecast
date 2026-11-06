@@ -9,10 +9,12 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from retail_forecast.autogluon_benchmark import (
-    AUTOGLOUON_MODEL_LIBRARY,
-    EXCLUDED_FOUNDATION_MODELS,
+from retail_forecast.autogluon_v4 import (
+    AUTOML_COMPONENT_IDS,
+    AUTOML_MODEL_LIBRARY,
+    AUTOML_TIME_LIMIT_SECONDS,
     autogluon_frame,
+    automl_model_configs,
     known_covariate_names,
 )
 from retail_forecast.common import SCENARIOS, datasets, valid_labels
@@ -69,15 +71,22 @@ class ModelBenchmarkProtocolTests(unittest.TestCase):
         self.assertEqual(CORE_MODELS[-1], "TFT")
 
     def test_autogluon_model_budget(self):
-        self.assertIn("SeasonalNaive", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("AutoARIMA", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("DirectTabular", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("DeepAR", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertTrue(
-            {"Chronos", "Toto", "PatchTST", "TemporalFusionTransformer"}.issubset(
-                EXCLUDED_FOUNDATION_MODELS
-            )
-        )
+        self.assertEqual(AUTOML_TIME_LIMIT_SECONDS, 240)
+        self.assertIn("SeasonalNaive", AUTOML_MODEL_LIBRARY)
+        self.assertIn("AutoARIMA", AUTOML_MODEL_LIBRARY)
+        self.assertIn("DirectTabular", AUTOML_MODEL_LIBRARY)
+        self.assertIn("DeepAR", AUTOML_MODEL_LIBRARY)
+        self.assertNotIn("Chronos", AUTOML_MODEL_LIBRARY)
+
+    def test_autogluon_models_are_separate_automl_comparisons(self):
+        configs = automl_model_configs()
+        self.assertEqual(set(configs), set(AUTOML_COMPONENT_IDS.values()))
+        self.assertIn("ag-weighted-ensemble", configs)
+        for model_id, config in configs.items():
+            self.assertTrue(model_id.startswith("ag-"))
+            self.assertEqual(config.family, "automl")
+            self.assertEqual(config.comparison_role, "automl")
+            self.assertNotEqual(config.comparison_role, "breadth")
 
     def test_autogluon_future_targets_do_not_change_inputs(self):
         future = datasets["luxury"].iloc[500:528].copy()

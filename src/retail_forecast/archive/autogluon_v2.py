@@ -1,3 +1,5 @@
+"""Archived V2 AutoGluon single-cutoff orchestration; not a current benchmark."""
+
 from __future__ import annotations
 
 import hashlib
@@ -11,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .common import (
+from ..common import (
     CPU_THREADS,
     DATA_DIR,
     HORIZON,

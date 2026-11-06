@@ -56,7 +56,12 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         )
 
     def test_registry_has_symmetric_first_stage_gbdt_ablations(self) -> None:
-        self.assertEqual(len(MODEL_REGISTRY), 24)
+        standard = {
+            model_id: config
+            for model_id, config in MODEL_REGISTRY.items()
+            if config.family != "automl"
+        }
+        self.assertEqual(len(standard), 24)
         expected_variants = {
             "default",
             "tweedie_p11",
@@ -84,6 +89,14 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
             self.assertEqual(config.toolkit, toolkit)
             self.assertEqual(config.family, "neural")
             self.assertEqual(config.comparison_role, "breadth")
+
+    def test_autogluon_is_not_part_of_the_breadth_leaderboard(self) -> None:
+        configs = [
+            config for config in MODEL_REGISTRY.values() if config.family == "automl"
+        ]
+        self.assertGreater(len(configs), 1)
+        self.assertTrue(all(config.model_id.startswith("ag-") for config in configs))
+        self.assertTrue(all(config.comparison_role == "automl" for config in configs))
 
     def test_neural_adapter_does_not_read_future_targets(self) -> None:
         frame = datasets["grocery"]

@@ -23,6 +23,10 @@
 
 广度榜每个工具包只允许一个预先声明的代表配置。不同损失函数、Tweedie power 或容量参数进入独立消融表，不能重复占据广度榜名次。
 
+AutoGluon 使用单独的 `comparison_role="automl"`，不进入广度榜。其内部模型统一使用
+`ag-` 前缀，并共享每个场景/fold 的一次固定预算 fit；不得为每个 `ag-*` 组件重复训练
+整套 AutoML 管线。
+
 ## 3. 运行、聚合与发布
 
 ```bash
@@ -38,6 +42,12 @@ uv run python scripts/run_benchmark.py \
 uv run python scripts/run_benchmark.py \
   --benchmark 2026-retail-week-104w-rolling-v4 \
   --models seasonal_naive
+
+# 独立 AutoML 对比层：4 场景 × 13 folds × 每次最多 240 秒
+uv run python scripts/run_benchmark.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --family automl \
+  --run-id 20261106-autogluon-validation
 
 # 只聚合某个明确的本地结果根目录
 uv run python scripts/run_benchmark.py \

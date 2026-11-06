@@ -268,6 +268,7 @@ def _software_versions() -> dict[str, str]:
         "xgboost",
         "catboost",
         "prophet",
+        "autogluon-timeseries",
     ):
         try:
             versions[distribution] = importlib.metadata.version(distribution)
@@ -584,6 +585,7 @@ def generate_v4_summaries(
         "configuration_ablations": scenario[
             scenario.comparison_role.eq("ablation")
         ].copy(),
+        "automl_scorecard": scenario[scenario.comparison_role.eq("automl")].copy(),
         "capability_matrix": scenario.pivot(
             index="model_name", columns="scenario", values="WAPE"
         ).reset_index(),

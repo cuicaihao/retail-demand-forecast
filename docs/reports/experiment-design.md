@@ -171,6 +171,23 @@ default 是工具包代表配置；Tweedie 配置只进入独立消融表，不�
 
 V4 当前不把预测方式作为独立消融因素，因此不得根据这些结果声称某种多步策略普遍更优。
 
+### 4.4 AutoGluon 独立 AutoML 对比层
+
+AutoGluon 不进入普通工具包广度榜，也不与 GBDT 配置消融混排。它使用独立的
+`comparison_role="automl"`：
+
+- 每个场景、每个正式 fold 共享一次固定 240 秒的 AutoML fit；
+- 候选库、计算预算、28 日预测长度和随机种子在正式评估前固定；
+- AutoGluon 只能在该 fold 的训练历史内部进行验证、选择和集成，不得读取正式测试标签；
+- 选择后使用 `refit_full=True` 在该 fold 的全部可用历史上重拟合；
+- 内部组件和加权集成统一使用 `ag-` 前缀，例如 `ag-auto-arima`、
+  `ag-direct-tabular` 和 `ag-weighted-ensemble`；
+- 只有覆盖完整 4 场景 × 13 folds 的组件才能进入 AutoML 对比表；两种训练历史协议发布时
+  只保留共同完整的 `ag-*` 集合，避免用不同模型集合比较历史策略。
+
+因此，AutoML 表回答的是“固定计算预算下使用 AutoML 管线与不使用 AutoML 的差异”，
+不是为 AutoGluon 的每个内部组件增加普通广度榜投票权。
+
 ## 5. 目标、有效标签与指标
 
 ### 5.1 有效标签

@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
+from retail_forecast.autogluon_v4 import automl_model_configs, run_autogluon_suite
 from retail_forecast.benchmark_adapters import (
     arima_factory,
     baseline_factory,
@@ -216,6 +217,7 @@ def _register_gbdt_matrix() -> None:
 
 
 _register_gbdt_matrix()
+MODEL_REGISTRY.update(automl_model_configs())
 
 MODEL_ALIASES = {
     "lightgbm": "lightgbm_default",
@@ -462,6 +464,7 @@ def main() -> None:
             "tree_gbdt",
             "statistical",
             "neural",
+            "automl",
             "all",
         ],
     )
@@ -516,7 +519,22 @@ def main() -> None:
 
     run_id = _validate_run_id(args.run_id or _default_run_id(target_models))
     run_root = PACKAGE_ROOT / "runs" / run_id
+    automl_models = [
+        model_id
+        for model_id in target_models
+        if MODEL_REGISTRY[model_id].family == "automl"
+    ]
+    if automl_models:
+        declared_automl = sorted(automl_model_configs())
+        if sorted(automl_models) != declared_automl:
+            parser.error(
+                "AutoGluon is a shared-fit suite; select the complete family with "
+                "--family automl"
+            )
+        run_autogluon_suite(spec=spec, run_root=run_root, scenarios=scenarios)
     for model_id in target_models:
+        if MODEL_REGISTRY[model_id].family == "automl":
+            continue
         run_model(
             config=MODEL_REGISTRY[model_id],
             spec=spec,
