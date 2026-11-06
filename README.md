@@ -10,12 +10,12 @@
   使用审核后的扩展历史主榜和生产式 104 周滚动实验，分开呈现工具包广度、配置深度与训练历史影响。
 - **[2026 零售周 V4 发布摘要](docs/reports/2026-retail-week-v4-release-summary.md)**
   一页汇总当前场景能力矩阵、AutoML、TimesFM 配置消融、104 周训练历史实验与发布边界。
+- **[2026 零售周 V4 数据科学分析](docs/reports/2026-retail-week-v4-data-science-analysis.md)**
+  深入解释扩展历史主榜、104 周生产模拟、AutoML、TimesFM、Tweedie 消融及其生产含义。
 - **[TimesFM 3.0：13-fold 双协议与已知协变量消融](docs/articles/timesfm-retail-demand-forecast.md)**
   只引用 `20261106-timesfm-v1`，分析零样本预测、分位数区间、计算成本与 Luxury 事件识别边界。
 - **[Retail Demand Forecast V4 实验设计](docs/reports/experiment-design.md)**
   固化当前日粒度、13 × 4 周滚动回测、双训练历史、指标、发布契约与新模型接入边界。
-- **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
-  深入探讨指数离散族（Exponential Dispersion Family）、Compound Poisson-Gamma 分布的极大似然估计、一阶梯度与二阶 Hessian 推导及其在 LightGBM / XGBoost C++ 源码中的工程映射。
 - **[零售需求预测实战：基于 Prophet 的建模、调参、诊断与局限性分析](https://cuicaihao.github.io/zh/posts/2026-10-01-prophet-retail-demand-forecast/)**  
   结合本仓库生成的四套合成零售数据，系统剖析 Prophet 的可加/可乘分解、VIC 州公共假日与促销回归项、缺货删失（Stockout Censoring）去偏、参数敏感性诊断，以及在脉冲促销与稀疏间歇需求下的结构性边界。
 
@@ -48,135 +48,127 @@
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 - **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
 
-当前审核 release 为 `20261106-timesfm-v1`，包含 26 个普通配置和 15 个独立 AutoML
-配置。下面只列广度榜中每个场景观察到的最低 WAPE；Luxury 必须同时阅读事件 F1。
+<!-- BENCHMARK_BLOCK:current_results:START -->
+当前审核 release 为 `20261106-timesfm-v1`，包含 26 个普通配置和 15 个独立 AutoML 配置。
+前三名统一按 pooled WAPE 排名；13-fold 均值与标准差只描述月度稳定性。
+Luxury 必须联合 Event F1 阅读，约 100% WAPE 可能只是接近全零预测。
 
-| 场景 | 广度代表模型 | WAPE | 事件 F1@0.5 |
-| :--- | :--- | ---: | ---: |
-| Grocery | Prophet | 4.16% | 100.00% |
-| Wine | Regression + ARIMA (1,0,1) | 22.10% | 100.00% |
-| Garden | Regression + ARIMA (1,0,1) | 7.80% | 100.00% |
-| Luxury | CatBoost Default (MAE) | 100.25% | 9.09% |
+### 普通工具包广度榜
 
-完整能力矩阵、AutoML、TimesFM 配置消融和 104 周历史策略比较见
+每个工具包只有一个预先声明的代表配置参与排名；AutoGluon 不进入本表。
+TimesFM 单变量配置是其广度代表，因此达到前三名时会在本表出现。
+
+#### 主榜：扩展历史
+
+| 场景 | 排名 | 模型 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Event F1@0.5 |
+| :--- | ---: | :--- | ---: | ---: | ---: |
+| Grocery | 1 | Prophet | 4.16% | 4.18% ± 0.35% | 100.00% |
+| Grocery | 2 | Regression + ARIMA (1,0,1) | 4.17% | 4.19% ± 0.35% | 100.00% |
+| Grocery | 3 | LSTM | 4.44% | 4.45% ± 0.53% | 100.00% |
+| Wine | 1 | Regression + ARIMA (1,0,1) | 22.10% | 22.27% ± 2.94% | 100.00% |
+| Wine | 2 | Prophet | 22.78% | 23.09% ± 2.92% | 100.00% |
+| Wine | 3 | LSTM | 23.20% | 23.41% ± 3.48% | 100.00% |
+| Garden | 1 | Regression + ARIMA (1,0,1) | 7.80% | 8.94% ± 3.41% | 100.00% |
+| Garden | 2 | Prophet | 7.81% | 8.94% ± 3.39% | 100.00% |
+| Garden | 3 | TFT | 8.76% | 10.01% ± 3.69% | 100.00% |
+| Luxury | 1 | CatBoost Default (MAE) | 100.25% | 100.55% ± 2.52% | 9.09% |
+| Luxury | 2 | TimesFM 3.0 | 100.35% | 100.42% ± 0.75% | 0.00% |
+| Luxury | 3 | Moving Average (14d) | 161.82% | 176.39% ± 77.90% | 0.00% |
+
+#### 生产模拟：固定 104 周训练、预测 4 周
+
+| 场景 | 排名 | 模型 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Event F1@0.5 |
+| :--- | ---: | :--- | ---: | ---: | ---: |
+| Grocery | 1 | Regression + ARIMA (1,0,1) | 4.26% | 4.28% ± 0.43% | 100.00% |
+| Grocery | 2 | Prophet | 4.28% | 4.30% ± 0.41% | 100.00% |
+| Grocery | 3 | LSTM | 4.62% | 4.61% ± 0.52% | 100.00% |
+| Wine | 1 | Regression + ARIMA (1,0,1) | 22.46% | 22.67% ± 3.14% | 100.00% |
+| Wine | 2 | Prophet | 22.49% | 22.71% ± 3.01% | 100.00% |
+| Wine | 3 | LSTM | 23.74% | 24.01% ± 3.45% | 100.00% |
+| Garden | 1 | Prophet | 7.84% | 9.01% ± 3.55% | 100.00% |
+| Garden | 2 | Regression + ARIMA (1,0,1) | 7.85% | 9.01% ± 3.49% | 100.00% |
+| Garden | 3 | TimesFM 3.0 | 8.86% | 9.84% ± 3.23% | 100.00% |
+| Luxury | 1 | TimesFM 3.0 | 100.87% | 101.22% ± 1.59% | 0.00% |
+| Luxury | 2 | CatBoost Default (MAE) | 111.81% | 105.35% ± 9.58% | 16.00% |
+| Luxury | 3 | Prophet | 142.28% | 140.49% ± 35.27% | 0.00% |
+
+### AutoGluon 独立 AutoML 对比
+
+AutoGluon 的 15 个组件和 ensemble 只在 AutoML 层内部排名，不占据普通广度榜名次。
+
+#### 主榜：扩展历史
+
+| 场景 | 排名 | 模型 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Event F1@0.5 |
+| :--- | ---: | :--- | ---: | ---: | ---: |
+| Grocery | 1 | AG Weighted Ensemble | 5.52% | 5.56% ± 0.96% | 100.00% |
+| Grocery | 2 | AG DirectTabular | 5.53% | 5.55% ± 0.99% | 100.00% |
+| Grocery | 3 | AG DeepAR | 5.75% | 5.80% ± 1.17% | 100.00% |
+| Wine | 1 | AG DeepAR | 25.03% | 25.74% ± 5.64% | 100.00% |
+| Wine | 2 | AG DirectTabular | 25.24% | 25.61% ± 4.57% | 100.00% |
+| Wine | 3 | AG Weighted Ensemble | 26.20% | 27.11% ± 7.19% | 100.00% |
+| Garden | 1 | AG Weighted Ensemble | 10.19% | 11.61% ± 5.06% | 100.00% |
+| Garden | 2 | AG DirectTabular | 10.23% | 11.49% ± 4.23% | 100.00% |
+| Garden | 3 | AG DeepAR | 10.24% | 11.37% ± 3.90% | 100.00% |
+| Luxury | 1 | AG NPTS | 100.00% | 100.00% ± 0.00% | 0.00% |
+| Luxury | 2 | AG Weighted Ensemble | 100.00% | 100.00% ± 0.00% | 0.00% |
+| Luxury | 3 | AG Zero | 100.00% | 100.00% ± 0.00% | 0.00% |
+
+#### 生产模拟：固定 104 周训练、预测 4 周
+
+| 场景 | 排名 | 模型 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Event F1@0.5 |
+| :--- | ---: | :--- | ---: | ---: | ---: |
+| Grocery | 1 | AG DirectTabular | 5.73% | 5.74% ± 0.88% | 100.00% |
+| Grocery | 2 | AG Weighted Ensemble | 6.06% | 6.08% ± 0.84% | 100.00% |
+| Grocery | 3 | AG RecursiveTabular | 6.20% | 6.20% ± 0.87% | 100.00% |
+| Wine | 1 | AG Weighted Ensemble | 26.72% | 27.67% ± 7.78% | 100.00% |
+| Wine | 2 | AG DeepAR | 26.97% | 27.78% ± 7.48% | 100.00% |
+| Wine | 3 | AG DirectTabular | 26.98% | 27.62% ± 5.12% | 100.00% |
+| Garden | 1 | AG DirectTabular | 10.31% | 11.61% ± 4.63% | 100.00% |
+| Garden | 2 | AG ETS | 10.43% | 11.96% ± 5.31% | 100.00% |
+| Garden | 3 | AG DeepAR | 10.43% | 11.30% ± 3.36% | 100.00% |
+| Luxury | 1 | AG NPTS | 100.00% | 100.00% ± 0.00% | 0.00% |
+| Luxury | 2 | AG Zero | 100.00% | 100.00% ± 0.00% | 0.00% |
+| Luxury | 3 | AG DeepAR | 100.02% | 100.01% ± 0.03% | 0.00% |
+
+### TimesFM 3.0 配置结果
+
+`univariate` 是广度代表；`known_covariates` 是已知未来业务变量消融。
+Coverage80 是经验区间覆盖率，不是库存服务水平保证。
+
+#### 主榜：扩展历史
+
+| 场景 | 配置 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Coverage80 | Event F1@0.5 |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| Grocery | known_covariates | 4.54% | 4.55% ± 0.50% | 81.45% | 100.00% |
+| Grocery | univariate | 4.91% | 4.91% ± 0.69% | 83.19% | 100.00% |
+| Wine | known_covariates | 22.69% | 22.67% ± 2.90% | 77.07% | 100.00% |
+| Wine | univariate | 24.29% | 24.78% ± 5.24% | 75.69% | 100.00% |
+| Garden | known_covariates | 8.17% | 9.32% ± 3.32% | 79.56% | 100.00% |
+| Garden | univariate | 8.86% | 9.79% ± 3.07% | 74.03% | 100.00% |
+| Luxury | known_covariates | 100.41% | 100.32% ± 0.32% | 91.44% | 0.00% |
+| Luxury | univariate | 100.35% | 100.42% ± 0.75% | 93.65% | 0.00% |
+
+#### 生产模拟：固定 104 周训练、预测 4 周
+
+| 场景 | 配置 | Pooled WAPE | 13-fold WAPE 均值 ± 标准差 | Coverage80 | Event F1@0.5 |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| Grocery | known_covariates | 4.93% | 4.93% ± 0.59% | 83.48% | 100.00% |
+| Grocery | univariate | 5.19% | 5.19% ± 0.83% | 85.22% | 100.00% |
+| Wine | known_covariates | 23.98% | 24.31% ± 4.93% | 77.90% | 100.00% |
+| Wine | univariate | 25.19% | 25.80% ± 5.76% | 76.24% | 100.00% |
+| Garden | known_covariates | 8.55% | 9.68% ± 3.31% | 78.45% | 100.00% |
+| Garden | univariate | 8.86% | 9.84% ± 3.23% | 78.73% | 100.00% |
+| Luxury | known_covariates | 100.47% | 100.56% ± 0.59% | 88.67% | 0.00% |
+| Luxury | univariate | 100.87% | 101.22% ± 1.59% | 87.57% | 0.00% |
+
+完整能力矩阵、配置消融和历史策略比较见
 [V4 发布摘要](docs/reports/2026-retail-week-v4-release-summary.md)；完整证据见
 [V4 完整报告](docs/reports/2026-retail-week-v4-first-stage-report.md)。
+<!-- BENCHMARK_BLOCK:current_results:END -->
 
-<details>
-<summary>历史 V3 24 周结果（仅供追溯，默认折叠）</summary>
-
-> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。
-> 其历史分析已移至 [V3 文章归档](docs/articles/archive/2026-retail-demand-forecast-benchmark-v3.md)。
-
-### 四大零售场景独立排行榜 (Scenario-Specific Annual Leaderboards - 52 Weeks)
-
-在零售时序预测中，将均值 110 件的连续快消品与 93.6% 零销量的奢侈品进行简单算术平均是缺乏业务意义的。**“需求形态决定模型优势（Demand Profile Dictates Model Dominance）”**，必须根据每个场景特定的数据分布与业务痛点分场景独立评测：
-
-#### 场景 1：商超日用快消品 (Grocery - 高频连续需求，均值 ~109.5 件)
-> 业务重点：高信噪比日常连续走量、每两周 7 天的 8 折常规促销、以及对 24 个历史缺货截断日的去偏能力。
-
-| 排名 | 模型与配置 | 模型家族 | 2026 全年 WAPE | MAE | RMSE | Bias | 跨期波动 Std |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 | **XGBoost Tweedie (p=1.2)** | 梯度提升树 | **6.59%** | **8.064** | **10.442** | -0.51% | 0.013 |
-| 🥈 | **XGBoost Tweedie (p=1.5)** | 梯度提升树 | **6.61%** | 8.080 | 10.466 | -0.50% | 0.012 |
-| 🥉 | **XGBoost Tweedie (p=1.1)** | 梯度提升树 | **6.72%** | 8.218 | 10.577 | -0.33% | 0.013 |
-| 4 | XGBoost Default (MSE) | 梯度提升树 | 6.83% | 8.357 | 10.727 | -0.06% | **0.011** |
-| 5 | XGBoost Tweedie (p=1.8) | 梯度提升树 | 6.87% | 8.407 | 10.756 | -0.13% | 0.013 |
-| 6 | CatBoost Default (MAE) | 梯度提升树 | 7.45% | 9.110 | 11.839 | -0.60% | 0.018 |
-| 7 | LightGBM Tweedie (p=1.1) | 梯度提升树 | 7.51% | 9.189 | 11.928 | -0.85% | 0.018 |
-| 8 | Prophet | 广义可加模型 | 7.53% | 9.205 | 11.796 | +0.74% | 0.024 |
-| 9 | LightGBM Default (MSE) | 梯度提升树 | 7.54% | 9.229 | 11.825 | -0.31% | 0.015 |
-| 10 | LightGBM Tweedie (p=1.8) | 梯度提升树 | 7.59% | 9.281 | 12.046 | -0.56% | 0.017 |
-| 11 | Random Forest | Bagging 集成树 | 7.63% | 9.338 | 11.846 | -0.33% | 0.020 |
-| 12 | Decision Tree | 基础树模型 | 8.97% | 10.971 | 13.864 | +0.02% | 0.025 |
-| 13 | Moving Average (14d) | 平滑基线 | 12.45% | 15.231 | 18.458 | -0.38% | 0.014 |
-| 14 | Seasonal Naive (7d) | 周期基线 | 15.28% | 18.696 | 22.953 | -8.89% | 0.019 |
-| 15 | CatBoost Tweedie (p=1.8) | 梯度提升树 | 40.52% | 49.570 | 52.797 | -40.52% | 0.087 |
-
-> 📌 **洞察**：在连续需求场景中，微调 Tweedie 幂指数至 $p=1.2$（6.59%）超越了纯 MSE（6.83%），证明轻度泊松收缩能够有效平滑右偏噪声，对常规连续品类具有显著正则化效果。
-
----
-
-#### 场景 2：单 SKU 红酒促销 (Wine - 泊松脉冲大促，均值 ~10.4 件)
-> 业务重点：低均值泊松计数分布、每 28 天前 3 天非线性成箱折扣（Case Buy）、派对突发事件与 12 月年末消费高峰。
-
-| 排名 | 模型与配置 | 模型家族 | 2026 全年 WAPE | MAE | RMSE | Bias | 跨期波动 Std |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 | **XGBoost Tweedie (p=1.8)** | 梯度提升树 | **27.90%** | **3.263** | **4.203** | -2.24% | **0.073** |
-| 🥈 | **Random Forest** | Bagging 集成树 | **28.25%** | 3.305 | 4.281 | +1.73% | 0.103 |
-| 🥉 | **XGBoost Tweedie (p=1.2)** | 梯度提升树 | **28.29%** | 3.310 | 4.220 | +1.69% | 0.089 |
-| 4 | XGBoost Tweedie (p=1.1) | 梯度提升树 | 28.46% | 3.330 | 4.248 | +1.07% | 0.088 |
-| 5 | XGBoost Tweedie (p=1.5) | 梯度提升树 | 28.48% | 3.332 | 4.243 | -0.03% | 0.089 |
-| 6 | XGBoost Default (MSE) | 梯度提升树 | 28.49% | 3.333 | 4.242 | +4.53% | 0.090 |
-| 7 | Prophet | 广义可加模型 | 29.91% | 3.499 | 4.540 | +13.03% | 0.107 |
-| 8 | CatBoost Default (MAE) | 梯度提升树 | 31.20% | 3.650 | 4.675 | -1.64% | 0.085 |
-| 9 | Decision Tree | 基础树模型 | 32.56% | 3.809 | 4.887 | +5.07% | 0.106 |
-| 10 | LightGBM Tweedie (p=1.1) | 梯度提升树 | 33.77% | 3.951 | 4.985 | -0.48% | 0.093 |
-| 11 | LightGBM Tweedie (p=1.8) | 梯度提升树 | 34.63% | 4.051 | 5.188 | -3.14% | 0.081 |
-| 12 | LightGBM Default (MSE) | 梯度提升树 | 35.33% | 4.133 | 5.255 | -0.11% | 0.095 |
-| 13 | Moving Average (14d) | 平滑基线 | 39.99% | 4.678 | 6.170 | -4.28% | 0.119 |
-| 14 | CatBoost Tweedie (p=1.8) | 梯度提升树 | 43.94% | 5.140 | 6.869 | -37.60% | 0.044 |
-| 15 | Seasonal Naive (7d) | 周期基线 | 49.26% | 5.762 | 8.043 | +4.39% | 0.127 |
-
-> 📌 **洞察**：**XGBoost Tweedie (p=1.8)**（27.90%）精准拟合了成箱大促的阶跃突刺，并保持了全场最低跨期波动（Std: 0.073），显著超越了传统季节朴素法（49.26%）与 Prophet（29.91%）。
-
----
-
-#### 场景 3：庭院用品 (Garden - 强年度正弦天气季节性，均值 ~64.9 件)
-> 业务重点：极大的冬夏跨年正弦波温度振幅（冬谷约 20 件、夏峰约 120 件）、春季长周末 DIY 脉冲与 5 月秋末清仓。
-
-| 排名 | 模型与配置 | 模型家族 | 2026 全年 WAPE | MAE | RMSE | Bias | 跨期波动 Std |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 | **Prophet** | 广义可加模型 | **14.02%** | **10.069** | **13.254** | +8.29% | **0.054** |
-| 🥈 | **XGBoost Default (MSE)** | 梯度提升树 | **14.94%** | 10.729 | 14.088 | -0.06% | 0.065 |
-| 🥉 | **Seasonal Naive (7d)** | 周期基线 | **15.36%** | 11.030 | 15.556 | -2.92% | 0.068 |
-| 4 | XGBoost Tweedie (p=1.5) | 梯度提升树 | 15.88% | 11.407 | 15.082 | -2.99% | 0.070 |
-| 5 | XGBoost Tweedie (p=1.1) | 梯度提升树 | 15.99% | 11.487 | 15.121 | -3.05% | 0.072 |
-| 6 | XGBoost Tweedie (p=1.2) | 梯度提升树 | 16.10% | 11.566 | 15.177 | -2.88% | 0.071 |
-| 7 | LightGBM Default (MSE) | 梯度提升树 | 16.55% | 11.886 | 15.488 | +0.01% | 0.090 |
-| 8 | XGBoost Tweedie (p=1.8) | 梯度提升树 | 16.68% | 11.980 | 15.482 | -3.84% | 0.077 |
-| 9 | LightGBM Tweedie (p=1.1) | 梯度提升树 | 17.54% | 12.598 | 16.422 | -2.27% | 0.078 |
-| 10 | LightGBM Tweedie (p=1.8) | 梯度提升树 | 19.25% | 13.825 | 18.037 | -3.70% | 0.086 |
-| 11 | Moving Average (14d) | 平滑基线 | 20.02% | 14.382 | 18.676 | -0.62% | 0.087 |
-| 12 | Random Forest | Bagging 集成树 | 20.44% | 14.682 | 18.276 | -0.50% | 0.107 |
-| 13 | CatBoost Default (MAE) | 梯度提升树 | 20.68% | 14.853 | 18.388 | -0.85% | 0.102 |
-| 14 | Decision Tree | 基础树模型 | 21.45% | 15.409 | 20.676 | +1.71% | 0.135 |
-| 15 | CatBoost Tweedie (p=1.8) | 梯度提升树 | 37.09% | 26.642 | 33.145 | -35.93% | 0.137 |
-
-> 📌 **洞察**：**Prophet** 以 14.02% 斩获庭院场景冠军！广义可加模型的显式傅里叶分解对长达一年的平滑气候正弦波动具有天然的先验优势，相比仅依赖 24 周（约半年）历史滑窗的树模型展现出更强的跨年外推稳定性。
-
----
-
-#### 场景 4：奢侈品高价手袋 (Luxury - 极端零膨胀，营业日零值率 93.58%)
-> 业务重点：极低频间歇性消费、年均仅十余次偶发购买、季度 VIP 预览与极端零膨胀分布。核心检验模型是否会掉入“全输出 0”或“输出虚假浮点数”的陷阱。
-
-| 排名 | 模型与配置 | 模型家族 | 2026 全年 WAPE | MAE | RMSE | 零值预测准确率 | 跨期波动 Std |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 | **CatBoost Default (MAE)** | 梯度提升树 | **104.63%** | **0.084** | 0.397 | **97.9%** | **0.062** |
-| 🥈 | **XGBoost Tweedie (p=1.8)** | 梯度提升树 | **116.22%** | **0.093** | 0.398 | **88.0%** | **0.225** |
-| 🥉 | **XGBoost Tweedie (p=1.5)** | 梯度提升树 | 140.92% | 0.113 | 0.398 | 70.4% | 0.605 |
-| 4 | LightGBM Tweedie (p=1.8) | 梯度提升树 | 151.93% | 0.122 | **0.392** | 56.3% | 0.737 |
-| 5 | Moving Average (14d) | 平滑基线 | 161.82% | 0.130 | **0.392** | 47.8% | 0.779 |
-| 6 | XGBoost Tweedie (p=1.2) | 梯度提升树 | 166.30% | 0.133 | 0.396 | 66.0% | 0.739 |
-| 7 | CatBoost Tweedie (p=1.8) | 梯度提升树 | 170.06% | 0.136 | 0.395 | 59.8% | 0.770 |
-| 8 | LightGBM Tweedie (p=1.1) | 梯度提升树 | 170.28% | 0.136 | 0.394 | 44.9% | 0.784 |
-| 9 | XGBoost Tweedie (p=1.1) | 梯度提升树 | 175.13% | 0.140 | 0.399 | 51.6% | 0.765 |
-| 10 | Seasonal Naive (7d) | 周期基线 | 182.76% | 0.146 | 0.490 | 93.5% | 1.166 |
-| 11 | LightGBM Default (MSE) | 梯度提升树 | 182.88% | 0.147 | 0.396 | 46.3% | 0.855 |
-| 12 | Prophet | 广义可加模型 | 183.06% | 0.147 | 0.422 | 65.4% | 0.796 |
-| 13 | XGBoost Default (MSE) | 梯度提升树 | 187.54% | 0.150 | 0.397 | 46.3% | 0.803 |
-| 14 | Decision Tree | 基础树模型 | 205.84% | 0.165 | 0.418 | 68.3% | 1.202 |
-| 15 | Random Forest | Bagging 集成树 | 213.34% | 0.171 | 0.394 | 25.8% | 1.118 |
-
-> 📌 **洞察**：**高斯 MSE 目标函数在零膨胀长尾需求中彻底失效**（XGBoost MSE 误差高达 187.54%，每天给出 0.05~0.15 件虚假库存浮点数，零值准确率仅 46.3%）。**XGBoost Tweedie (p=1.8)** 将 WAPE 削减至 **116.22%**（**骤降 71.3 个百分点**），零值识别率提升至 **88.0%**，跨期波动标准差从 0.803 收敛至 **0.225**。CatBoost MAE 则依靠极度保守的接近全零预测取得了 104.63% 的名义最低值。
-
----
-
-![2026 全年各场景排行榜](images/benchmarks/fig-01-annual-leaderboard-all-scenarios.png)
-
-> 💡 **历史单一切片基准存档**：旧版基于 2025 年 12 月单一 28 天切片的基准测试结果（含 AutoGluon、TFT、TimesFM、ARIMA 等），已完整归档保存在 [`data/benchmarks/archive_single_cutoff_28d/`](data/benchmarks/archive_single_cutoff_28d/)，其历史代码状态已永久标记为 Git Tag `v0.2.0-single-cutoff-benchmark`。
-
-</details>
+历史 V2/V3 结果不再显示在当前 README；其分析、报告和数据分别保存在
+[文章归档](docs/articles/archive/)、[报告归档](docs/reports/archive/)和
+`data/benchmarks/archive_single_cutoff_28d/` / `data/benchmarks/published/2026-retail-week-24w-v3/`。
 
 ---
 
@@ -227,6 +219,11 @@ uv run python scripts/generate_benchmark_report.py \
   --benchmark 2026-retail-week-expanding-v4 \
   --release 20261106-timesfm-v1
 
+# 从两套审核 release 刷新 README 的普通模型、AutoML 与 TimesFM 结果
+uv run python scripts/generate_readme_benchmark_results.py \
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-timesfm-v1 \
+  --production-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-timesfm-v1
+
 # 重新渲染 4 个场景的时序全貌图与 ADI-CV 分布图 (生成至 images/)
 uv run python scripts/plot_teaching_scenarios.py
 ```
@@ -256,12 +253,12 @@ retail-demand-forecast/
 │   │   └── archive_single_cutoff_28d/ # V2 单一切片历史基准归档
 │   └── models/                 # 教学参考模型权重快照 (data/models/reference/)
 ├── docs/                       # 📚 统一文档中心 (系列博客、技术报告与学术文献)
-│   ├── articles/               # 对外发布的系列长文 (*-retail-demand-forecast.md)
-│   ├── reports/                # 内部量化实证报告与系统设计 (YYYY-MM-DD-*.md)
+│   ├── articles/               # 当前系列长文；旧协议文章进入 archive/
+│   ├── reports/                # 当前 V4 报告；旧协议报告进入 archive/
 │   └── references/             # 学术文献与经典论文 PDF 存档
 ├── images/                     # 🖼️ 教学数据概览与出版级实验对比图表 (.png / .webp)
-│   ├── benchmarks/             # 2026 全年基准系列图表 (Fig 1~4)
-│   └── tweedie/                # Tweedie 目标函数消融图表
+│   ├── benchmarks/             # 按 benchmark ID / release ID 分层的结果图表
+│   └── tweedie/                # 历史 Tweedie 报告配图
 ├── notebooks/                  # 交互式教学与基准评测 Notebook (00 ~ 36)
 ├── runs/                       # 本地实验独立输出目录 (命名规范: runs/YYYYMMDD-[model]-[type]/)
 ├── scripts/                    # 自动化与运维脚本 (基准评测、数据绘图、报告生成与发布)

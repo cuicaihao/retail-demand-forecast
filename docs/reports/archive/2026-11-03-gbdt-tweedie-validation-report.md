@@ -1,4 +1,8 @@
-# GBDT Tweedie 损失函数 vs 默认回归损失全景实验与理论评估报告
+# 历史归档：GBDT Tweedie 损失函数 vs 默认回归损失实验与理论评估
+
+> **归档说明**：本文使用旧单切片与 12 个月滚动协议，不符合当前 V4 双协议，不能作为
+> 当前模型排名依据。理论推导仅供追溯；当前结论见
+> [V4 完整基准报告](../2026-retail-week-v4-first-stage-report.md)。
 
 > **实验时间**：2026-11-03 21:48:30  
 > **运行目录**：`runs/20261103-gbdt-tweedie-experiment/`（完全独立，未修改或覆盖 `data/benchmarks/` 下的任何既有基准结果）  
@@ -56,7 +60,7 @@ $$\mathrm{Var}(Y) = \phi \cdot \mathrm{V}(\mu) = \phi \cdot \mu^p$$
 * **$p = 2$**：伽马分布（Gamma Distribution），$\mathrm{Var}(Y) = \phi \mu^2$，标准偏态连续正实数分布；
 * **$p = 3$**：逆高斯分布（Inverse Gaussian Distribution），$\mathrm{Var}(Y) = \phi \mu^3$。
 
-![Tweedie 指数分散族：方差幂指数 p 与分布形态演变图谱](../../images/tweedie/fig-tweedie-01-distribution-spectrum.png)
+![Tweedie 指数分散族：方差幂指数 p 与分布形态演变图谱](../../../images/tweedie/fig-tweedie-01-distribution-spectrum.png)
 *图 1-1：Tweedie 指数分散族（EDM）在不同方差幂指数 $p$ 下的概率密度/质量分布谱系图。上方横轴展示了从正态、泊松、复合泊松-伽马到伽马和逆高斯的连续演化；下方 6 个子图分别对比了各分布对应的密度曲线与离散质点形态。注意在 $1 < p < 2$（如子图 c 与 d）中，分布具有明显的零点塌缩质点 $\mathbb{P}(Y=0) > 0$ 以及严格正向连续长尾，这正是其完美适配 Scenario 4 (`luxury`) 等零膨胀零售需求的数学根源。*
 
 ---
@@ -223,7 +227,7 @@ double LossOnPoint(data_size_t i, const double* score) const override {
 
 为了严谨探究各场景的真实统计分布及其与 Tweedie 似然假设的契合度，我们将全量 1,096 天的原始日销售记录 $y$ 与消除闭店和缺货截断后的真实需求 $y^*$ 进行了系统对比：
 
-![四类零售场景的日销售与真实需求分布对比：闭店与缺货截断对分布形态的影响](../../images/tweedie/fig-tweedie-02-scenario-distributions-censoring.png)
+![四类零售场景的日销售与真实需求分布对比：闭店与缺货截断对分布形态的影响](../../../images/tweedie/fig-tweedie-02-scenario-distributions-censoring.png)
 *图 2-1：四类零售场景日销售记录与真实需求分布对比图谱。上排（Row 1）展示包含闭店与缺货截断伪峰的原始观测销售记录 $y$；下排（Row 2）展示消除闭店（`is_open == True`）并对缺货天数还原真实潜在需求（`latent_demand`）后的纯净营业需求分布 $y^*$。从图中可清晰观察到：`luxury` 是唯一在剔除闭店后依然呈现 93.58% 严格零点塌缩的纯正复合泊松-伽马场景。*
 
 #### 关键分布形态诊断分析：
@@ -467,11 +471,11 @@ gantt
 为了验证 Tweedie 损失函数在面对墨尔本四季更替、宏观长假与淡旺季转换时的全周期稳健性，我们在 2025 全年 12 个自然月上执行了无缝滚动前瞻评测（固定 24 个月滚动训练窗口，逐月盲测拼接出 365 天）。
 
 #### 1. 月度 WAPE 演变轨迹分析（图 3-5）
-![2025 全年 12 个月滚动前瞻验证月度 WAPE 轨迹](../../images/tweedie/fig-tweedie-03-rolling-12m-monthly-wape.png)
+![2025 全年 12 个月滚动前瞻验证月度 WAPE 轨迹](../../../images/tweedie/fig-tweedie-03-rolling-12m-monthly-wape.png)
 *图 3-5：2025 全年 12 个月滚动前瞻验证（Walk-Forward Backtest）月度 WAPE 演变轨迹对比。展示了四季流转中各场景下默认模型与 Tweedie 模型的月度波动。在 `luxury` 中，默认 MSE 随月份在 200%~400% 剧烈震荡，而 Tweedie 稳定贴近 100% 极值；在 `grocery` 与 `wine` 中，Tweedie 实现了月度维度的全面压制。*
 
 #### 2. 全年 365 天累计综合排行榜（图 3-6）
-![2025 全年累计综合排行榜](../../images/tweedie/fig-tweedie-04-rolling-12m-annual-summary.png)
+![2025 全年累计综合排行榜](../../../images/tweedie/fig-tweedie-04-rolling-12m-annual-summary.png)
 *图 3-6：2025 全年 365 天（363 个有效营业日）累计 WAPE 与零值识别准确率（Zero Accuracy）全景排行榜。*
 
 #### 3. 2025 全年 365 天累计评估数据总表：

@@ -114,6 +114,11 @@ class RepositoryLayoutTests(unittest.TestCase):
             / "data/benchmarks/published/2026-retail-week-expanding-v4/releases"
             / release_id
         )
+        production = (
+            ROOT
+            / "data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases"
+            / release_id
+        )
         comparison = (
             ROOT
             / "data/benchmarks/published/comparisons"
@@ -125,6 +130,7 @@ class RepositoryLayoutTests(unittest.TestCase):
             ROOT / "docs/reports/2026-retail-week-v4-first-stage-report.md"
         ).read_text()
         expanding_manifest = expanding / "release_manifest.json"
+        production_manifest = production / "release_manifest.json"
         comparison_manifest = comparison / "release_manifest.json"
         release = json.loads(expanding_manifest.read_text())
 
@@ -142,7 +148,10 @@ class RepositoryLayoutTests(unittest.TestCase):
             ROOT / "docs/reports/2026-retail-week-v4-release-summary.md"
         ).read_text()
         article = (ROOT / "docs/articles/timesfm-retail-demand-forecast.md").read_text()
-        for current_document in (summary, article):
+        analysis = (
+            ROOT / "docs/reports/2026-retail-week-v4-data-science-analysis.md"
+        ).read_text()
+        for current_document in (summary, article, analysis):
             self.assertIn(release_id, current_document)
         self.assertIn(
             hashlib.sha256(expanding_manifest.read_bytes()).hexdigest(), summary
@@ -150,7 +159,19 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertIn(
             hashlib.sha256(comparison_manifest.read_bytes()).hexdigest(), summary
         )
+        self.assertIn(
+            hashlib.sha256(expanding_manifest.read_bytes()).hexdigest(), analysis
+        )
+        self.assertIn(
+            hashlib.sha256(production_manifest.read_bytes()).hexdigest(), analysis
+        )
+        self.assertIn(
+            hashlib.sha256(comparison_manifest.read_bytes()).hexdigest(), analysis
+        )
         self.assertIn("TimesFM 3.0 + Known Covariates", summary)
+        self.assertIn("## 5. AutoGluon", analysis)
+        self.assertIn("## 6. TimesFM 3.0", analysis)
+        self.assertIn("## 7. GBDT Tweedie", analysis)
         self.assertNotIn("5.13%", article)
         self.assertNotIn("43.79%", article)
 
@@ -165,6 +186,39 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertTrue(
             (articles / "archive/timesfm-retail-demand-forecast-v2.md").is_file()
         )
+
+    def test_readme_shows_only_the_current_v4_result_table(self) -> None:
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("20261106-timesfm-v1", readme)
+        self.assertIn("### 普通工具包广度榜", readme)
+        self.assertIn("### AutoGluon 独立 AutoML 对比", readme)
+        self.assertIn("### TimesFM 3.0 配置结果", readme)
+        self.assertIn(
+            "| Grocery | 1 | Prophet | 4.16% | 4.18% ± 0.35% | 100.00% |",
+            readme,
+        )
+        self.assertIn(
+            "| Grocery | 1 | Regression + ARIMA (1,0,1) | 4.26% | "
+            "4.28% ± 0.43% | 100.00% |",
+            readme,
+        )
+        self.assertIn(
+            "| Grocery | 1 | AG Weighted Ensemble | 5.52% | 5.56% ± 0.96% | 100.00% |",
+            readme,
+        )
+        self.assertIn(
+            "| Grocery | known_covariates | 4.54% | 4.55% ± 0.50% | 81.45% | 100.00% |",
+            readme,
+        )
+        self.assertEqual(
+            readme.count("<!-- BENCHMARK_BLOCK:current_results:START -->"), 1
+        )
+        self.assertEqual(
+            readme.count("<!-- BENCHMARK_BLOCK:current_results:END -->"), 1
+        )
+        self.assertNotIn("2026 全年 WAPE", readme)
+        self.assertNotIn("历史 V3 24 周结果", readme)
+        self.assertNotIn("四大零售场景独立排行榜", readme)
 
     def test_reference_snapshot_provenance_is_explicit(self) -> None:
         data_dir = ROOT / "data" / "teaching"

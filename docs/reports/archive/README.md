@@ -11,6 +11,7 @@
 | :--- | :--- |
 | `2026-10-20-all-models-validation-report.md` | V2 单切分模型比较 |
 | `2026-10-20-autogluon-comparison-report.md` | V2 AutoGluon 比较 |
+| `2026-11-03-gbdt-tweedie-validation-report.md` | 旧单切片与 12 个月滚动 Tweedie 实验 |
 | `2026-11-03-timesfm-experiment-plan.md` | 旧 TimesFM 单切分方案 |
 | `2026-11-03-timesfm-validation-report.md` | 旧 TimesFM 单切分结果 |
 | `2026-annual-retail-forecast-benchmark.md` | V3 固定 24 周历史快照 |
