@@ -10,7 +10,7 @@
   记录 V3 固定 24 周历史快照在 52 个完整零售周上的结果。该历史报告不等同于 V4 扩展历史主榜。
 - **[2026 零售周 52 周前向滑动窗口技术验证报告（历史归档）](docs/reports/archive/2026-annual-retail-forecast-benchmark.md)**
   保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
-- **[2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型）](docs/reports/2026-retail-week-v4-first-stage-report.md)**
+- **[2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML）](docs/reports/2026-retail-week-v4-first-stage-report.md)**
   使用审核后的扩展历史主榜和生产式 104 周滚动实验，分开呈现工具包广度、配置深度与训练历史影响。
 - **[Retail Demand Forecast V4 实验设计](docs/reports/experiment-design.md)**
   固化当前日粒度、13 × 4 周滚动回测、双训练历史、指标、发布契约与新模型接入边界。
@@ -187,9 +187,9 @@ uv run python scripts/compare_training_histories.py \
 
 # 审核两套模型 release 后，发布可复算的训练历史比较
 uv run python scripts/publish_training_history_comparison.py \
-  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-neural-v1 \
-  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-neural-v1 \
-  --release 20261106-neural-v1
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-autogluon-v1 \
+  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-autogluon-v1 \
+  --release 20261106-autogluon-v1
 ```
 
 ### 2. 零重训图表与报告生成工具
@@ -197,15 +197,15 @@ uv run python scripts/publish_training_history_comparison.py \
 无需重新拟合模型，直接从标准持久化存储中聚合指标并生成出版级配图与技术报告：
 
 ```bash
-# 渲染 4 组出版级基准全景图表 (生成至 images/benchmarks/)
+# 渲染 5 组出版级基准全景图表 (生成至 images/benchmarks/)
 uv run python scripts/plot_benchmark_summary.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261106-neural-v1
+  --release 20261106-autogluon-v1
 
 # 从已发布快照生成受控 Markdown 数据块，不覆盖人工叙事
 uv run python scripts/generate_benchmark_report.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261106-neural-v1
+  --release 20261106-autogluon-v1
 
 # 重新渲染 4 个场景的时序全貌图与 ADI-CV 分布图 (生成至 images/)
 uv run python scripts/plot_teaching_scenarios.py

@@ -1,0 +1,81 @@
+{
+  "release_schema_version": "training-history-comparison-release-v2",
+  "release_id": "20261106-autogluon-v1",
+  "comparison_id": "2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4",
+  "published_at": "2026-11-06T02:34:36.416460+00:00",
+  "published_by_source_provenance": {
+    "git_commit": "a636c8838d366c2889a4339da255a3c5b5331608",
+    "git_dirty": false,
+    "source_tree_sha256": "868ceb0c76ba1cdd40f01c6f9d1fd4942b232bb7f4d99a2784f0cb6430ec0668",
+    "pending_release_outputs": [
+      "data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-autogluon-v1/",
+      "data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-autogluon-v1/"
+    ]
+  },
+  "main_source_release": {
+    "benchmark_id": "2026-retail-week-expanding-v4",
+    "release_id": "20261106-autogluon-v1",
+    "protocol_hash": "281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e",
+    "release_manifest_sha256": "b9cfdf094d9622e9d13608996efcaae237f935cd97199750731d81f838232ab4",
+    "relative_path": "2026-retail-week-expanding-v4/releases/20261106-autogluon-v1"
+  },
+  "fixed_window_source_release": {
+    "benchmark_id": "2026-retail-week-104w-rolling-v4",
+    "release_id": "20261106-autogluon-v1",
+    "protocol_hash": "13918ef24a240992a4254869b6dd968a8246ed615e927eda452217428188ecbf",
+    "release_manifest_sha256": "e40f67a4cc2242cf7055d2cfe0f1f31325092111687b139c48ea4ff73ca6911c",
+    "relative_path": "2026-retail-week-104w-rolling-v4/releases/20261106-autogluon-v1"
+  },
+  "fixed_window_weeks": 104,
+  "model_ids": [
+    "ag-adida",
+    "ag-auto-arima",
+    "ag-croston",
+    "ag-deepar",
+    "ag-direct-tabular",
+    "ag-dlinear",
+    "ag-ets",
+    "ag-imapa",
+    "ag-npts",
+    "ag-recursive-tabular",
+    "ag-seasonal-naive",
+    "ag-simple-feedforward",
+    "ag-theta",
+    "ag-weighted-ensemble",
+    "ag-zero",
+    "arima",
+    "catboost_default",
+    "catboost_tweedie_p11",
+    "catboost_tweedie_p12",
+    "catboost_tweedie_p15",
+    "catboost_tweedie_p18",
+    "decision_tree",
+    "lightgbm_default",
+    "lightgbm_tweedie_p11",
+    "lightgbm_tweedie_p12",
+    "lightgbm_tweedie_p15",
+    "lightgbm_tweedie_p18",
+    "lstm",
+    "mlp",
+    "moving_average_14d",
+    "prophet",
+    "random_forest",
+    "seasonal_naive",
+    "tft",
+    "xgboost_default",
+    "xgboost_tweedie_p11",
+    "xgboost_tweedie_p12",
+    "xgboost_tweedie_p15",
+    "xgboost_tweedie_p18"
+  ],
+  "scenarios": [
+    "grocery",
+    "wine",
+    "garden",
+    "luxury"
+  ],
+  "files": {
+    "scenario_summary.csv": "62d762e25f5a2d603a41228c7009fc0b18979d70def20f1c7d364a2c83363f3b",
+    "training_history_comparison.csv": "dac798b987eeb748d31fabdb19d0d495e79be6b15399d8ae344d7936d6141216"
+  }
+}

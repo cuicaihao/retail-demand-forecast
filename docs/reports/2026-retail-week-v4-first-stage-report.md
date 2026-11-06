@@ -1,4 +1,4 @@
-# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型）
+# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML）
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
 `2026-retail-week-104w-rolling-v4` 模拟每月以此前两年数据训练、预测随后 4 周的生产流程。正式评估覆盖
@@ -7,14 +7,14 @@
 
 当前发布包含基线、Prophet、ARIMA 动态回归、经典树、MLP、LSTM、TFT，以及
 LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8`
-消融，共 24 个模型配置。AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的
-当前结论。
+消融，共 24 个普通模型配置。AutoGluon 另以固定 240 秒预算运行 15 个 `ag-*` 配置，
+只进入独立 AutoML 对比层，不占据普通广度榜名次。TimesFM 尚未迁移到 V4。
 
 ## 1. 证据边界与主要结论
 
-- 在全部 24 个配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden 分别取得
-  `21/1/2`、`21/1/2`、`14/8/2`（扩展历史胜 / 104 周胜 / 平局）。因此，两年滚动窗口
-  在 Grocery 与 Wine 上多数略逊，但在 Garden 上并非单向劣化。
+- 在全部 39 个普通与 AutoML 配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden
+  分别取得 `28/4/7`、`30/2/7`、`22/12/5`（扩展历史胜 / 104 周胜 / 平局）。因此，
+  两年滚动窗口在 Grocery 与 Wine 上多数略逊，但在 Garden 上并非单向劣化。
 - 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
   `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
   这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
@@ -24,6 +24,9 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
   个百分点，但不同模型的方向并不一致，必须同时检查事件召回与 F1，不能只看 WAPE。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
+- AutoGluon 加权集成在扩展历史 Grocery、Garden 的 WAPE 为 `5.52%`、`10.19%`，
+  但 Wine 的 `ag-deepar` 优于加权集成；Luxury 加权集成虽然 WAPE 为 `100%`，需求事件
+  召回和 F1 均为 `0%`，本质是漏掉全部需求事件，不能视为有效胜出。
 - 所有区间和 fold 分布只用于描述稳定性。本报告没有进行预注册的显著性检验，也不把
   bootstrap 描述区间表述为统计显著。
 
@@ -31,9 +34,9 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 
 <!-- BENCHMARK_BLOCK:provenance:START -->
 > Benchmark ID: `2026-retail-week-expanding-v4`<br>
-> Release ID: `20261106-neural-v1`<br>
+> Release ID: `20261106-autogluon-v1`<br>
 > Protocol hash: `281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e`<br>
-> Release manifest SHA-256: `bf12dad5ab7b91638d37463a63a69b78f6d4a679e3d8f21606e95cdeae64d21e`<br>
+> Release manifest SHA-256: `b9cfdf094d9622e9d13608996efcaae237f935cd97199750731d81f838232ab4`<br>
 > Fold uncertainty intervals are descriptive; they are not claims of statistical significance.
 <!-- BENCHMARK_BLOCK:provenance:END -->
 
@@ -242,27 +245,133 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 配置表回答的是同一工具包内损失函数与 Tweedie power 的敏感性问题，不用于增加该工具包
 在广度榜中的投票权。完整图表位于：
 
-- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-neural-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
-- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-neural-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
+- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
+- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
-## 5. 生产式训练历史比较：104 周训练 → 4 周预测
+## 5. 固定预算 AutoML 独立对比
+
+AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中所有模型统一使用 `ag-`
+前缀，并且都完整覆盖 4 场景 × 13 folds。它们不进入第 3 节的普通工具包广度榜。
+
+<!-- BENCHMARK_BLOCK:automl_vs_standard:START -->
+| 场景 | 观察到的最佳普通广度模型 | 普通模型 WAPE | AutoML 输出 | AutoML WAPE | 差值 (AutoML-普通) | 普通模型 Event F1 | AutoML Event F1 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| garden | Regression + ARIMA (1,0,1) | 7.80% | AG Weighted Ensemble | 10.19% | +2.39 pp | 100.00% | 100.00% |
+| grocery | Prophet | 4.16% | AG Weighted Ensemble | 5.52% | +1.36 pp | 100.00% | 100.00% |
+| luxury | CatBoost Default (MAE) | 100.25% | AG Weighted Ensemble | 100.00% | -0.25 pp | 9.09% | 0.00% |
+| wine | Regression + ARIMA (1,0,1) | 22.10% | AG Weighted Ensemble | 26.20% | +4.10 pp | 100.00% | 100.00% |
+<!-- BENCHMARK_BLOCK:automl_vs_standard:END -->
+
+上表将 AutoGluon 已选择的加权集成与各场景中观察到的最佳普通广度配置并列，用于描述
+“使用 AutoML 管线”与“不使用 AutoML 管线”的结果差异；它不是事前选择规则，也不代表
+两个方案具有相同计算成本。
+
+<!-- BENCHMARK_BLOCK:automl_scorecard:START -->
+## grocery
+
+| 模型 | WAPE | MAE | Coverage80 | 80% interval width | 80% pinball loss | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AG Weighted Ensemble | 5.52% | 6.7580 | 95.07% | 47.3557 | 2.5322 | 0.0553 | 0.0154 |
+| AG DirectTabular | 5.53% | 6.7681 | 97.97% | 77.6236 | 3.9374 | 0.0536 | 0.0090 |
+| AG DeepAR | 5.75% | 7.0371 | 66.38% | 17.1773 | 1.7577 | 0.0590 | 0.0221 |
+| AG RecursiveTabular | 5.94% | 7.2608 | 98.55% | 89.8882 | 4.5492 | 0.0590 | 0.0114 |
+| AG SimpleFeedForward | 8.14% | 9.9571 | 82.03% | 33.0240 | 2.3345 | 0.0797 | 0.0247 |
+| AG DLinear | 9.02% | 11.0377 | 76.23% | 32.9463 | 2.5542 | 0.0906 | 0.0089 |
+| AG AutoARIMA | 11.07% | 13.5427 | 78.55% | 40.1865 | 2.9678 | 0.1108 | 0.0114 |
+| AG ETS | 12.17% | 14.8901 | 98.84% | 119.4130 | 6.0480 | 0.1252 | 0.0248 |
+| AG ADIDA | 12.34% | 15.0916 | 79.42% | 47.1989 | 3.1087 | 0.1237 | 0.0180 |
+| AG IMAPA | 12.34% | 15.0916 | 79.42% | 47.1989 | 3.1087 | 0.1237 | 0.0180 |
+| AG Croston | 13.59% | 16.6284 | 80.58% | 48.8249 | 3.5309 | 0.1364 | 0.0222 |
+| AG Theta | 13.91% | 17.0123 | 99.13% | 121.5342 | 6.0935 | 0.1338 | 0.0255 |
+| AG NPTS | 14.53% | 17.7739 | 76.81% | 52.1623 | 3.8197 | 0.1344 | 0.0349 |
+| AG SeasonalNaive | 15.28% | 18.6899 | 96.52% | 118.3091 | 6.0859 | 0.1484 | 0.0148 |
+| AG Zero | 100.00% | 122.3246 | 76.52% | 137.5710 | 8.4713 | 1.0000 | 0.0000 |
+
+## wine
+
+| 模型 | WAPE | MAE | Coverage80 | 80% interval width | 80% pinball loss | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AG DeepAR | 25.03% | 2.9287 | 68.78% | 7.4799 | 0.6665 | 0.2475 | 0.0606 |
+| AG DirectTabular | 25.24% | 2.9526 | 96.96% | 25.8253 | 1.3360 | 0.2416 | 0.0621 |
+| AG Weighted Ensemble | 26.20% | 3.0647 | 94.20% | 16.3570 | 0.8877 | 0.2422 | 0.1317 |
+| AG SimpleFeedForward | 29.03% | 3.3959 | 83.15% | 11.7263 | 0.7719 | 0.2547 | 0.1257 |
+| AG DLinear | 29.51% | 3.4520 | 79.56% | 11.0236 | 0.7681 | 0.2793 | 0.1341 |
+| AG RecursiveTabular | 29.52% | 3.4539 | 98.07% | 29.5030 | 1.5005 | 0.2818 | 0.0864 |
+| AG AutoARIMA | 39.69% | 4.6436 | 84.25% | 16.5809 | 1.0420 | 0.4018 | 0.1564 |
+| AG Croston | 40.56% | 4.7455 | 80.39% | 14.4457 | 1.0935 | 0.4118 | 0.1336 |
+| AG NPTS | 40.90% | 4.7845 | 81.22% | 14.8066 | 1.0318 | 0.4081 | 0.0727 |
+| AG SeasonalNaive | 49.21% | 5.7569 | 91.44% | 28.3877 | 1.6341 | 0.4893 | 0.1176 |
+| AG ADIDA | 54.35% | 6.3585 | 80.11% | 19.4931 | 1.2003 | 0.5169 | 0.1025 |
+| AG IMAPA | 54.35% | 6.3585 | 80.11% | 19.4931 | 1.2003 | 0.5169 | 0.1025 |
+| AG Theta | 58.02% | 6.7879 | 95.03% | 31.8363 | 1.6387 | 0.5541 | 0.1359 |
+| AG ETS | 65.95% | 7.7150 | 91.71% | 29.4265 | 1.5818 | 0.6544 | 0.1704 |
+| AG Zero | 100.00% | 11.6989 | 80.94% | 16.3867 | 1.4160 | 1.0000 | 0.0000 |
+
+## garden
+
+| 模型 | WAPE | MAE | Coverage80 | 80% interval width | 80% pinball loss | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AG Weighted Ensemble | 10.19% | 7.3197 | 90.06% | 31.8988 | 1.8348 | 0.1105 | 0.0689 |
+| AG DirectTabular | 10.23% | 7.3474 | 97.51% | 72.6931 | 3.6858 | 0.0991 | 0.0355 |
+| AG DeepAR | 10.24% | 7.3564 | 64.64% | 17.5980 | 1.7439 | 0.1139 | 0.0666 |
+| AG ETS | 10.39% | 7.4652 | 90.06% | 31.0106 | 1.8055 | 0.0943 | 0.0661 |
+| AG SimpleFeedForward | 10.63% | 7.6373 | 77.62% | 23.8511 | 1.7910 | 0.1147 | 0.0675 |
+| AG RecursiveTabular | 10.84% | 7.7873 | 97.79% | 79.2299 | 3.9953 | 0.1067 | 0.0674 |
+| AG DLinear | 11.48% | 8.2441 | 84.53% | 31.7124 | 1.9758 | 0.1182 | 0.0727 |
+| AG Theta | 13.09% | 9.4022 | 98.34% | 61.8879 | 3.2201 | 0.1458 | 0.0475 |
+| AG AutoARIMA | 13.17% | 9.4578 | 78.18% | 29.5132 | 2.1801 | 0.1523 | 0.0761 |
+| AG SeasonalNaive | 14.57% | 10.4669 | 91.44% | 49.9011 | 2.8321 | 0.1695 | 0.0984 |
+| AG Croston | 20.57% | 14.7751 | 80.39% | 51.8738 | 3.5334 | 0.2415 | 0.1093 |
+| AG ADIDA | 20.91% | 15.0214 | 80.66% | 50.2129 | 3.3899 | 0.2321 | 0.1489 |
+| AG IMAPA | 20.91% | 15.0214 | 80.66% | 50.2129 | 3.3899 | 0.2321 | 0.1489 |
+| AG NPTS | 36.74% | 26.3923 | 82.32% | 74.7597 | 4.6482 | 0.3745 | 0.2108 |
+| AG Zero | 100.00% | 71.8287 | 66.30% | 90.9917 | 8.0137 | 1.0000 | 0.0000 |
+
+## luxury
+
+| 模型 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE | Coverage80 | 80% interval width | 80% pinball loss |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AG NPTS | 100.00% | 0.0801 | 100.00% | 0.00% | 0.00% | 1.3810 | 94.20% | 0.1133 | 0.0430 |
+| AG Weighted Ensemble | 100.00% | 0.0801 | 100.00% | 0.00% | 0.00% | 1.3810 | 94.20% | 0.1133 | 0.0430 |
+| AG Zero | 100.00% | 0.0801 | 100.00% | 0.00% | 0.00% | 1.3810 | 94.20% | 0.0000 | 0.0401 |
+| AG DeepAR | 100.02% | 0.0801 | 100.00% | 0.00% | 0.00% | 1.3809 | 93.92% | 0.0002 | 0.0401 |
+| AG DLinear | 100.10% | 0.0802 | 100.00% | 0.00% | 0.00% | 1.3808 | 93.65% | 0.0004 | 0.0401 |
+| AG SimpleFeedForward | 100.19% | 0.0803 | 100.00% | 0.00% | 0.00% | 1.3808 | 93.65% | 0.0008 | 0.0401 |
+| AG RecursiveTabular | 154.05% | 0.1234 | 96.19% | 9.52% | 11.11% | 1.2551 | 95.03% | 1.2761 | 0.0728 |
+| AG Theta | 157.09% | 0.1258 | 100.00% | 0.00% | 0.00% | 1.2980 | 94.20% | 0.7724 | 0.0558 |
+| AG SeasonalNaive | 182.76% | 0.1464 | 93.55% | 9.52% | 8.89% | 1.2857 | 95.03% | 1.5565 | 0.0879 |
+| AG IMAPA | 182.88% | 0.1465 | 100.00% | 0.00% | 0.00% | 1.2935 | 80.94% | 0.1859 | 0.0462 |
+| AG ADIDA | 189.89% | 0.1521 | 100.00% | 0.00% | 0.00% | 1.2966 | 87.29% | 0.1839 | 0.0445 |
+| AG Croston | 194.32% | 0.1557 | 100.00% | 0.00% | 0.00% | 1.2986 | 80.11% | 0.1876 | 0.0448 |
+| AG DirectTabular | 211.20% | 0.1692 | 99.41% | 0.00% | 0.00% | 1.2759 | 97.24% | 1.4324 | 0.0810 |
+| AG ETS | 212.31% | 0.1701 | 100.00% | 0.00% | 0.00% | 1.2793 | 94.20% | 0.7774 | 0.0564 |
+| AG AutoARIMA | 212.34% | 0.1701 | 100.00% | 0.00% | 0.00% | 1.2793 | 94.20% | 0.7767 | 0.0563 |
+<!-- BENCHMARK_BLOCK:automl_scorecard:END -->
+
+加权集成的内部验证选择不保证在正式测试上优于每个组件，因此本报告同时展示组件，但不根据
+正式测试结果事后替换已选择的集成。区间指标是 AutoGluon 的原生 10%–90% 分位数诊断，
+不能直接解释为库存服务水平。
+
+![AutoGluon 组件与加权集成对比](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-05-autogluon-automl-scorecard.png)
+
+## 6. 生产式训练历史比较：104 周训练 → 4 周预测
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
 > Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4`<br>
-> Release ID: `20261106-neural-v1`<br>
-> Main source: `2026-retail-week-expanding-v4` / `20261106-neural-v1`<br>
-> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-neural-v1`<br>
-> Comparison release manifest SHA-256: `7f072f9f621972a63779b7a807d9891bd9d3eac32ec360c171a9af76f3647665`<br>
+> Release ID: `20261106-autogluon-v1`<br>
+> Main source: `2026-retail-week-expanding-v4` / `20261106-autogluon-v1`<br>
+> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-autogluon-v1`<br>
+> Comparison release manifest SHA-256: `556689f4ee07af71e5432c0ddf836acc73b5910b74ce28dc32ec21dd33951b1e`<br>
 > WAPE differences are paired descriptive results, not statistical significance claims.
 <!-- BENCHMARK_BLOCK:history_provenance:END -->
 
 <!-- BENCHMARK_BLOCK:history_policy_summary:START -->
 | 场景 | 配置数 | 扩展历史胜 | 104 周胜 | 平局 | WAPE 差值中位数 (104w-expanding) | 广度配置 WAPE 差值中位数 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| garden | 24 | 14 | 8 | 2 | +0.04 pp | +0.10 pp |
-| grocery | 24 | 21 | 1 | 2 | +0.27 pp | +0.15 pp |
-| luxury | 24 | 10 | 12 | 2 | -0.44 pp | -5.56 pp |
-| wine | 24 | 21 | 1 | 2 | +0.85 pp | +0.47 pp |
+| garden | 39 | 22 | 12 | 5 | +0.03 pp | +0.10 pp |
+| grocery | 39 | 28 | 4 | 7 | +0.18 pp | +0.15 pp |
+| luxury | 39 | 15 | 19 | 5 | +0.00 pp | -5.56 pp |
+| wine | 39 | 30 | 2 | 7 | +0.68 pp | +0.47 pp |
 <!-- BENCHMARK_BLOCK:history_policy_summary:END -->
 
 正差值表示 104 周 WAPE 更高，因而扩展历史更好；负差值表示 104 周结果更低。该方向只描述
@@ -338,20 +447,104 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | TFT | pytorch_forecasting | 195.41% | 150.09% | -45.32 pp | sliding_104w | 0.00% | 9.09% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
 
-![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-neural-v1/fig-01-training-history-wape-delta.png)
+### AutoML 组件的训练历史差异
+
+<!-- BENCHMARK_BLOCK:history_policy_automl:START -->
+## grocery
+
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| AG DeepAR | autogluon_timeseries | 5.75% | 6.65% | +0.90 pp | expanding |
+| AG Theta | autogluon_timeseries | 13.91% | 14.61% | +0.70 pp | expanding |
+| AG Weighted Ensemble | autogluon_timeseries | 5.52% | 6.06% | +0.53 pp | expanding |
+| AG RecursiveTabular | autogluon_timeseries | 5.94% | 6.20% | +0.27 pp | expanding |
+| AG DirectTabular | autogluon_timeseries | 5.53% | 5.73% | +0.19 pp | expanding |
+| AG SimpleFeedForward | autogluon_timeseries | 8.14% | 8.30% | +0.16 pp | expanding |
+| AG ETS | autogluon_timeseries | 12.17% | 12.18% | +0.00 pp | expanding |
+| AG ADIDA | autogluon_timeseries | 12.34% | 12.34% | +0.00 pp | tie |
+| AG Croston | autogluon_timeseries | 13.59% | 13.59% | +0.00 pp | tie |
+| AG IMAPA | autogluon_timeseries | 12.34% | 12.34% | +0.00 pp | tie |
+| AG SeasonalNaive | autogluon_timeseries | 15.28% | 15.28% | +0.00 pp | tie |
+| AG Zero | autogluon_timeseries | 100.00% | 100.00% | +0.00 pp | tie |
+| AG DLinear | autogluon_timeseries | 9.02% | 8.92% | -0.11 pp | sliding_104w |
+| AG AutoARIMA | autogluon_timeseries | 11.07% | 10.51% | -0.56 pp | sliding_104w |
+| AG NPTS | autogluon_timeseries | 14.53% | 13.49% | -1.04 pp | sliding_104w |
+
+## wine
+
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| AG RecursiveTabular | autogluon_timeseries | 29.52% | 33.93% | +4.41 pp | expanding |
+| AG ETS | autogluon_timeseries | 65.95% | 69.16% | +3.22 pp | expanding |
+| AG Theta | autogluon_timeseries | 58.02% | 60.23% | +2.20 pp | expanding |
+| AG DeepAR | autogluon_timeseries | 25.03% | 26.97% | +1.93 pp | expanding |
+| AG AutoARIMA | autogluon_timeseries | 39.69% | 41.49% | +1.80 pp | expanding |
+| AG DirectTabular | autogluon_timeseries | 25.24% | 26.98% | +1.74 pp | expanding |
+| AG SimpleFeedForward | autogluon_timeseries | 29.03% | 29.77% | +0.75 pp | expanding |
+| AG DLinear | autogluon_timeseries | 29.51% | 30.15% | +0.64 pp | expanding |
+| AG Weighted Ensemble | autogluon_timeseries | 26.20% | 26.72% | +0.53 pp | expanding |
+| AG ADIDA | autogluon_timeseries | 54.35% | 54.35% | +0.00 pp | tie |
+| AG Croston | autogluon_timeseries | 40.56% | 40.56% | +0.00 pp | tie |
+| AG IMAPA | autogluon_timeseries | 54.35% | 54.35% | +0.00 pp | tie |
+| AG SeasonalNaive | autogluon_timeseries | 49.21% | 49.21% | +0.00 pp | tie |
+| AG Zero | autogluon_timeseries | 100.00% | 100.00% | +0.00 pp | tie |
+| AG NPTS | autogluon_timeseries | 40.90% | 39.93% | -0.97 pp | sliding_104w |
+
+## garden
+
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| AG Theta | autogluon_timeseries | 13.09% | 16.95% | +3.86 pp | expanding |
+| AG RecursiveTabular | autogluon_timeseries | 10.84% | 12.00% | +1.16 pp | expanding |
+| AG Weighted Ensemble | autogluon_timeseries | 10.19% | 10.98% | +0.78 pp | expanding |
+| AG DLinear | autogluon_timeseries | 11.48% | 11.76% | +0.29 pp | expanding |
+| AG DeepAR | autogluon_timeseries | 10.24% | 10.43% | +0.19 pp | expanding |
+| AG NPTS | autogluon_timeseries | 36.74% | 36.92% | +0.17 pp | expanding |
+| AG DirectTabular | autogluon_timeseries | 10.23% | 10.31% | +0.08 pp | expanding |
+| AG ETS | autogluon_timeseries | 10.39% | 10.43% | +0.03 pp | expanding |
+| AG Croston | autogluon_timeseries | 20.57% | 20.57% | +0.00 pp | tie |
+| AG SeasonalNaive | autogluon_timeseries | 14.57% | 14.57% | +0.00 pp | tie |
+| AG Zero | autogluon_timeseries | 100.00% | 100.00% | +0.00 pp | tie |
+| AG ADIDA | autogluon_timeseries | 20.91% | 20.90% | -0.01 pp | sliding_104w |
+| AG IMAPA | autogluon_timeseries | 20.91% | 20.90% | -0.01 pp | sliding_104w |
+| AG SimpleFeedForward | autogluon_timeseries | 10.63% | 10.57% | -0.06 pp | sliding_104w |
+| AG AutoARIMA | autogluon_timeseries | 13.17% | 12.60% | -0.57 pp | sliding_104w |
+
+## luxury
+
+| 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 | 扩展历史 Event F1 | 104 周 Event F1 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| AG Weighted Ensemble | autogluon_timeseries | 100.00% | 127.59% | +27.59 pp | expanding | 0.00% | 12.12% |
+| AG RecursiveTabular | autogluon_timeseries | 154.05% | 162.50% | +8.45 pp | expanding | 11.11% | 12.90% |
+| AG Theta | autogluon_timeseries | 157.09% | 158.51% | +1.42 pp | expanding | 0.00% | 0.00% |
+| AG Croston | autogluon_timeseries | 194.32% | 194.38% | +0.06 pp | expanding | 0.00% | 0.00% |
+| AG DLinear | autogluon_timeseries | 100.10% | 100.13% | +0.03 pp | expanding | 0.00% | 0.00% |
+| AG NPTS | autogluon_timeseries | 100.00% | 100.00% | +0.00 pp | tie | 0.00% | 0.00% |
+| AG SeasonalNaive | autogluon_timeseries | 182.76% | 182.76% | +0.00 pp | tie | 8.89% | 8.89% |
+| AG Zero | autogluon_timeseries | 100.00% | 100.00% | +0.00 pp | tie | 0.00% | 0.00% |
+| AG DeepAR | autogluon_timeseries | 100.02% | 100.02% | -0.01 pp | sliding_104w | 0.00% | 0.00% |
+| AG SimpleFeedForward | autogluon_timeseries | 100.19% | 100.14% | -0.06 pp | sliding_104w | 0.00% | 0.00% |
+| AG IMAPA | autogluon_timeseries | 182.88% | 178.24% | -4.63 pp | sliding_104w | 0.00% | 0.00% |
+| AG ADIDA | autogluon_timeseries | 189.89% | 179.84% | -10.05 pp | sliding_104w | 0.00% | 0.00% |
+| AG DirectTabular | autogluon_timeseries | 211.20% | 197.71% | -13.49 pp | sliding_104w | 0.00% | 8.70% |
+| AG ETS | autogluon_timeseries | 212.31% | 189.32% | -22.99 pp | sliding_104w | 0.00% | 0.00% |
+| AG AutoARIMA | autogluon_timeseries | 212.34% | 188.75% | -23.59 pp | sliding_104w | 0.00% | 0.00% |
+<!-- BENCHMARK_BLOCK:history_policy_automl:END -->
+
+![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-autogluon-v1/fig-01-training-history-wape-delta.png)
 
 图中只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释：例如 Prophet 和
 ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据此宣称事件识别能力改善。
 
-## 6. 局限与后续工作
+## 7. 局限与后续工作
 
 1. 数据为固定生成协议下的教学合成数据，支持受控机制分析，但不能直接外推到真实企业。
 2. 104 周窗口代表两个完整的 52 周零售周期，用于模拟现实中每月滚动重训、预测未来
    4 周的 MLOps 流程。它严格等于 728 天，不等于两个完整日历年；Prophet 因而会触发
    “少于 730 天”的年度季节性提示。这是周对齐协议的已知边界，不是对所有企业历史
    保留策略的普遍建议。
-3. 除 ARIMA 外，当前模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为
-   不适用。ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、
-   `80.66%`、`94.75%`；这些是未校准的模型区间，不能直接解释为库存服务水平。
-4. 下一阶段按相同适配器和发布协议逐个迁移 AutoGluon 与 TimesFM，
+3. 普通模型中只有 ARIMA 输出区间；AutoGluon 组件另输出原生 10%–90% 分位数区间。
+   ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、`80.66%`、
+   `94.75%`；两类区间都未经业务校准，不能直接解释为库存服务水平。
+4. 下一阶段按相同适配器和发布协议迁移 TimesFM，
    每个模型单独审核并通过新 release 继承现有结果，不重写本次快照。

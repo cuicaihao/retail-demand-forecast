@@ -128,7 +128,7 @@ comparison release 配对比较。
 
 ## 4. 当前模型与配置矩阵
 
-当前 V4 release `20261106-neural-v1` 包含 24 个配置。
+当前 V4 release `20261106-autogluon-v1` 包含 24 个普通配置和 15 个独立 AutoML 配置。
 
 ### 4.1 工具包广度配置
 

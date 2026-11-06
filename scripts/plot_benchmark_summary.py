@@ -6,6 +6,7 @@ Generates:
 2. fig-02-13-period-wape-trajectories (.png & .webp)
 3. fig-03-gbdt-tweedie-ablation-deepdive (.png & .webp)
 4. fig-04-intermittent-zero-recall (.png & .webp)
+5. fig-05-autogluon-automl-scorecard (.png & .webp)
 """
 
 from __future__ import annotations
@@ -117,6 +118,43 @@ def plot_fig01_annual_leaderboard(df_scenario: pd.DataFrame):
         y=1.02,
     )
     save_dual_format(fig, "fig-01-retail-week-leaderboard-all-scenarios")
+    plt.close(fig)
+
+
+def plot_fig05_automl_scorecard(df_automl: pd.DataFrame):
+    """Fig 5: AutoGluon components and weighted ensemble, kept outside breadth."""
+    print("Generating Fig 5: AutoGluon AutoML Scorecard...")
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12), constrained_layout=True)
+    for ax, scenario in zip(axes.flat, ["grocery", "wine", "garden", "luxury"]):
+        frame = df_automl[df_automl.scenario.eq(scenario)].sort_values(
+            "WAPE", ascending=True
+        )
+        values = frame.WAPE * 100
+        colors = [
+            "#D55E00" if model_id == "ag-weighted-ensemble" else "#5790FC"
+            for model_id in frame.model_id
+        ]
+        bars = ax.barh(frame.model_id, values, color=colors, alpha=0.9)
+        ax.invert_yaxis()
+        ax.set_title(f"{scenario} — fixed-budget AutoML", fontweight="bold")
+        ax.set_xlabel("WAPE (%) [Lower is Better]")
+        ax.grid(True, axis="x", linestyle=":", alpha=0.6)
+        maximum = max(float(values.max()), 1.0)
+        ax.set_xlim(0, maximum * 1.18)
+        for bar, value in zip(bars, values):
+            ax.text(
+                bar.get_width() + maximum * 0.015,
+                bar.get_y() + bar.get_height() / 2,
+                f"{value:.2f}%",
+                va="center",
+                fontsize=8,
+            )
+    fig.suptitle(
+        "AutoGluon Components vs Weighted Ensemble (Separate AutoML Layer)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    save_dual_format(fig, "fig-05-autogluon-automl-scorecard")
     plt.close(fig)
 
 
@@ -336,6 +374,7 @@ def main():
     sc_file = summary_dir / "scenario_leaderboard.csv"
     per_file = summary_dir / "period_trajectories.csv"
     ablation_file = summary_dir / "configuration_ablations.csv"
+    automl_file = summary_dir / "automl_scorecard.csv"
 
     if not sc_file.is_file():
         print(
@@ -348,6 +387,7 @@ def main():
     df_ablation = (
         pd.read_csv(ablation_file) if ablation_file.is_file() else pd.DataFrame()
     )
+    df_automl = pd.read_csv(automl_file) if automl_file.is_file() else pd.DataFrame()
 
     plot_fig01_annual_leaderboard(df_scenario)
     if not df_period.empty:
@@ -356,6 +396,8 @@ def main():
         raise FileNotFoundError(f"Required ablation summary not found: {ablation_file}")
     plot_fig03_tweedie_ablation(df_scenario, df_ablation)
     plot_fig04_zero_recall(df_scenario)
+    if not df_automl.empty:
+        plot_fig05_automl_scorecard(df_automl)
     print(f"\nFigures rendered to {IMAGE_DIR}")
 
 

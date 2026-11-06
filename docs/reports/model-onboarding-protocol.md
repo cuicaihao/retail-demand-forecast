@@ -63,9 +63,9 @@ uv run python scripts/compare_training_histories.py \
 
 # 从两套审核后的 release 发布不可变历史策略比较
 uv run python scripts/publish_training_history_comparison.py \
-  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-neural-v1 \
-  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-neural-v1 \
-  --release 20261106-neural-v1
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-autogluon-v1 \
+  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-autogluon-v1 \
+  --release 20261106-autogluon-v1
 
 # 审核后发布不可变轻量快照
 uv run python scripts/publish_benchmark.py \
@@ -77,7 +77,7 @@ uv run python scripts/publish_benchmark.py \
 uv run python scripts/publish_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
   --release 20261120-next-model-v1 \
-  --base-release 20261106-neural-v1 \
+  --base-release 20261106-autogluon-v1 \
   --models <model_key> \
   --source-root runs/20261120-next-model-validation
 ```
@@ -115,5 +115,5 @@ uv run python scripts/publish_benchmark.py \
 - [ ] Notebook 无保存输出；
 - [ ] unittest、Ruff、`git diff --check` 和发布快照复算通过。
 
-ARIMA、MLP、LSTM 与 TFT 已按同一 V4 协议进入当前场景榜。AutoGluon 与 TimesFM 的
-旧版数字只保留在历史归档；只有完成 V4 迁移后才能进入当前场景榜。
+ARIMA、MLP、LSTM、TFT 与 AutoGluon 已按 V4 协议进入当前发布；AutoGluon 保持为
+独立 AutoML 对比层。TimesFM 的旧版数字只保留在历史归档，完成 V4 迁移后才能进入当前发布。

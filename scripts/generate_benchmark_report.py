@@ -28,8 +28,14 @@ def _format_value(column: str, value: float) -> str:
         "DemandRecallAt05",
         "DemandEventF1At05",
         "Coverage80",
+        "standard_WAPE",
+        "automl_WAPE",
+        "standard_Event_F1",
+        "automl_Event_F1",
     }:
         return f"{value * 100:.2f}%"
+    if column == "WAPE_Delta_AutoML_Minus_Standard":
+        return f"{value * 100:+.2f} pp"
     return f"{value:.4f}"
 
 
@@ -49,6 +55,17 @@ def _markdown_table(frame: pd.DataFrame, columns: list[str]) -> str:
         "PositiveDemandMAE": "Positive-demand MAE",
         "Fold_WAPE_Median": "Fold WAPE median",
         "Fold_WAPE_IQR": "Fold WAPE IQR",
+        "Coverage80": "Coverage80",
+        "MeanIntervalWidth80": "80% interval width",
+        "PinballLoss80": "80% pinball loss",
+        "scenario": "场景",
+        "standard_model_name": "观察到的最佳普通广度模型",
+        "standard_WAPE": "普通模型 WAPE",
+        "automl_model_name": "AutoML 输出",
+        "automl_WAPE": "AutoML WAPE",
+        "WAPE_Delta_AutoML_Minus_Standard": "差值 (AutoML-普通)",
+        "standard_Event_F1": "普通模型 Event F1",
+        "automl_Event_F1": "AutoML Event F1",
     }
     lines = [
         "| " + " | ".join(labels.get(column, column) for column in columns) + " |",
@@ -99,6 +116,7 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
     ablations = _normalise_display_names(
         pd.read_csv(summary / "configuration_ablations.csv")
     )
+    automl = _normalise_display_names(pd.read_csv(summary / "automl_scorecard.csv"))
     output = GENERATED_REPORTS / benchmark_id / release_id
     output.mkdir(parents=True, exist_ok=True)
 
@@ -163,6 +181,82 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
         ablation_tables, encoding="utf-8"
     )
 
+    automl_general_columns = [
+        "model_name",
+        "WAPE",
+        "MAE",
+        "Coverage80",
+        "MeanIntervalWidth80",
+        "PinballLoss80",
+        "Fold_WAPE_Median",
+        "Fold_WAPE_IQR",
+    ]
+    automl_luxury_columns = [
+        "model_name",
+        "WAPE",
+        "MAE",
+        "ZeroRecallAt05",
+        "DemandRecallAt05",
+        "DemandEventF1At05",
+        "PositiveDemandMAE",
+        "Coverage80",
+        "MeanIntervalWidth80",
+        "PinballLoss80",
+    ]
+    automl_blocks = []
+    for scenario_name in spec.scenarios:
+        subset = automl[automl.scenario.eq(scenario_name)].sort_values("WAPE")
+        columns = (
+            automl_luxury_columns
+            if scenario_name == "luxury"
+            else automl_general_columns
+        )
+        automl_blocks.extend(
+            [
+                f"## {scenario_name}",
+                "",
+                _markdown_table(subset, columns),
+                "",
+            ]
+        )
+    automl_tables = "\n".join(automl_blocks).rstrip() + "\n"
+    (output / "automl_scorecard.md").write_text(automl_tables, encoding="utf-8")
+
+    best_standard = (
+        breadth.sort_values(["scenario", "WAPE"]).groupby("scenario").head(1)
+    )
+    ensemble = automl[automl.model_id.eq("ag-weighted-ensemble")]
+    comparison = best_standard.merge(
+        ensemble,
+        on="scenario",
+        suffixes=("_standard", "_automl"),
+        validate="one_to_one",
+    )
+    comparison = comparison.assign(
+        standard_model_name=comparison.model_name_standard,
+        standard_WAPE=comparison.WAPE_standard,
+        automl_model_name=comparison.model_name_automl,
+        automl_WAPE=comparison.WAPE_automl,
+        WAPE_Delta_AutoML_Minus_Standard=(
+            comparison.WAPE_automl - comparison.WAPE_standard
+        ),
+        standard_Event_F1=comparison.DemandEventF1At05_standard,
+        automl_Event_F1=comparison.DemandEventF1At05_automl,
+    )
+    comparison_columns = [
+        "scenario",
+        "standard_model_name",
+        "standard_WAPE",
+        "automl_model_name",
+        "automl_WAPE",
+        "WAPE_Delta_AutoML_Minus_Standard",
+        "standard_Event_F1",
+        "automl_Event_F1",
+    ]
+    (output / "automl_vs_standard.md").write_text(
+        _markdown_table(comparison, comparison_columns) + "\n", encoding="utf-8"
+    )
+
     release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
     provenance = (
         f"> Benchmark ID: `{benchmark_id}`<br>\n"
@@ -191,6 +285,8 @@ def main() -> None:
     blocks = {
         "scenario_leaderboards": (output / "scenario_leaderboards.md").read_text(),
         "configuration_ablations": (output / "configuration_ablations.md").read_text(),
+        "automl_scorecard": (output / "automl_scorecard.md").read_text(),
+        "automl_vs_standard": (output / "automl_vs_standard.md").read_text(),
         "provenance": (output / "provenance.md").read_text(),
     }
     for target in args.sync_target:

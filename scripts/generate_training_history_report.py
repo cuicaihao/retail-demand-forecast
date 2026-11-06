@@ -117,6 +117,20 @@ def generate_blocks(comparison_id: str, release_id: str) -> Path:
         "\n".join(detail_blocks).rstrip() + "\n", encoding="utf-8"
     )
 
+    automl_blocks = []
+    automl = comparison[comparison.comparison_role.eq("automl")]
+    for scenario in manifest["scenarios"]:
+        frame = automl[automl.scenario.eq(scenario)].sort_values(
+            "WAPE_delta_fixed_window_minus_expanding", ascending=False
+        )
+        columns = luxury_columns if scenario == "luxury" else common_columns
+        automl_blocks.extend(
+            [f"## {scenario}", "", _markdown_table(frame, columns), ""]
+        )
+    (output / "history_policy_automl.md").write_text(
+        "\n".join(automl_blocks).rstrip() + "\n", encoding="utf-8"
+    )
+
     manifest_path = release_root / "release_manifest.json"
     provenance = (
         f"> Comparison ID: `{comparison_id}`<br>\n"
@@ -150,6 +164,7 @@ def main() -> None:
     blocks = {
         "history_policy_summary": (output / "history_policy_summary.md").read_text(),
         "history_policy_breadth": (output / "history_policy_breadth.md").read_text(),
+        "history_policy_automl": (output / "history_policy_automl.md").read_text(),
         "history_provenance": (output / "provenance.md").read_text(),
     }
     for target in args.sync_target:
