@@ -743,7 +743,10 @@ Woolworth 风格的鲜奶预测中，第 1–3 天更依赖最近销量、现有
 
 当前仓库的四套教学实验显示：结构化时间序列模型在连续需求上可以非常稳定，boosting 相对单树更可靠，神经网络可能在特定阶段领先但验证方差更高，AutoGluon 能提高内部组件的稳健性却不保证超过领域模型。这些观察用于确定生产候选池，不能替代企业真实数据回测。
 
-具体实验依据见[四类零售需求预测模型实验报告](2026-10-20-all-models-validation-report.md)和[AutoGluon TimeSeries 对比报告](2026-10-20-autogluon-comparison-report.md)。
+上述观察来自旧版单切分实验，仅作为历史背景，详见
+[四类零售需求预测模型实验报告](archive/2026-10-20-all-models-validation-report.md)和
+[AutoGluon TimeSeries 对比报告](archive/2026-10-20-autogluon-comparison-report.md)。当前可比较结论
+以 [V4 分阶段基准报告](2026-retail-week-v4-first-stage-report.md) 为准。
 
 ### 3.10 特征边界
 

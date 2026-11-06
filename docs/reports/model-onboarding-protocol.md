@@ -26,7 +26,7 @@
 ## 3. 运行、聚合与发布
 
 ```bash
-# 查看协议与当前 21 个模型配置
+# 查看协议与当前 24 个模型配置
 uv run python scripts/run_benchmark.py --list
 
 # 主榜：扩展历史
@@ -53,9 +53,9 @@ uv run python scripts/compare_training_histories.py \
 
 # 从两套审核后的 release 发布不可变历史策略比较
 uv run python scripts/publish_training_history_comparison.py \
-  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-arima-v1 \
-  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-104w-v1 \
-  --release 20261106-104w-v1
+  --main-release data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-neural-v1 \
+  --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-neural-v1 \
+  --release 20261106-neural-v1
 
 # 审核后发布不可变轻量快照
 uv run python scripts/publish_benchmark.py \
@@ -66,10 +66,10 @@ uv run python scripts/publish_benchmark.py \
 # 后续仅审核新模型；旧模型从上一 release 原样继承
 uv run python scripts/publish_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261120-neural-v1 \
-  --base-release 20261106-arima-v1 \
-  --models mlp \
-  --source-root runs/20261120-mlp-validation
+  --release 20261120-next-model-v1 \
+  --base-release 20261106-neural-v1 \
+  --models <model_key> \
+  --source-root runs/20261120-next-model-validation
 ```
 
 本地拟合产物保存在 `runs/YYYYMMDD-[model]-[type]/`。发布前 Git 工作区必须干净，新增或替换模型 manifest 的 commit、源码哈希和软件版本必须与发布环境一致。发布操作只复制逐日预测、fold 指标、pooled 指标、冻结配置和 manifest；模型权重不进入 Git。每个 release ID 不可变，后续模型通过新的 release ID 发布，并从 `--base-release` 继承已审核模型。release manifest 分别记录每个模型的源码 provenance，因此不同模型可以来自不同的已审核提交。
@@ -105,4 +105,5 @@ uv run python scripts/publish_benchmark.py \
 - [ ] Notebook 无保存输出；
 - [ ] unittest、Ruff、`git diff --check` 和发布快照复算通过。
 
-ARIMA 已按同一 V4 协议进入当前场景榜。MLP/LSTM/TFT、AutoGluon 与 TimesFM 的 V2 数字仍只保留在历史归档；只有完成 V4 迁移后才能进入当前场景榜。
+ARIMA、MLP、LSTM 与 TFT 已按同一 V4 协议进入当前场景榜。AutoGluon 与 TimesFM 的
+旧版数字只保留在历史归档；只有完成 V4 迁移后才能进入当前场景榜。

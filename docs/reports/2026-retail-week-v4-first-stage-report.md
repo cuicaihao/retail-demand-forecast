@@ -1,26 +1,27 @@
-# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA）
+# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型）
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
 `2026-retail-week-104w-rolling-v4` 模拟每月以此前两年数据训练、预测随后 4 周的生产流程。正式评估覆盖
 2025-12-29 至 2026-12-27，共 13 个互不重叠的 28 天 fold，也就是 52 个完整零售周
 和 364 个评估日；它不是完整日历年。
 
-当前发布包含基线、Prophet、ARIMA 动态回归、经典树，以及 LightGBM、XGBoost、
-CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 个模型配置。
-神经网络、AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的当前结论。
+当前发布包含基线、Prophet、ARIMA 动态回归、经典树、MLP、LSTM、TFT，以及
+LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8`
+消融，共 24 个模型配置。AutoGluon 和 TimesFM 尚未迁移到 V4，因此不进入本报告的
+当前结论。
 
 ## 1. 证据边界与主要结论
 
-- 在全部 21 个配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden 分别取得
-  `18/1/2`、`18/1/2`、`11/8/2`（扩展历史胜 / 104 周胜 / 平局）。因此，两年滚动窗口
+- 在全部 24 个配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden 分别取得
+  `21/1/2`、`21/1/2`、`14/8/2`（扩展历史胜 / 104 周胜 / 平局）。因此，两年滚动窗口
   在 Grocery 与 Wine 上多数略逊，但在 Garden 上并非单向劣化。
 - 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
   `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
   这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
 - 104 周生产滚动实验与扩展历史使用相同的模型配置、预测日期和已知未来信息，只改变
   每个 forecast origin 可见的训练历史范围。代表配置的 WAPE 差值中位数在 Grocery、
-  Wine、Garden 分别为 `+0.09`、`+0.37`、`+0.05` 个百分点，整体代价较小；Luxury
-  的方向因模型而异，必须同时检查事件召回与 F1，不能只看 WAPE。
+  Wine、Garden 分别为 `+0.15`、`+0.47`、`+0.10` 个百分点；Luxury 为 `-5.56`
+  个百分点，但不同模型的方向并不一致，必须同时检查事件召回与 F1，不能只看 WAPE。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
 - 所有区间和 fold 分布只用于描述稳定性。本报告没有进行预注册的显著性检验，也不把
@@ -30,9 +31,9 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 
 <!-- BENCHMARK_BLOCK:provenance:START -->
 > Benchmark ID: `2026-retail-week-expanding-v4`<br>
-> Release ID: `20261106-arima-v1`<br>
+> Release ID: `20261106-neural-v1`<br>
 > Protocol hash: `281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e`<br>
-> Release manifest SHA-256: `79a4fc93e754fcd21bb5cd7251d42a8c94b27a1a01265a09288c6c17e4a98afa`<br>
+> Release manifest SHA-256: `bf12dad5ab7b91638d37463a63a69b78f6d4a679e3d8f21606e95cdeae64d21e`<br>
 > Fold uncertainty intervals are descriptive; they are not claims of statistical significance.
 <!-- BENCHMARK_BLOCK:provenance:END -->
 
@@ -48,6 +49,9 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Prophet | prophet | default | 4.16% | 5.0931 | 6.4422 | 0.19% | 0.1864 | 0.0414 | 0.0058 |
 | Regression + ARIMA (1,0,1) | statsmodels | default | 4.17% | 5.1005 | 6.4488 | 0.19% | 0.1867 | 0.0413 | 0.0062 |
+| LSTM | pytorch_lstm | default | 4.44% | 5.4350 | 6.8335 | -0.19% | 0.1989 | 0.0424 | 0.0079 |
+| MLP | pytorch_mlp | default | 4.66% | 5.6944 | 7.1760 | 0.81% | 0.2084 | 0.0478 | 0.0088 |
+| TFT | pytorch_forecasting | default | 4.99% | 6.1063 | 7.8900 | -1.96% | 0.2235 | 0.0506 | 0.0076 |
 | XGBoost Default (MSE) | xgboost | default | 5.01% | 6.1295 | 7.8354 | -1.17% | 0.2244 | 0.0485 | 0.0178 |
 | CatBoost Default (MAE) | catboost | default | 5.05% | 6.1832 | 8.2256 | -1.33% | 0.2263 | 0.0512 | 0.0154 |
 | LightGBM Default (MSE) | lightgbm | default | 5.31% | 6.5005 | 8.5586 | -1.48% | 0.2379 | 0.0533 | 0.0138 |
@@ -62,7 +66,10 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Regression + ARIMA (1,0,1) | statsmodels | default | 22.10% | 2.5856 | 3.2650 | 2.14% | 0.4299 | 0.2127 | 0.0319 |
 | Prophet | prophet | default | 22.78% | 2.6649 | 3.3746 | -1.03% | 0.4431 | 0.2223 | 0.0432 |
+| LSTM | pytorch_lstm | default | 23.20% | 2.7146 | 3.4496 | 2.54% | 0.4514 | 0.2244 | 0.0489 |
+| MLP | pytorch_mlp | default | 23.23% | 2.7173 | 3.4086 | 3.17% | 0.4518 | 0.2221 | 0.0473 |
 | XGBoost Default (MSE) | xgboost | default | 23.94% | 2.8004 | 3.5918 | -2.26% | 0.4656 | 0.2278 | 0.0671 |
+| TFT | pytorch_forecasting | default | 24.40% | 2.8544 | 3.5873 | 0.49% | 0.4746 | 0.2307 | 0.0588 |
 | CatBoost Default (MAE) | catboost | default | 24.40% | 2.8551 | 3.7194 | -6.04% | 0.4747 | 0.2307 | 0.0692 |
 | LightGBM Default (MSE) | lightgbm | default | 25.08% | 2.9346 | 3.7990 | -4.04% | 0.4879 | 0.2440 | 0.0786 |
 | Random Forest | random_forest | default | 25.81% | 3.0190 | 3.8472 | 0.19% | 0.5020 | 0.2554 | 0.0344 |
@@ -76,11 +83,14 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Regression + ARIMA (1,0,1) | statsmodels | default | 7.80% | 5.6053 | 6.9706 | -0.21% | 0.5901 | 0.0880 | 0.0630 |
 | Prophet | prophet | default | 7.81% | 5.6108 | 6.9749 | -0.23% | 0.5906 | 0.0881 | 0.0628 |
+| TFT | pytorch_forecasting | default | 8.76% | 6.2915 | 7.9981 | -1.11% | 0.6623 | 0.0975 | 0.0658 |
+| MLP | pytorch_mlp | default | 8.82% | 6.3334 | 7.8508 | -0.62% | 0.6667 | 0.0942 | 0.0539 |
 | CatBoost Default (MAE) | catboost | default | 8.86% | 6.3611 | 7.8148 | -1.59% | 0.6696 | 0.0889 | 0.0848 |
 | XGBoost Default (MSE) | xgboost | default | 9.03% | 6.4864 | 8.0532 | -1.53% | 0.6828 | 0.0880 | 0.0855 |
 | LightGBM Default (MSE) | lightgbm | default | 9.17% | 6.5871 | 8.0916 | -1.21% | 0.6934 | 0.0880 | 0.0747 |
 | Random Forest | random_forest | default | 9.33% | 6.7041 | 8.2132 | -4.16% | 0.7057 | 0.1032 | 0.0773 |
 | Decision Tree | decision_tree | default | 10.75% | 7.7236 | 9.4988 | -3.46% | 0.8130 | 0.1214 | 0.0724 |
+| LSTM | pytorch_lstm | default | 11.43% | 8.2119 | 11.0806 | 3.44% | 0.8644 | 0.0994 | 0.0663 |
 | Seasonal Naive (7d) | seasonal_naive | default | 15.36% | 11.0304 | 15.5556 | -2.92% | 1.1611 | 0.1695 | 0.0984 |
 | Moving Average (14d) | moving_average | default | 20.02% | 14.3816 | 18.6762 | -0.62% | 1.5139 | 0.2301 | 0.1179 |
 
@@ -92,6 +102,9 @@ CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8` 消融，共 21 �
 | Moving Average (14d) | moving_average | default | 161.82% | 0.1296 | 100.00% | 0.00% | 0.00% | 1.2891 |
 | Prophet | prophet | default | 172.55% | 0.1382 | 99.12% | 4.76% | 8.00% | 1.2954 |
 | Seasonal Naive (7d) | seasonal_naive | default | 182.76% | 0.1464 | 93.55% | 9.52% | 8.89% | 1.2857 |
+| TFT | pytorch_forecasting | default | 195.41% | 0.1565 | 99.71% | 0.00% | 0.00% | 1.2744 |
+| MLP | pytorch_mlp | default | 202.14% | 0.1619 | 99.71% | 4.76% | 8.70% | 1.2361 |
+| LSTM | pytorch_lstm | default | 204.49% | 0.1638 | 99.71% | 4.76% | 8.70% | 1.2357 |
 | Regression + ARIMA (1,0,1) | statsmodels | default | 209.29% | 0.1677 | 99.12% | 9.52% | 15.38% | 1.2297 |
 | XGBoost Default (MSE) | xgboost | default | 224.11% | 0.1795 | 98.24% | 0.00% | 0.00% | 1.2531 |
 | Random Forest | random_forest | default | 225.78% | 0.1809 | 99.41% | 14.29% | 23.08% | 1.1967 |
@@ -229,27 +242,27 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 配置表回答的是同一工具包内损失函数与 Tweedie power 的敏感性问题，不用于增加该工具包
 在广度榜中的投票权。完整图表位于：
 
-- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
-- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-arima-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
+- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-neural-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
+- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-neural-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
 ## 5. 生产式训练历史比较：104 周训练 → 4 周预测
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
 > Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4`<br>
-> Release ID: `20261106-104w-v1`<br>
-> Main source: `2026-retail-week-expanding-v4` / `20261106-arima-v1`<br>
-> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-104w-v1`<br>
-> Comparison release manifest SHA-256: `a3e59f607727998c7c130bd98090fd7defb193650f0c9258d05a0c8ebb7522da`<br>
+> Release ID: `20261106-neural-v1`<br>
+> Main source: `2026-retail-week-expanding-v4` / `20261106-neural-v1`<br>
+> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-neural-v1`<br>
+> Comparison release manifest SHA-256: `7f072f9f621972a63779b7a807d9891bd9d3eac32ec360c171a9af76f3647665`<br>
 > WAPE differences are paired descriptive results, not statistical significance claims.
 <!-- BENCHMARK_BLOCK:history_provenance:END -->
 
 <!-- BENCHMARK_BLOCK:history_policy_summary:START -->
 | 场景 | 配置数 | 扩展历史胜 | 104 周胜 | 平局 | WAPE 差值中位数 (104w-expanding) | 广度配置 WAPE 差值中位数 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| garden | 21 | 11 | 8 | 2 | +0.03 pp | +0.05 pp |
-| grocery | 21 | 18 | 1 | 2 | +0.28 pp | +0.09 pp |
-| luxury | 21 | 10 | 9 | 2 | +0.00 pp | +0.00 pp |
-| wine | 21 | 18 | 1 | 2 | +0.68 pp | +0.37 pp |
+| garden | 24 | 14 | 8 | 2 | +0.04 pp | +0.10 pp |
+| grocery | 24 | 21 | 1 | 2 | +0.27 pp | +0.15 pp |
+| luxury | 24 | 10 | 12 | 2 | -0.44 pp | -5.56 pp |
+| wine | 24 | 21 | 1 | 2 | +0.85 pp | +0.47 pp |
 <!-- BENCHMARK_BLOCK:history_policy_summary:END -->
 
 正差值表示 104 周 WAPE 更高，因而扩展历史更好；负差值表示 104 周结果更低。该方向只描述
@@ -260,9 +273,12 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| TFT | pytorch_forecasting | 4.99% | 5.75% | +0.75 pp | expanding |
 | CatBoost Default (MAE) | catboost | 5.05% | 5.37% | +0.32 pp | expanding |
 | XGBoost Default (MSE) | xgboost | 5.01% | 5.33% | +0.31 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 5.31% | 5.61% | +0.30 pp | expanding |
+| MLP | pytorch_mlp | 4.66% | 4.91% | +0.26 pp | expanding |
+| LSTM | pytorch_lstm | 4.44% | 4.62% | +0.18 pp | expanding |
 | Prophet | prophet | 4.16% | 4.28% | +0.12 pp | expanding |
 | Regression + ARIMA (1,0,1) | statsmodels | 4.17% | 4.26% | +0.09 pp | expanding |
 | Random Forest | random_forest | 5.39% | 5.45% | +0.05 pp | expanding |
@@ -274,9 +290,12 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| TFT | pytorch_forecasting | 24.40% | 26.64% | +2.24 pp | expanding |
 | XGBoost Default (MSE) | xgboost | 23.94% | 25.38% | +1.44 pp | expanding |
+| MLP | pytorch_mlp | 23.23% | 24.66% | +1.43 pp | expanding |
 | CatBoost Default (MAE) | catboost | 24.40% | 25.61% | +1.21 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 25.08% | 25.63% | +0.55 pp | expanding |
+| LSTM | pytorch_lstm | 23.20% | 23.74% | +0.54 pp | expanding |
 | Decision Tree | decision_tree | 27.05% | 27.44% | +0.40 pp | expanding |
 | Random Forest | random_forest | 25.81% | 26.18% | +0.37 pp | expanding |
 | Regression + ARIMA (1,0,1) | statsmodels | 22.10% | 22.46% | +0.36 pp | expanding |
@@ -288,11 +307,14 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 
 | 代表模型 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| LSTM | pytorch_lstm | 11.43% | 19.34% | +7.91 pp | expanding |
+| TFT | pytorch_forecasting | 8.76% | 10.84% | +2.08 pp | expanding |
 | CatBoost Default (MAE) | catboost | 8.86% | 9.25% | +0.39 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 9.17% | 9.34% | +0.17 pp | expanding |
 | Random Forest | random_forest | 9.33% | 9.48% | +0.15 pp | expanding |
 | XGBoost Default (MSE) | xgboost | 9.03% | 9.17% | +0.14 pp | expanding |
 | Regression + ARIMA (1,0,1) | statsmodels | 7.80% | 7.85% | +0.05 pp | expanding |
+| MLP | pytorch_mlp | 8.82% | 8.86% | +0.04 pp | expanding |
 | Prophet | prophet | 7.81% | 7.84% | +0.03 pp | expanding |
 | Moving Average (14d) | moving_average | 20.02% | 20.02% | +0.00 pp | tie |
 | Seasonal Naive (7d) | seasonal_naive | 15.36% | 15.36% | +0.00 pp | tie |
@@ -307,13 +329,16 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | XGBoost Default (MSE) | xgboost | 224.11% | 228.91% | +4.80 pp | expanding | 0.00% | 8.33% |
 | Moving Average (14d) | moving_average | 161.82% | 161.82% | +0.00 pp | tie | 0.00% | 0.00% |
 | Seasonal Naive (7d) | seasonal_naive | 182.76% | 182.76% | +0.00 pp | tie | 8.89% | 8.89% |
+| MLP | pytorch_mlp | 202.14% | 198.56% | -3.58 pp | sliding_104w | 8.70% | 8.70% |
 | Random Forest | random_forest | 225.78% | 218.24% | -7.54 pp | sliding_104w | 23.08% | 23.08% |
+| LSTM | pytorch_lstm | 204.49% | 192.33% | -12.16 pp | sliding_104w | 8.70% | 0.00% |
 | LightGBM Default (MSE) | lightgbm | 239.15% | 220.86% | -18.29 pp | sliding_104w | 7.41% | 7.14% |
 | Prophet | prophet | 172.55% | 142.28% | -30.26 pp | sliding_104w | 8.00% | 0.00% |
 | Regression + ARIMA (1,0,1) | statsmodels | 209.29% | 174.82% | -34.47 pp | sliding_104w | 15.38% | 9.09% |
+| TFT | pytorch_forecasting | 195.41% | 150.09% | -45.32 pp | sliding_104w | 0.00% | 9.09% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
 
-![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-104w-v1/fig-01-training-history-wape-delta.png)
+![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-neural-v1/fig-01-training-history-wape-delta.png)
 
 图中只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释：例如 Prophet 和
 ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据此宣称事件识别能力改善。
@@ -328,5 +353,5 @@ ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据�
 3. 除 ARIMA 外，当前模型只输出点预测，因此 Coverage80、区间宽度和 pinball loss 为
    不适用。ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、
    `80.66%`、`94.75%`；这些是未校准的模型区间，不能直接解释为库存服务水平。
-4. 下一阶段按相同适配器和发布协议逐个迁移 MLP/LSTM/TFT、AutoGluon 与 TimesFM，
+4. 下一阶段按相同适配器和发布协议逐个迁移 AutoGluon 与 TimesFM，
    每个模型单独审核并通过新 release 继承现有结果，不重写本次快照。

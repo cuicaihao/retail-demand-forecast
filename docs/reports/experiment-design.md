@@ -122,11 +122,13 @@ comparison release 配对比较。
 - 选择缓存键包含选择策略、截止日期、工具包和输入数据哈希；
 - GBDT Tweedie power 是预先声明的配置矩阵，不根据正式测试成绩临时扩展。
 
-当前协议属于“冻结配置后完整回测”，不是每个 fold 内重新调参的 nested validation。
+当前协议属于“冻结结构配置后完整回测”。MLP、LSTM 与 TFT 仅允许在每个正式 fold 的
+历史内部验证集上选择训练轮数；候选结构、学习率和容量参数仍在 2026 正式评估前冻结，
+不得读取该 fold 的测试标签。
 
 ## 4. 当前模型与配置矩阵
 
-当前 V4 release 包含 21 个配置。
+当前 V4 release `20261106-neural-v1` 包含 24 个配置。
 
 ### 4.1 工具包广度配置
 
@@ -140,7 +142,10 @@ comparison release 配对比较。
 - XGBoost default；
 - CatBoost default；
 - Prophet；
-- Regression + ARIMA(1,0,1)。
+- Regression + ARIMA(1,0,1)；
+- MLP；
+- LSTM；
+- TFT。
 
 ### 4.2 配置深度
 
@@ -161,6 +166,7 @@ default 是工具包代表配置；Tweedie 配置只进入独立消融表，不�
 - 基线直接重复历史模式或输出固定历史均值；
 - 树模型用一个 pooled direct 模型，根据未来日期、已知协变量和 `horizon_day` 输出 28 日预测；
 - Prophet 和 ARIMA 使用各自的原生多步预测接口；
+- MLP 与 LSTM 使用冻结的直接 28 日输出网络；TFT 使用原生多步预测接口；
 - ARIMA 输出名义 80% 预测区间；其余当前模型只输出点预测。
 
 V4 当前不把预测方式作为独立消融因素，因此不得根据这些结果声称某种多步策略普遍更优。
