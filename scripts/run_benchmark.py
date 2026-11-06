@@ -37,6 +37,14 @@ from retail_forecast.benchmark_registry import (
 )
 from retail_forecast.common import ROOT as PACKAGE_ROOT
 from retail_forecast.common import SCENARIOS, datasets, valid_labels
+from retail_forecast.timesfm_v4 import (
+    TIMESFM_BATCH_SIZE,
+    TIMESFM_CHECKPOINT,
+    TIMESFM_DEVICE,
+    TIMESFM_HISTORY_IMPUTATION,
+    TIMESFM_REVISION,
+    timesfm_factory,
+)
 
 
 def _config(
@@ -133,6 +141,48 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         },
         description="Known-future business regression with ARIMA(1,0,1) errors.",
     ),
+    "timesfm-3-0-univariate": _config(
+        "timesfm-3-0-univariate",
+        "TimesFM 3.0",
+        toolkit="timesfm_3_0",
+        family="foundation_model",
+        factory=timesfm_factory,
+        variant="univariate",
+        role="breadth",
+        group="timesfm_3_0",
+        params={
+            "checkpoint": TIMESFM_CHECKPOINT,
+            "revision": TIMESFM_REVISION,
+            "device": TIMESFM_DEVICE,
+            "per_core_batch_size": TIMESFM_BATCH_SIZE,
+            "use_covariates": False,
+            "return_quantiles": True,
+            "history_imputation": TIMESFM_HISTORY_IMPUTATION,
+        },
+        description="Zero-shot TimesFM 3.0 using only the historical target.",
+    ),
+    "timesfm-3-0-known-covariates": _config(
+        "timesfm-3-0-known-covariates",
+        "TimesFM 3.0 + Known Covariates",
+        toolkit="timesfm_3_0",
+        family="foundation_model",
+        factory=timesfm_factory,
+        variant="known_covariates",
+        role="ablation",
+        group="timesfm_3_0",
+        params={
+            "checkpoint": TIMESFM_CHECKPOINT,
+            "revision": TIMESFM_REVISION,
+            "device": TIMESFM_DEVICE,
+            "per_core_batch_size": TIMESFM_BATCH_SIZE,
+            "use_covariates": True,
+            "return_quantiles": True,
+            "history_imputation": TIMESFM_HISTORY_IMPUTATION,
+        },
+        description=(
+            "TimesFM 3.0 with origin-known calendar, opening, and business covariates."
+        ),
+    ),
     "mlp": _config(
         "mlp",
         "MLP",
@@ -223,6 +273,8 @@ MODEL_ALIASES = {
     "lightgbm": "lightgbm_default",
     "xgboost": "xgboost_default",
     "catboost": "catboost_default",
+    "timesfm": "timesfm-3-0-univariate",
+    "timesfm-3.0": "timesfm-3-0-univariate",
 }
 
 
@@ -464,6 +516,7 @@ def main() -> None:
             "tree_gbdt",
             "statistical",
             "neural",
+            "foundation_model",
             "automl",
             "all",
         ],

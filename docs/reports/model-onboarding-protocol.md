@@ -30,7 +30,7 @@ AutoGluon 使用单独的 `comparison_role="automl"`，不进入广度榜。其�
 ## 3. 运行、聚合与发布
 
 ```bash
-# 查看协议与当前 24 个模型配置
+# 查看协议与全部已注册配置
 uv run python scripts/run_benchmark.py --list
 
 # 主榜：扩展历史
@@ -48,6 +48,12 @@ uv run python scripts/run_benchmark.py \
   --benchmark 2026-retail-week-expanding-v4 \
   --family automl \
   --run-id 20261106-autogluon-validation
+
+# TimesFM 3.0：一个广度代表 + 一个已知协变量消融
+uv run python scripts/run_benchmark.py \
+  --benchmark 2026-retail-week-expanding-v4 \
+  --models timesfm-3-0-univariate,timesfm-3-0-known-covariates \
+  --run-id 20261106-timesfm-validation
 
 # 只聚合某个明确的本地结果根目录
 uv run python scripts/run_benchmark.py \
@@ -116,4 +122,5 @@ uv run python scripts/publish_benchmark.py \
 - [ ] unittest、Ruff、`git diff --check` 和发布快照复算通过。
 
 ARIMA、MLP、LSTM、TFT 与 AutoGluon 已按 V4 协议进入当前发布；AutoGluon 保持为
-独立 AutoML 对比层。TimesFM 的旧版数字只保留在历史归档，完成 V4 迁移后才能进入当前发布。
+独立 AutoML 对比层。TimesFM 3.0 的 V4 适配器已经预声明，但只有完成双协议运行和发布
+复算后才能进入当前报告；旧版 TimesFM 数字继续只保留在历史归档。

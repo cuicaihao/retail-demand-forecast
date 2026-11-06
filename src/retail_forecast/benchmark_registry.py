@@ -269,6 +269,7 @@ def _software_versions() -> dict[str, str]:
         "catboost",
         "prophet",
         "autogluon-timeseries",
+        "timesfm",
     ):
         try:
             versions[distribution] = importlib.metadata.version(distribution)

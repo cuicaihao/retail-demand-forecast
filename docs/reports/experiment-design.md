@@ -188,6 +188,23 @@ AutoGluon 不进入普通工具包广度榜，也不与 GBDT 配置消融混排�
 因此，AutoML 表回答的是“固定计算预算下使用 AutoML 管线与不使用 AutoML 的差异”，
 不是为 AutoGluon 的每个内部组件增加普通广度榜投票权。
 
+### 4.5 TimesFM 3.0 预声明迁移配置
+
+TimesFM 3.0 在进入 release 前冻结为两个配置，不使用正式 13-fold 成绩事后选择：
+
+- `timesfm-3-0-univariate`：工具包广度代表，只使用预测起点以前的有效目标历史；
+- `timesfm-3-0-known-covariates`：独立配置消融，额外使用预测起点已知的营业状态、
+  日历、节假日和场景业务计划变量。
+
+两者共享 `google/timesfm-3.0-pytorch` checkpoint，并将 revision 固定为
+`43046b85ec22d584a13f8098c2ed39c889e129c2`；同时固定 CPU 后端、batch size 1、同一历史
+缺失值处理和 P10/P90 输出。模型在每个进程只加载一次，所有 fold 串行推理。协变量矩阵
+固定为 `(特征数, 历史长度 + 预测长度)`，不得读取预测期 `y`、实际 stockout 或诊断真值。
+
+该 checkpoint 当前受 TimesFM 非商业权重许可证约束；本仓库只将其用于教学和实验比较，
+不得把结果解释为默认权重已经获准商业生产部署。在两套协议完成、发布快照通过复算前，
+这两个预声明配置不属于当前 `20261106-autogluon-v1` release。
+
 ## 5. 目标、有效标签与指标
 
 ### 5.1 有效标签

@@ -233,7 +233,7 @@ def _select_base_params(
                 )
             selected, _, _ = tune_model(scenario, model_name)
             base[scenario] = selected
-    elif config.model_id == "arima":
+    elif config.model_id == "arima" or config.family == "foundation_model":
         base = {scenario: {} for scenario in spec.scenarios}
     elif config.toolkit == "prophet":
         base = {}

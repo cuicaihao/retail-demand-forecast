@@ -22,6 +22,11 @@ from retail_forecast.model_comparison import CORE_MODELS
 from retail_forecast.neural import NEURAL_CANDIDATES, inputs, preprocessor
 from retail_forecast.prophet_benchmark import PROPHET_CANDIDATES, prophet_frame
 from retail_forecast.tft import tft_inference_dataset, training_dataset
+from retail_forecast.timesfm_v4 import (
+    timesfm_context,
+    timesfm_covariate_matrix,
+    timesfm_known_covariates,
+)
 
 
 class ModelBenchmarkProtocolTests(unittest.TestCase):
@@ -116,6 +121,47 @@ class ModelBenchmarkProtocolTests(unittest.TestCase):
             self.assertEqual(
                 converted.target.isna().sum(), (~valid_labels(frame.head(10))).sum()
             )
+
+    def test_timesfm_inputs_exclude_future_targets_and_diagnostic_truth(self):
+        history = datasets["luxury"].iloc[100:828].copy()
+        future = datasets["luxury"].iloc[828:856].copy()
+        expected_context = timesfm_context(history)
+        expected_covariates = timesfm_covariate_matrix(history, future, "luxury")
+
+        changed = future.copy()
+        changed["y"] = 99999.0
+        changed["stockout"] = ~changed["stockout"]
+        for column in (
+            "conditional_mean",
+            "latent_demand",
+            "occurrence_probability",
+            "positive_demand",
+        ):
+            if column in changed:
+                changed[column] = -99999.0
+
+        actual_covariates = timesfm_covariate_matrix(history, changed, "luxury")
+        self.assertEqual(expected_covariates.shape[1], len(history) + len(future))
+        self.assertGreater(expected_covariates.shape[0], 1)
+        self.assertEqual(len(expected_context), len(history))
+        pd.testing.assert_frame_equal(
+            pd.DataFrame(actual_covariates), pd.DataFrame(expected_covariates)
+        )
+
+    def test_timesfm_known_covariates_are_origin_known(self):
+        forbidden = {
+            "y",
+            "stockout",
+            "conditional_mean",
+            "latent_demand",
+            "occurrence_probability",
+            "positive_demand",
+        }
+        for scenario, frame in datasets.items():
+            covariates = timesfm_known_covariates(frame.head(10), scenario)
+            self.assertFalse(forbidden.intersection(covariates.columns))
+            self.assertIn("is_open", covariates.columns)
+            self.assertEqual(len(covariates), 10)
 
 
 if __name__ == "__main__":

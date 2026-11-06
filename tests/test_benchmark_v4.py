@@ -46,6 +46,7 @@ from retail_forecast.history_comparison import (
     build_training_history_comparison,
     summarize_training_history_comparison,
 )
+from retail_forecast.timesfm_v4 import TimesFMV4Forecaster
 
 
 class BenchmarkV4ProtocolTests(unittest.TestCase):
@@ -61,7 +62,7 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
             for model_id, config in MODEL_REGISTRY.items()
             if config.family != "automl"
         }
-        self.assertEqual(len(standard), 24)
+        self.assertEqual(len(standard), 26)
         expected_variants = {
             "default",
             "tweedie_p11",
@@ -89,6 +90,52 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
             self.assertEqual(config.toolkit, toolkit)
             self.assertEqual(config.family, "neural")
             self.assertEqual(config.comparison_role, "breadth")
+
+    def test_timesfm_has_one_breadth_config_and_one_declared_ablation(self) -> None:
+        univariate = MODEL_REGISTRY["timesfm-3-0-univariate"]
+        covariates = MODEL_REGISTRY["timesfm-3-0-known-covariates"]
+        self.assertEqual(univariate.family, "foundation_model")
+        self.assertEqual(univariate.comparison_role, "breadth")
+        self.assertFalse(univariate.params["use_covariates"])
+        self.assertEqual(covariates.family, "foundation_model")
+        self.assertEqual(covariates.comparison_role, "ablation")
+        self.assertTrue(covariates.params["use_covariates"])
+        self.assertEqual(univariate.config_group, covariates.config_group)
+        self.assertEqual(univariate.params["device"], "cpu")
+
+    def test_timesfm_adapter_does_not_read_future_targets(self) -> None:
+        class FakeTimesFM:
+            def predict(self, *, horizon, **kwargs):
+                del kwargs
+                return SimpleNamespace(
+                    forecast=np.arange(horizon, dtype=float),
+                    quantiles=np.tile(
+                        np.linspace(0.0, 8.0, 9, dtype=float), (horizon, 1)
+                    ),
+                )
+
+        frame = datasets["grocery"]
+        history = frame.iloc[100:828].copy()
+        future = frame.iloc[828:856].copy()
+        adapter = TimesFMV4Forecaster(
+            MODEL_REGISTRY["timesfm-3-0-known-covariates"].params
+        )
+        adapter.fit(history, "grocery")
+        with patch(
+            "retail_forecast.timesfm_v4.load_timesfm_model", return_value=FakeTimesFM()
+        ):
+            expected = adapter.predict(future, "grocery")
+            changed = future.copy()
+            changed["y"] = 1_000_000
+            changed["stockout"] = ~changed["stockout"]
+            for column in ("conditional_mean", "latent_demand"):
+                if column in changed:
+                    changed[column] = -1_000_000
+            actual = adapter.predict(changed, "grocery")
+
+        np.testing.assert_allclose(actual.point_forecast, expected.point_forecast)
+        np.testing.assert_allclose(actual.q10, expected.q10)
+        np.testing.assert_allclose(actual.q90, expected.q90)
 
     def test_autogluon_is_not_part_of_the_breadth_leaderboard(self) -> None:
         configs = [
