@@ -252,7 +252,7 @@ AutoGluon 输出 10%、50% 和 90% 分位数。最终测试的经验覆盖率如
 
 ## 附录：证据与复现
 
-- Notebook：`notebooks/35-autogluon-timeseries-tutorial.ipynb`
+- Notebook：`notebooks/25-autogluon-tutorial.ipynb`
 - AutoGluon 运行：`runs/20261020-autogluon-validation/autogluon_timeseries/`
 - 原模型汇总：`runs/20261020-all-models-summary/all_model_comparison/`
 - 原报告：`docs/reports/2026-10-20-all-models-validation-report.md`

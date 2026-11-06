@@ -26,7 +26,7 @@ math: true
 > 完整量化评测指标、实验方案与对比数据详见仓库报告：
 > - 历史实验方案：[`reports/archive/2026-11-03-timesfm-experiment-plan.md`](../../reports/archive/2026-11-03-timesfm-experiment-plan.md)
 > - 历史量化报告：[`reports/archive/2026-11-03-timesfm-validation-report.md`](../../reports/archive/2026-11-03-timesfm-validation-report.md)
-> - 交互实操代码：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../../../notebooks/36-timesfm-bigquery-tutorial.ipynb)
+> - 交互实操代码：[`notebooks/26-timesfm-tutorial.ipynb`](../../../notebooks/26-timesfm-tutorial.ipynb)
 > - 历史 SQL 资产：[`src/retail_forecast/sql/archive_bigquery_timesfm_v2_experiments.sql`](../../../src/retail_forecast/sql/archive_bigquery_timesfm_v2_experiments.sql)
 
 ---

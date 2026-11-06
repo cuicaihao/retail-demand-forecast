@@ -9,7 +9,7 @@ math: true
 ---
 
 > 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
-> 🔗 **配套交互实验 Notebook**：[`notebooks/10-prophet-retail-tutorial.ipynb`](../../notebooks/10-prophet-retail-tutorial.ipynb) · [`notebooks/11-prophet-luxury-tutorial.ipynb`](../../notebooks/11-prophet-luxury-tutorial.ipynb)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/20-prophet-tutorial.ipynb`](../../notebooks/20-prophet-tutorial.ipynb) · [`notebooks/21-prophet-luxury-diagnosis.ipynb`](../../notebooks/21-prophet-luxury-diagnosis.ipynb)  
 > 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 一、引言：从零售需求预测问题到 Prophet

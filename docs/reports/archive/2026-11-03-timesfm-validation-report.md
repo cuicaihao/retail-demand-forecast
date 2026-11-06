@@ -4,7 +4,7 @@
 
 > **报告版本**：v1.0 (Production Benchmark)  
 > **评测底座**：Google Cloud BigQuery (`us-central1`) 原生托管 TimesFM 3.0 (`AI.FORECAST`)  
-> **数据版本**：`data/teaching/` 标准合成数据集（由 `notebooks/00-generate-teaching-data.ipynb` 固定随机种子生成）  
+> **数据版本**：`data/teaching/` 标准合成数据集（由 `notebooks/10-generate-teaching-data.ipynb` 固定随机种子生成）  
 > **对比基线**：Seasonal Naive（天真季节性）、Prophet（调优外生协变量与假日回归）、LightGBM（密集滑窗特征工程）  
 > **主要成果**：量化检验 Google Research TimesFM 3.0 在不同需求机制、缺货删失污染与极短样本冷启动下的实战表现，为技术博客《拆解 Google TimesFM》第五章提供实证支撑。
 

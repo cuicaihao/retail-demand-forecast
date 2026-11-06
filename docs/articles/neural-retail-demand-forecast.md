@@ -9,7 +9,7 @@ math: true
 ---
 
 > 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
-> 🔗 **配套交互实验 Notebook**：[`notebooks/33a-mlp-tutorial.ipynb`](../../notebooks/33a-mlp-tutorial.ipynb) · [`notebooks/33b-lstm-tutorial.ipynb`](../../notebooks/33b-lstm-tutorial.ipynb) · [`notebooks/33c-tft-tutorial.ipynb`](../../notebooks/33c-tft-tutorial.ipynb) · [`notebooks/33d-neural-model-comparison.ipynb`](../../notebooks/33d-neural-model-comparison.ipynb)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/24a-mlp-tutorial.ipynb`](../../notebooks/24a-mlp-tutorial.ipynb) · [`notebooks/24b-lstm-tutorial.ipynb`](../../notebooks/24b-lstm-tutorial.ipynb) · [`notebooks/24c-tft-tutorial.ipynb`](../../notebooks/24c-tft-tutorial.ipynb) · [`notebooks/32-benchmark-neural-models.ipynb`](../../notebooks/32-benchmark-neural-models.ipynb)  
 > 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 一、四周预测为什么会用到神经网络？
@@ -18,7 +18,7 @@ math: true
 
 神经网络可以学习输入窗口到未来输出的映射。实际价值取决于样本组织、未来输入的可见性、训练数据规模与交付成本。**网络结构增加表达能力，工程验证决定这些能力是否改善补货预测。**
 
-本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../../notebooks/33a-mlp-tutorial.ipynb)、[LSTM Notebook](../../notebooks/33b-lstm-tutorial.ipynb)、[TFT Notebook](../../notebooks/33c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../../notebooks/33d-neural-model-comparison.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
+本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../../notebooks/24a-mlp-tutorial.ipynb)、[LSTM Notebook](../../notebooks/24b-lstm-tutorial.ipynb)、[TFT Notebook](../../notebooks/24c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../../notebooks/32-benchmark-neural-models.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
 
 LSTM 与 TFT 的完整实现分别来自 PyTorch 和 PyTorch Forecasting；后者也提供需求预测教程 [1]。本文记录的历史快照曾恢复每个起点对应的真实检查点，并验证恢复预测与此前逐日预测完全一致。当前仓库的权威 wine/garden 数据已经更新，因此 Notebook 默认从头训练全部 TFT；历史 checkpoint 只能与其 manifest 记录的输入版本配套使用。
 

@@ -12,7 +12,7 @@
 
 ## 一、 实验背景与总体目标
 
-在本仓库现有的教程中，我们已经使用 **4 套固定随机种子生成的墨尔本超市教学合成数据集**（位于 `data/teaching/`，由 `notebooks/00-generate-teaching-data.ipynb` 生成）系统检验了 `Seasonal Naive`、`Prophet` 与 `LightGBM` 的表现。
+在本仓库现有的教程中，我们已经使用 **4 套固定随机种子生成的墨尔本超市教学合成数据集**（位于 `data/teaching/`，由 `notebooks/10-generate-teaching-data.ipynb` 生成）系统检验了 `Seasonal Naive`、`Prophet` 与 `LightGBM` 的表现。
 
 在现代企业级零售预测架构中，时序基础模型（Time-series Foundation Models, TSFM）正逐步取代单 SKU 独立拟合的传统机器学习管线。Google 在 BigQuery 中深度集成了 **TimesFM 2.5 / 3.0**，以 `AI.FORECAST` 函数提供真正的 **Zero-Shot（零样本）** 预测与原生协变量建模能力。
 

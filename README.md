@@ -23,7 +23,7 @@
 
 ## 🛒 四大合成零售场景：本仓库的核心资产 (Synthetic Retail Scenarios)
 
-本仓库最核心的学术与工程贡献，在于**抽象并严密实现了四个具有行业典型挑战的合成零售需求场景**（位于 `data/teaching/`，由 [scripts/generate_teaching_data.py](scripts/generate_teaching_data.py) 或 [notebooks/00-generate-teaching-data.ipynb](notebooks/00-generate-teaching-data.ipynb) 确定性生成）。每个场景代表现实供应链中不可回避的特定预测难题：
+本仓库最核心的学术与工程贡献，在于**抽象并严密实现了四个具有行业典型挑战的合成零售需求场景**（位于 `data/teaching/`，由 [scripts/generate_teaching_data.py](scripts/generate_teaching_data.py) 或 [notebooks/10-generate-teaching-data.ipynb](notebooks/10-generate-teaching-data.ipynb) 确定性生成）。每个场景代表现实供应链中不可回避的特定预测难题：
 
 | 场景 | 数据文件 (`data/teaching/`) | 核心需求形态与业务机制 | 已知业务协变量 (Known Future Covariates) | 核心评测挑战与不可自愈陷阱 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -259,7 +259,7 @@ retail-demand-forecast/
 ├── images/                     # 🖼️ 教学数据概览与出版级实验对比图表 (.png / .webp)
 │   ├── benchmarks/             # 按 benchmark ID / release ID 分层的结果图表
 │   └── tweedie/                # 历史 Tweedie 报告配图
-├── notebooks/                  # 交互式教学与基准评测 Notebook (00 ~ 36)
+├── notebooks/                  # 交互式教学与基准评测 Notebook (10 ~ 33)
 ├── runs/                       # 本地实验独立输出目录 (命名规范: runs/YYYYMMDD-[model]-[type]/)
 ├── scripts/                    # 自动化与运维脚本 (基准评测、数据绘图、报告生成与发布)
 ├── src/
@@ -285,18 +285,19 @@ retail-demand-forecast/
 
 ## 🧭 教程 Notebook 路线图 (Tutorial Roadmap)
 
-请先运行 `00` 生成本地合成数据集，随后可按模型专题或全模型对比顺序阅读与执行：
+> 💡 完整 Notebook 分层与阶段映射说明详见 **[Notebook 导航索引与生命周期表](notebooks/README.md)**。
+
+请先运行 `10` 生成本地合成数据集，随后可按模型专题或全模型对比顺序阅读与执行：
 
 | 阶段 | Notebook 文件 | 主题与涵盖模型 |
 | :--- | :--- | :--- |
-| **00 数据生成** | [00-generate-teaching-data.ipynb](notebooks/00-generate-teaching-data.ipynb) | 生成 5 年四套墨尔本零售教学合成数据、VIC 公共假日表与数据概览图 |
-| **10–11 Prophet 专项** | [10-prophet-retail-tutorial.ipynb](notebooks/10-prophet-retail-tutorial.ipynb)<br>[11-prophet-luxury-tutorial.ipynb](notebooks/11-prophet-luxury-tutorial.ipynb) | Prophet 可加分解、假日与促销回归项、缺货去偏、参数消融及在稀疏奢侈品场景下的局限性诊断 |
-| **20 五模型初探** | [20-five-model-comparison.ipynb](notebooks/20-five-model-comparison.ipynb) | Seasonal Naive、Prophet、SARIMAX、LightGBM 与 TFT 五类代表性模型的初步横向对照 |
-| **31 经典统计模型** | [31-arima-tutorial.ipynb](notebooks/31-arima-tutorial.ipynb) | ARIMA / SARIMAX 动态回归、傅里叶季节项与信息准则选参 |
-| **32 树模型与 GBDT** | [32a-decision-tree-tutorial.ipynb](notebooks/32a-decision-tree-tutorial.ipynb)<br>[32b-random-forest-tutorial.ipynb](notebooks/32b-random-forest-tutorial.ipynb)<br>[32c-lightgbm-tutorial.ipynb](notebooks/32c-lightgbm-tutorial.ipynb)<br>[32d-xgboost-tutorial.ipynb](notebooks/32d-xgboost-tutorial.ipynb)<br>[32e-catboost-tutorial.ipynb](notebooks/32e-catboost-tutorial.ipynb)<br>[32f-tree-model-comparison.ipynb](notebooks/32f-tree-model-comparison.ipynb) | 时序转表格化特征工程（Lags、Rolling Stats、日历与促销特征），从单棵决策树到主流 GBDT 家族的系统对比 |
-| **33 深度学习模型** | [33a-mlp-tutorial.ipynb](notebooks/33a-mlp-tutorial.ipynb)<br>[33b-lstm-tutorial.ipynb](notebooks/33b-lstm-tutorial.ipynb)<br>[33c-tft-tutorial.ipynb](notebooks/33c-tft-tutorial.ipynb)<br>[33d-neural-model-comparison.ipynb](notebooks/33d-neural-model-comparison.ipynb) | MLP、序列编码 LSTM 与 Temporal Fusion Transformer (TFT) 的训练、早停与样本复杂度边界 |
-| **34–35 全模型与 AutoML** | [34-all-model-comparison.ipynb](notebooks/34-all-model-comparison.ipynb)<br>[35-autogluon-timeseries-tutorial.ipynb](notebooks/35-autogluon-timeseries-tutorial.ipynb) | 10 种核心模型在统一滚动验证与测试口径下的全量对比，以及 AutoGluon-TimeSeries 多层集成实验 |
-| **36 时序基础模型（历史 V2）** | [36-timesfm-bigquery-tutorial.ipynb](notebooks/36-timesfm-bigquery-tutorial.ipynb) | 历史 BigQuery 单切片教程；当前 TimesFM 3.0 双协议结论以 [V4 文章](docs/articles/timesfm-retail-demand-forecast.md)为准 |
+| **阶段一：数据生成 (`1X`)** | [10-generate-teaching-data.ipynb](notebooks/10-generate-teaching-data.ipynb) | 生成 5 年四套墨尔本零售教学合成数据、VIC 公共假日表与数据概览图 |
+| **阶段二：Prophet 专项 (`2X`)** | [20-prophet-tutorial.ipynb](notebooks/20-prophet-tutorial.ipynb)<br>[21-prophet-luxury-diagnosis.ipynb](notebooks/21-prophet-luxury-diagnosis.ipynb) | Prophet 可加分解、假日与促销回归项、缺货去偏、参数消融及在稀疏奢侈品场景下的局限性诊断 |
+| **阶段二：经典统计模型 (`2X`)** | [22-arima-tutorial.ipynb](notebooks/22-arima-tutorial.ipynb) | ARIMA / SARIMAX 动态回归、傅里叶季节项与信息准则选参 |
+| **阶段二：树模型与 GBDT (`2X`)** | [23a-decision-tree-tutorial.ipynb](notebooks/23a-decision-tree-tutorial.ipynb)<br>[23b-random-forest-tutorial.ipynb](notebooks/23b-random-forest-tutorial.ipynb)<br>[23c-lightgbm-tutorial.ipynb](notebooks/23c-lightgbm-tutorial.ipynb)<br>[23d-xgboost-tutorial.ipynb](notebooks/23d-xgboost-tutorial.ipynb)<br>[23e-catboost-tutorial.ipynb](notebooks/23e-catboost-tutorial.ipynb) | 时序转表格化特征工程（Lags、Rolling Stats、日历与促销特征），从单棵决策树到主流 GBDT 家族的系统对比 |
+| **阶段二：深度学习模型 (`2X`)** | [24a-mlp-tutorial.ipynb](notebooks/24a-mlp-tutorial.ipynb)<br>[24b-lstm-tutorial.ipynb](notebooks/24b-lstm-tutorial.ipynb)<br>[24c-tft-tutorial.ipynb](notebooks/24c-tft-tutorial.ipynb) | MLP、序列编码 LSTM 与 Temporal Fusion Transformer (TFT) 的训练、早停与样本复杂度边界 |
+| **阶段二：AutoML 与基础模型 (`2X`)** | [25-autogluon-tutorial.ipynb](notebooks/25-autogluon-tutorial.ipynb)<br>[26-timesfm-tutorial.ipynb](notebooks/26-timesfm-tutorial.ipynb) | AutoGluon-TimeSeries 自动化实验与 TimesFM 基础模型入门教程 |
+| **阶段三：统一评测辅助对比 (`3X`)** | [30-benchmark-five-models.ipynb](notebooks/30-benchmark-five-models.ipynb)<br>[31-benchmark-tree-models.ipynb](notebooks/31-benchmark-tree-models.ipynb)<br>[32-benchmark-neural-models.ipynb](notebooks/32-benchmark-neural-models.ipynb)<br>[33-benchmark-all-models.ipynb](notebooks/33-benchmark-all-models.ipynb) | 五模型、树模型家族、神经网络与全模型在统一滚动验证口径下的交互式验证与可视化对比（正式权威发布以 CLI 与报告为准） |
 
 ---
 

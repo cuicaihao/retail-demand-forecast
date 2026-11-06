@@ -282,23 +282,23 @@ for family in ["Prophet", "MLP", "LSTM", "TFT"]:
 
 def main():
     extend_prophet(
-        "10-prophet-retail-tutorial.ipynb",
+        "20-prophet-tutorial.ipynb",
         ["grocery", "wine", "garden"],
         "prophet_retail",
     )
     extend_prophet(
-        "11-prophet-luxury-tutorial.ipynb", ["luxury"], "prophet_luxury", luxury=True
+        "21-prophet-luxury-diagnosis.ipynb", ["luxury"], "prophet_luxury", luxury=True
     )
     for filename, model in [
-        ("33a-mlp-tutorial.ipynb", "MLP"),
-        ("33b-lstm-tutorial.ipynb", "LSTM"),
-        ("33c-tft-tutorial.ipynb", "TFT"),
+        ("24a-mlp-tutorial.ipynb", "MLP"),
+        ("24b-lstm-tutorial.ipynb", "LSTM"),
+        ("24c-tft-tutorial.ipynb", "TFT"),
     ]:
         nbf.write(neural_notebook(model), NOTEBOOKS / filename)
     nbf.write(
-        neural_comparison_notebook(), NOTEBOOKS / "33d-neural-model-comparison.ipynb"
+        neural_comparison_notebook(), NOTEBOOKS / "32-benchmark-neural-models.ipynb"
     )
-    nbf.write(all_comparison_notebook(), NOTEBOOKS / "34-all-model-comparison.ipynb")
+    nbf.write(all_comparison_notebook(), NOTEBOOKS / "33-benchmark-all-models.ipynb")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ math: true
 ---
 
 > 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
-> 🔗 **配套交互实验 Notebook**：[`notebooks/32c-lightgbm-tutorial.ipynb`](../../notebooks/32c-lightgbm-tutorial.ipynb) · [`notebooks/32d-xgboost-tutorial.ipynb`](../../notebooks/32d-xgboost-tutorial.ipynb) · [`notebooks/32f-tree-model-comparison.ipynb`](../../notebooks/32f-tree-model-comparison.ipynb)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/23c-lightgbm-tutorial.ipynb`](../../notebooks/23c-lightgbm-tutorial.ipynb) · [`notebooks/23d-xgboost-tutorial.ipynb`](../../notebooks/23d-xgboost-tutorial.ipynb) · [`notebooks/31-benchmark-tree-models.ipynb`](../../notebooks/31-benchmark-tree-models.ipynb)  
 > 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 一、补货问题怎样变成表格回归？
@@ -18,7 +18,7 @@ math: true
 
 Prophet 和业务动态回归为每个模块预先指定结构。回归树可以根据特征阈值分组，再为不同组合学习预测值。**树模型的需求预测能力取决于特征在预测起点是否可见，以及这些特征是否表达了业务变化。**
 
-本篇继续使用相同的合成案例、VIC 假日表和 28 天补货期限。配套 [LightGBM Notebook](../../notebooks/32c-lightgbm-tutorial.ipynb)、[XGBoost Notebook](../../notebooks/32d-xgboost-tutorial.ipynb) 和 [五模型比较 Notebook](../../notebooks/32f-tree-model-comparison.ipynb) 使用统一的起点历史摘要，并实际运行四个训练期滚动窗口和最终测试。完整训练实现位于 `src/retail_forecast/trees.py`。
+本篇继续使用相同的合成案例、VIC 假日表和 28 天补货期限。配套 [LightGBM Notebook](../../notebooks/23c-lightgbm-tutorial.ipynb)、[XGBoost Notebook](../../notebooks/23d-xgboost-tutorial.ipynb) 和 [五模型比较 Notebook](../../notebooks/31-benchmark-tree-models.ipynb) 使用统一的起点历史摘要，并实际运行四个训练期滚动窗口和最终测试。完整训练实现位于 `src/retail_forecast/trees.py`。
 
 文章用同一条主线串联业务评估、特征、模型计算、解释、验证和交付，让读者能够判断某个特征改善来自哪里，以及获得的改善是否值得维护成本。
 

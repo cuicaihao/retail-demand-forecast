@@ -9,7 +9,7 @@ math: true
 ---
 
 > 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
-> 🔗 **配套交互实验 Notebook**：[`notebooks/31-arima-tutorial.ipynb`](../../notebooks/31-arima-tutorial.ipynb)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/22-arima-tutorial.ipynb`](../../notebooks/22-arima-tutorial.ipynb)  
 > 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 一、从四周补货任务出发
@@ -20,7 +20,7 @@ Prophet 教程用显式模块表达趋势、周期和业务效应。本篇沿着
 
 自回归积分滑动平均模型（Autoregressive Integrated Moving Average，ARIMA）组合了自回归、差分与滑动平均项，用于描述序列的时间依赖 [1]。本文从简单模型推到带 ARIMA 误差的回归，再检查额外的时间结构是否改善未来预测。
 
-配套文件为 [ARIMA Notebook](../../notebooks/31-arima-tutorial.ipynb)。在下载包根目录启动 Jupyter，Notebook 会读取已有 CSV，完成训练、滚动验证、最终测试、参数检查、新息诊断和区间图。完整实现位于 `src/retail_forecast/arima.py` 与 `src/retail_forecast/common.py`。
+配套文件为 [ARIMA Notebook](../../notebooks/22-arima-tutorial.ipynb)。在下载包根目录启动 Jupyter，Notebook 会读取已有 CSV，完成训练、滚动验证、最终测试、参数检查、新息诊断和区间图。完整实现位于 `src/retail_forecast/arima.py` 与 `src/retail_forecast/common.py`。
 
 ## 二、问题评估与数据：我们究竟要预测什么？
 

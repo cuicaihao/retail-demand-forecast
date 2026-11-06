@@ -9,7 +9,7 @@ math: true
 ---
 
 > 📌 **阶段归属**：阶段二/三 · 基础模型探索与双协议验证 (Stage 2/3: Foundation Model Evaluation)  
-> 🔗 **配套交互实验 Notebook**：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../../notebooks/36-timesfm-bigquery-tutorial.ipynb)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/26-timesfm-tutorial.ipynb`](../../notebooks/26-timesfm-tutorial.ipynb)  
 > 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 问题不是“基础模型能不能跑”，而是“比较是否公平”
