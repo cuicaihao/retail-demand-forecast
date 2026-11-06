@@ -8,7 +8,7 @@
 本文定义仓库当前已经实现并可复算的实验边界。它不是理想化的未来路线图，也不把尚未
 实现的分析写成既成事实。模型接入细节见
 [模型接入协议](model-onboarding-protocol.md)，当前结果见
-[V4 分阶段基准报告](2026-retail-week-v4-first-stage-report.md)。
+[V4 完整基准报告](2026-retail-week-v4-first-stage-report.md)。
 
 ## 1. 实验目标与证据边界
 

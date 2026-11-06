@@ -138,6 +138,34 @@ class RepositoryLayoutTests(unittest.TestCase):
         )
         self.assertIn("TimesFM 3.0 + Known Covariates", report)
 
+        summary = (
+            ROOT / "docs/reports/2026-retail-week-v4-release-summary.md"
+        ).read_text()
+        article = (ROOT / "docs/articles/timesfm-retail-demand-forecast.md").read_text()
+        for current_document in (summary, article):
+            self.assertIn(release_id, current_document)
+        self.assertIn(
+            hashlib.sha256(expanding_manifest.read_bytes()).hexdigest(), summary
+        )
+        self.assertIn(
+            hashlib.sha256(comparison_manifest.read_bytes()).hexdigest(), summary
+        )
+        self.assertIn("TimesFM 3.0 + Known Covariates", summary)
+        self.assertNotIn("5.13%", article)
+        self.assertNotIn("43.79%", article)
+
+    def test_historical_benchmark_articles_are_archived(self) -> None:
+        articles = ROOT / "docs/articles"
+        self.assertFalse(
+            (articles / "2026-retail-demand-forecast-benchmark.md").exists()
+        )
+        self.assertTrue(
+            (articles / "archive/2026-retail-demand-forecast-benchmark-v3.md").is_file()
+        )
+        self.assertTrue(
+            (articles / "archive/timesfm-retail-demand-forecast-v2.md").is_file()
+        )
+
     def test_reference_snapshot_provenance_is_explicit(self) -> None:
         data_dir = ROOT / "data" / "teaching"
         prophet_manifest = ROOT / "data/artifacts/published/prophet/run_manifest.json"

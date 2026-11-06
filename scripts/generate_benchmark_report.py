@@ -32,6 +32,10 @@ def _format_value(column: str, value: float) -> str:
         "automl_WAPE",
         "standard_Event_F1",
         "automl_Event_F1",
+        "garden",
+        "grocery",
+        "luxury",
+        "wine",
     }:
         return f"{value * 100:.2f}%"
     if column == "WAPE_Delta_AutoML_Minus_Standard":
@@ -66,6 +70,10 @@ def _markdown_table(frame: pd.DataFrame, columns: list[str]) -> str:
         "WAPE_Delta_AutoML_Minus_Standard": "差值 (AutoML-普通)",
         "standard_Event_F1": "普通模型 Event F1",
         "automl_Event_F1": "AutoML Event F1",
+        "garden": "Garden WAPE",
+        "grocery": "Grocery WAPE",
+        "luxury": "Luxury WAPE",
+        "wine": "Wine WAPE",
     }
     lines = [
         "| " + " | ".join(labels.get(column, column) for column in columns) + " |",
@@ -103,6 +111,19 @@ def replace_marked_block(document: str, block_name: str, content: str) -> str:
     before, remainder = document.split(start, 1)
     _, after = remainder.split(end, 1)
     return f"{before}{start}\n{content.rstrip()}\n{end}{after}"
+
+
+def replace_available_blocks(document: str, blocks: dict[str, str]) -> str:
+    """Replace blocks present in a document while rejecting half-defined markers."""
+    result = document
+    for name, content in blocks.items():
+        start = f"<!-- BENCHMARK_BLOCK:{name}:START -->"
+        end = f"<!-- BENCHMARK_BLOCK:{name}:END -->"
+        if (start in result) != (end in result):
+            raise ValueError(f"Incomplete marker pair for {name!r}")
+        if start in result:
+            result = replace_marked_block(result, name, content)
+    return result
 
 
 def generate_blocks(benchmark_id: str, release_id: str) -> Path:
@@ -258,6 +279,43 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
         _markdown_table(comparison, comparison_columns) + "\n", encoding="utf-8"
     )
 
+    capability = (
+        breadth.pivot(
+            index=["model_name", "toolkit"], columns="scenario", values="WAPE"
+        )
+        .reset_index()
+        .sort_values("model_name")
+    )
+    capability_columns = [
+        "model_name",
+        "toolkit",
+        *[scenario for scenario in spec.scenarios if scenario in capability.columns],
+    ]
+    (output / "capability_matrix.md").write_text(
+        _markdown_table(capability, capability_columns) + "\n", encoding="utf-8"
+    )
+
+    timesfm = pd.concat(
+        [
+            breadth[breadth.config_group.eq("timesfm_3_0")],
+            ablations[ablations.config_group.eq("timesfm_3_0")],
+        ],
+        ignore_index=True,
+    ).sort_values(["scenario", "variant"])
+    timesfm_columns = [
+        "scenario",
+        "model_name",
+        "variant",
+        "WAPE",
+        "Coverage80",
+        "MeanIntervalWidth80",
+        "PinballLoss80",
+        "DemandEventF1At05",
+    ]
+    (output / "timesfm_ablation.md").write_text(
+        _markdown_table(timesfm, timesfm_columns) + "\n", encoding="utf-8"
+    )
+
     release_digest = hashlib.sha256(release_path.read_bytes()).hexdigest()
     provenance = (
         f"> Benchmark ID: `{benchmark_id}`<br>\n"
@@ -288,12 +346,13 @@ def main() -> None:
         "configuration_ablations": (output / "configuration_ablations.md").read_text(),
         "automl_scorecard": (output / "automl_scorecard.md").read_text(),
         "automl_vs_standard": (output / "automl_vs_standard.md").read_text(),
+        "capability_matrix": (output / "capability_matrix.md").read_text(),
+        "timesfm_ablation": (output / "timesfm_ablation.md").read_text(),
         "provenance": (output / "provenance.md").read_text(),
     }
     for target in args.sync_target:
         document = target.read_text(encoding="utf-8")
-        for name, content in blocks.items():
-            document = replace_marked_block(document, name, content)
+        document = replace_available_blocks(document, blocks)
         target.write_text(document, encoding="utf-8")
     print(f"Generated benchmark-owned report blocks: {output}")
 

@@ -6,12 +6,12 @@
 
 本仓库配套的技术博客与量化实证报告深度拆解了零售需求预测的建模机制、调参诊断、缺货去偏、Tweedie 损失函数与 52 周前向滑动窗口基准评测：
 
-- **[零售需求预测 2026 零售周基准：52 周滑动窗口评测与 Tweedie 分布实践](docs/articles/2026-retail-demand-forecast-benchmark.md)**
-  记录 V3 固定 24 周历史快照在 52 个完整零售周上的结果。该历史报告不等同于 V4 扩展历史主榜。
-- **[2026 零售周 52 周前向滑动窗口技术验证报告（历史归档）](docs/reports/archive/2026-annual-retail-forecast-benchmark.md)**
-  保存 15 种模型及配置的 V3 历史证据；其不可变快照位于 `data/benchmarks/published/2026-retail-week-24w-v3/`。
-- **[2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML + TimesFM）](docs/reports/2026-retail-week-v4-first-stage-report.md)**
+- **[2026 零售周 V4 完整基准报告](docs/reports/2026-retail-week-v4-first-stage-report.md)**
   使用审核后的扩展历史主榜和生产式 104 周滚动实验，分开呈现工具包广度、配置深度与训练历史影响。
+- **[2026 零售周 V4 发布摘要](docs/reports/2026-retail-week-v4-release-summary.md)**
+  一页汇总当前场景能力矩阵、AutoML、TimesFM 配置消融、104 周训练历史实验与发布边界。
+- **[TimesFM 3.0：13-fold 双协议与已知协变量消融](docs/articles/timesfm-retail-demand-forecast.md)**
+  只引用 `20261106-timesfm-v1`，分析零样本预测、分位数区间、计算成本与 Luxury 事件识别边界。
 - **[Retail Demand Forecast V4 实验设计](docs/reports/experiment-design.md)**
   固化当前日粒度、13 × 4 周滚动回测、双训练历史、指标、发布契约与新模型接入边界。
 - **[GBDT Tweedie 目标函数数学原理推导与实验报告](docs/reports/2026-11-03-gbdt-tweedie-validation-report.md)**  
@@ -48,7 +48,25 @@
 - **发布分层**：本地结果写入 `runs/`；审核后的不可变快照写入 `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`，允许后续 release 增加昂贵模型而不改写旧证据。
 - **实验层比较**：跨历史策略结果单独发布到 `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`，并通过哈希固定两套源 release。
 
-> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。当前 V4 结果及其发布 provenance 请以[V4 分阶段报告](docs/reports/2026-retail-week-v4-first-stage-report.md)为准。
+当前审核 release 为 `20261106-timesfm-v1`，包含 26 个普通配置和 15 个独立 AutoML
+配置。下面只列广度榜中每个场景观察到的最低 WAPE；Luxury 必须同时阅读事件 F1。
+
+| 场景 | 广度代表模型 | WAPE | 事件 F1@0.5 |
+| :--- | :--- | ---: | ---: |
+| Grocery | Prophet | 4.16% | 100.00% |
+| Wine | Regression + ARIMA (1,0,1) | 22.10% | 100.00% |
+| Garden | Regression + ARIMA (1,0,1) | 7.80% | 100.00% |
+| Luxury | CatBoost Default (MAE) | 100.25% | 9.09% |
+
+完整能力矩阵、AutoML、TimesFM 配置消融和 104 周历史策略比较见
+[V4 发布摘要](docs/reports/2026-retail-week-v4-release-summary.md)；完整证据见
+[V4 完整报告](docs/reports/2026-retail-week-v4-first-stage-report.md)。
+
+<details>
+<summary>历史 V3 24 周结果（仅供追溯，默认折叠）</summary>
+
+> 下方数值表属于 `2026-retail-week-24w-v3` 历史快照，不代表 V4 扩展历史结论。
+> 其历史分析已移至 [V3 文章归档](docs/articles/archive/2026-retail-demand-forecast-benchmark-v3.md)。
 
 ### 四大零售场景独立排行榜 (Scenario-Specific Annual Leaderboards - 52 Weeks)
 
@@ -157,6 +175,8 @@
 ![2026 全年各场景排行榜](images/benchmarks/fig-01-annual-leaderboard-all-scenarios.png)
 
 > 💡 **历史单一切片基准存档**：旧版基于 2025 年 12 月单一 28 天切片的基准测试结果（含 AutoGluon、TFT、TimesFM、ARIMA 等），已完整归档保存在 [`data/benchmarks/archive_single_cutoff_28d/`](data/benchmarks/archive_single_cutoff_28d/)，其历史代码状态已永久标记为 Git Tag `v0.2.0-single-cutoff-benchmark`。
+
+</details>
 
 ---
 
@@ -279,7 +299,7 @@ retail-demand-forecast/
 | **32 树模型与 GBDT** | [32a-decision-tree-tutorial.ipynb](notebooks/32a-decision-tree-tutorial.ipynb)<br>[32b-random-forest-tutorial.ipynb](notebooks/32b-random-forest-tutorial.ipynb)<br>[32c-lightgbm-tutorial.ipynb](notebooks/32c-lightgbm-tutorial.ipynb)<br>[32d-xgboost-tutorial.ipynb](notebooks/32d-xgboost-tutorial.ipynb)<br>[32e-catboost-tutorial.ipynb](notebooks/32e-catboost-tutorial.ipynb)<br>[32f-tree-model-comparison.ipynb](notebooks/32f-tree-model-comparison.ipynb) | 时序转表格化特征工程（Lags、Rolling Stats、日历与促销特征），从单棵决策树到主流 GBDT 家族的系统对比 |
 | **33 深度学习模型** | [33a-mlp-tutorial.ipynb](notebooks/33a-mlp-tutorial.ipynb)<br>[33b-lstm-tutorial.ipynb](notebooks/33b-lstm-tutorial.ipynb)<br>[33c-tft-tutorial.ipynb](notebooks/33c-tft-tutorial.ipynb)<br>[33d-neural-model-comparison.ipynb](notebooks/33d-neural-model-comparison.ipynb) | MLP、序列编码 LSTM 与 Temporal Fusion Transformer (TFT) 的训练、早停与样本复杂度边界 |
 | **34–35 全模型与 AutoML** | [34-all-model-comparison.ipynb](notebooks/34-all-model-comparison.ipynb)<br>[35-autogluon-timeseries-tutorial.ipynb](notebooks/35-autogluon-timeseries-tutorial.ipynb) | 10 种核心模型在统一滚动验证与测试口径下的全量对比，以及 AutoGluon-TimeSeries 多层集成实验 |
-| **36 时序基础模型 (TSFM)** | [36-timesfm-bigquery-tutorial.ipynb](notebooks/36-timesfm-bigquery-tutorial.ipynb) | Google TimesFM 3.0 与 BigQuery 原生托管时序大模型零样本预测、缺货去偏与冷启动极限评测 |
+| **36 时序基础模型（历史 V2）** | [36-timesfm-bigquery-tutorial.ipynb](notebooks/36-timesfm-bigquery-tutorial.ipynb) | 历史 BigQuery 单切片教程；当前 TimesFM 3.0 双协议结论以 [V4 文章](docs/articles/timesfm-retail-demand-forecast.md)为准 |
 
 ---
 

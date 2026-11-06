@@ -1,4 +1,4 @@
-# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML + TimesFM）
+# 2026 零售周 V4 完整基准报告
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
 `2026-retail-week-104w-rolling-v4` 模拟每月以此前两年数据训练、预测随后 4 周的生产流程。正式评估覆盖

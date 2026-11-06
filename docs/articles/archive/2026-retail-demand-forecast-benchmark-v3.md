@@ -1,5 +1,5 @@
 ---
-title: "零售需求预测 2026 零售周基准：52 周滑动窗口评测与 Tweedie 分布实践"
+title: "历史归档：零售需求预测 V3 固定 24 周基准"
 date: 2026-11-05T09:00:00+11:00
 draft: false
 summary: "基于墨尔本 5 年合成零售数据集，记录 52 个完整零售周上的 V3 固定 24 周历史评测；该历史快照与 V4 扩展历史主榜分开维护。"
@@ -8,7 +8,7 @@ categories: ["时间序列预测", "机器学习工程"]
 math: true
 ---
 
-> **证据状态**：本文保留 `2026-retail-week-24w-v3` 历史快照的分析。评估范围为 2025-12-29 至 2026-12-27 的 52 个完整零售周，不等同于完整日历年，也不得与 V4 扩展历史结果混合。当前结论、事件指标和训练历史消融请以 [V4 首阶段基准报告](../reports/2026-retail-week-v4-first-stage-report.md)为准。
+> **证据状态**：本文保留 `2026-retail-week-24w-v3` 历史快照的分析。评估范围为 2025-12-29 至 2026-12-27 的 52 个完整零售周，不等同于完整日历年，也不得与 V4 扩展历史结果混合。当前结论、事件指标和训练历史消融请以 [V4 完整基准报告](../../reports/2026-retail-week-v4-first-stage-report.md)为准。
 
 ## 一、 为什么传统的“留出 28 天测试集”不可靠？
 
@@ -20,7 +20,7 @@ math: true
 
 为了减少单一切片带来的偶然性，我们将墨尔本（VIC）四类零售场景的教学数据集扩展至 **完整 5 年（2022-07-04 至 2027-06-27，共 260 完整周）**，并在 **2026 零售周年度（52 个完整周）** 上实施了 **13 期无重叠 28 天块步进前向滑动窗口评测（Walk-Forward 4-Week Block Evaluation）**。这是一套受控合成数据实验，不是生产效果保证。
 
-![V3 的 2026 零售周 52 周各场景结果](../../images/benchmarks/fig-01-annual-leaderboard-all-scenarios.png)
+![V3 的 2026 零售周 52 周各场景结果](../../../images/benchmarks/fig-01-annual-leaderboard-all-scenarios.png)
 
 ---
 
@@ -70,7 +70,7 @@ $$
 
 当样本真实销量 $y_i = 0$ 时，梯度仅保留正惩罚项 $\exp\left((2-p) s_i\right)$，从而对正均值预测施加向下更新；最终效果仍取决于树结构、正需求样本和正则化设置。
 
-![V3 零销量日命中率与小幅正预测对比](../../images/benchmarks/fig-04-intermittent-zero-confusion.png)
+![V3 零销量日命中率与小幅正预测对比](../../../images/benchmarks/fig-04-intermittent-zero-confusion.png)
 
 在奢侈品合成场景的 V3 对照中：
 
@@ -93,7 +93,7 @@ $$
 
 在 XGBoost 与 LightGBM 中，Tweedie 方差幂指数 $p$ 是一个核心超参数。V3 对称配置提供了场景内的敏感性观察：
 
-![GBDT Tweedie 目标函数消融深度剖析](../../images/benchmarks/fig-03-gbdt-tweedie-ablation-deepdive.png)
+![GBDT Tweedie 目标函数消融深度剖析](../../../images/benchmarks/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
 1. **高频连续型快消（Grocery）**：V3 中 $p \in [1.1, 1.2]$ 的结果略优于纯 MSE；这可作为该生成协议下的候选区间，仍需在独立数据上重新选择。
 2. **大促脉冲与间歇零膨胀（Wine, Luxury）**：V3 中较高的 $p$ 在部分 WAPE 对照里占优，但 Luxury 的配置选择必须同时检查正需求召回与事件 F1，不能仅按零值命中率推荐 $p=1.8$。
@@ -102,7 +102,7 @@ $$
 
 ## 五、 穿越四季：13 期滑动窗口稳定性全景
 
-![13期滑动轨迹跨季节波动](../../images/benchmarks/fig-02-13-period-wape-trajectories.png)
+![13期滑动轨迹跨季节波动](../../../images/benchmarks/fig-02-13-period-wape-trajectories.png)
 
 从 P01（年初夏季）到 P06（复活节及冬季淡季），再到 P12-P13（黑五与圣诞旺季），时序误差轨迹清晰表明：
 - 单一切片可能给出不稳定的模型判断。传统季节朴素法（Seasonal Naive）在平稳期表现尚可，但在部分促销切换期误差超过 100%（描述性 $\sigma=0.345$）；

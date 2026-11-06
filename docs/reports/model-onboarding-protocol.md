@@ -73,11 +73,9 @@ uv run python scripts/publish_training_history_comparison.py \
   --fixed-window-release data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-timesfm-v1 \
   --release 20261106-timesfm-v1
 
-# 审核后发布不可变轻量快照
-uv run python scripts/publish_benchmark.py \
-  --benchmark 2026-retail-week-expanding-v4 \
-  --release 20261106-first-stage-v1 \
-  --source-root runs/20261106-first-stage-validation
+# 复核当前不可变发布；已存在的 release 不得原地重发
+uv run python scripts/validate_benchmark_release.py \
+  data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-timesfm-v1
 
 # 后续仅审核新模型；旧模型从上一 release 原样继承
 uv run python scripts/publish_benchmark.py \

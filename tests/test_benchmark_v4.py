@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from generate_benchmark_report import replace_marked_block
+from generate_benchmark_report import replace_available_blocks, replace_marked_block
 from publish_benchmark import (
     _contains_only_release_outputs,
     _publishing_source_provenance,
@@ -271,6 +271,24 @@ class BenchmarkV4ProtocolTests(unittest.TestCase):
         self.assertTrue(changed.startswith("before\n"))
         self.assertTrue(changed.endswith("\nafter\n"))
         self.assertIn("\nnew\n", changed)
+
+    def test_report_sync_replaces_only_markers_owned_by_target(self) -> None:
+        original = (
+            "authored\n<!-- BENCHMARK_BLOCK:provenance:START -->\nold\n"
+            "<!-- BENCHMARK_BLOCK:provenance:END -->\nclosing\n"
+        )
+        changed = replace_available_blocks(
+            original,
+            {"provenance": "new", "capability_matrix": "not present"},
+        )
+        self.assertIn("authored\n", changed)
+        self.assertIn("\nnew\n", changed)
+        self.assertNotIn("not present", changed)
+
+    def test_report_sync_rejects_incomplete_marker_pairs(self) -> None:
+        incomplete = "<!-- BENCHMARK_BLOCK:provenance:START -->\nold\n"
+        with self.assertRaisesRegex(ValueError, "Incomplete marker pair"):
+            replace_available_blocks(incomplete, {"provenance": "new"})
 
     def test_release_ids_and_paths_are_versioned_below_benchmark(self) -> None:
         release_id = _validate_release_id("20261106-first-stage-v1")

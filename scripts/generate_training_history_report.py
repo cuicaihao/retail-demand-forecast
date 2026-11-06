@@ -12,7 +12,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from generate_benchmark_report import replace_marked_block
+from generate_benchmark_report import replace_available_blocks
 from validate_benchmark_release import validate_release
 
 from retail_forecast.benchmark_registry import PUBLISHED_DIR
@@ -192,8 +192,7 @@ def main() -> None:
     }
     for target in args.sync_target:
         document = target.read_text(encoding="utf-8")
-        for name, content in blocks.items():
-            document = replace_marked_block(document, name, content)
+        document = replace_available_blocks(document, blocks)
         target.write_text(document, encoding="utf-8")
     print(f"Generated training-history report blocks: {output}")
 
