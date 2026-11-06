@@ -44,7 +44,7 @@ def prophet_frame(frame: pd.DataFrame, scenario: str, include_y: bool = True):
 
 def new_prophet(scenario: str, parameters: dict):
     model = Prophet(
-        holidays=vic_holidays[["ds", "holiday"]],
+        holidays=vic_holidays[["ds", "holiday"]].copy(),
         weekly_seasonality=3,
         yearly_seasonality=5,
         daily_seasonality=False,

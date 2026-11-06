@@ -1,0 +1,66 @@
+{
+  "release_schema_version": "training-history-comparison-release-v2",
+  "release_id": "20261106-neural-v1",
+  "comparison_id": "2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4",
+  "published_at": "2026-11-06T00:54:10.441415+00:00",
+  "published_by_source_provenance": {
+    "git_commit": "773966b65c5722e6d1bfd89737b0d541080b9164",
+    "git_dirty": false,
+    "source_tree_sha256": "6fb5a4f8ea692df7bb0c82427f6859f79406112aa6c44e111c38acf32d16ad32",
+    "pending_release_outputs": [
+      "data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-neural-v1/",
+      "data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-neural-v1/"
+    ]
+  },
+  "main_source_release": {
+    "benchmark_id": "2026-retail-week-expanding-v4",
+    "release_id": "20261106-neural-v1",
+    "protocol_hash": "281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e",
+    "release_manifest_sha256": "bf12dad5ab7b91638d37463a63a69b78f6d4a679e3d8f21606e95cdeae64d21e",
+    "relative_path": "2026-retail-week-expanding-v4/releases/20261106-neural-v1"
+  },
+  "fixed_window_source_release": {
+    "benchmark_id": "2026-retail-week-104w-rolling-v4",
+    "release_id": "20261106-neural-v1",
+    "protocol_hash": "13918ef24a240992a4254869b6dd968a8246ed615e927eda452217428188ecbf",
+    "release_manifest_sha256": "b2c560bddc0e4d17884f3f624d444e34f65725b00aa568d60673c87886688327",
+    "relative_path": "2026-retail-week-104w-rolling-v4/releases/20261106-neural-v1"
+  },
+  "fixed_window_weeks": 104,
+  "model_ids": [
+    "arima",
+    "catboost_default",
+    "catboost_tweedie_p11",
+    "catboost_tweedie_p12",
+    "catboost_tweedie_p15",
+    "catboost_tweedie_p18",
+    "decision_tree",
+    "lightgbm_default",
+    "lightgbm_tweedie_p11",
+    "lightgbm_tweedie_p12",
+    "lightgbm_tweedie_p15",
+    "lightgbm_tweedie_p18",
+    "lstm",
+    "mlp",
+    "moving_average_14d",
+    "prophet",
+    "random_forest",
+    "seasonal_naive",
+    "tft",
+    "xgboost_default",
+    "xgboost_tweedie_p11",
+    "xgboost_tweedie_p12",
+    "xgboost_tweedie_p15",
+    "xgboost_tweedie_p18"
+  ],
+  "scenarios": [
+    "grocery",
+    "wine",
+    "garden",
+    "luxury"
+  ],
+  "files": {
+    "scenario_summary.csv": "da3938505151536773aa60e0258ada82e9775c5839b114815c89773818ae41a7",
+    "training_history_comparison.csv": "80081b0cc6f84a72292352bbec6678dafaa66e11c33c90efcc111b82cc1e6e11"
+  }
+}

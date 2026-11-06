@@ -1,0 +1,41 @@
+{
+  "spec_version": "synthetic-retail-v1",
+  "start_date": "2022-07-04",
+  "end_date": "2027-06-27",
+  "time_origin": "2023-01-01",
+  "horizon_days": 28,
+  "closed_holiday_names": ["Good Friday", "Christmas Day"],
+  "seeds": {"grocery": 42, "wine": 2027, "garden": 2027, "luxury": 2085},
+  "scenarios": {
+    "grocery": {
+      "base": 85.0, "trend_per_day": 0.015, "weekend_lift": 16.0,
+      "annual_amplitude": 14.0, "annual_phase_days": 15.0,
+      "discount_rate": 0.20, "discount_cycle_days": 14, "discount_days": 7,
+      "discount_lift": 130.0, "holiday_lift": 28.0,
+      "noise_std": 6.0, "stockout_probability": 0.03, "stockout_cap": 20.0
+    },
+    "wine": {
+      "base": 4.5, "trend_per_day": 0.002,
+      "thursday_lift": 2.8, "friday_saturday_lift": 7.5, "sunday_lift": 2.0,
+      "annual_amplitude": 3.5, "annual_phase_days": 190.0,
+      "december_lift": 6.0, "party_lift": 12.0,
+      "promotion_lift": 15.0, "promotion_cycle_days": 28, "promotion_days": 3
+    },
+    "garden": {
+      "base": 50.0, "trend_per_day": 0.01,
+      "saturday_lift": 35.0, "sunday_lift": 25.0,
+      "annual_amplitude": 38.0, "annual_phase_days": 10.0,
+      "long_weekend_lift": 30.0, "clearance_lift": 12.0, "noise_std": 7.0
+    },
+    "luxury": {
+      "logit_intercept": -3.2, "saturday_logit": 0.5, "sunday_logit": 0.3,
+      "december_logit": 1.1, "vip_logit": 1.4, "discount_logit": 0.8,
+      "discount_rate": 0.20,
+      "positive_values": [1, 2, 5, 10],
+      "positive_probabilities": [0.75, 0.15, 0.08, 0.02]
+    }
+  },
+  "diagnostic_only_columns": [
+    "conditional_mean", "occurrence_probability", "positive_demand", "latent_demand"
+  ]
+}

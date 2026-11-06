@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate BigQuery-compatible schema JSON files with complete English descriptions
 
 for all teaching datasets in data/teaching/.

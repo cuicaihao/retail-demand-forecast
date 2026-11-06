@@ -1,0 +1,247 @@
+{
+  "release_schema_version": "benchmark-release-v1",
+  "release_id": "20261106-first-stage-v1",
+  "benchmark_id": "2026-retail-week-expanding-v4",
+  "protocol_hash": "281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e",
+  "published_at": "2026-11-05T21:44:56.305256+00:00",
+  "published_by_source_provenance": {
+    "git_commit": "5fc950210ddd8891e107aeb60f457a127948d3ab",
+    "git_dirty": false,
+    "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5",
+    "pending_release_outputs": []
+  },
+  "base_release_id": null,
+  "model_ids": [
+    "catboost_default",
+    "catboost_tweedie_p11",
+    "catboost_tweedie_p12",
+    "catboost_tweedie_p15",
+    "catboost_tweedie_p18",
+    "decision_tree",
+    "lightgbm_default",
+    "lightgbm_tweedie_p11",
+    "lightgbm_tweedie_p12",
+    "lightgbm_tweedie_p15",
+    "lightgbm_tweedie_p18",
+    "moving_average_14d",
+    "prophet",
+    "random_forest",
+    "seasonal_naive",
+    "xgboost_default",
+    "xgboost_tweedie_p11",
+    "xgboost_tweedie_p12",
+    "xgboost_tweedie_p15",
+    "xgboost_tweedie_p18"
+  ],
+  "model_source_provenance": {
+    "catboost_default": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "catboost_tweedie_p11": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "catboost_tweedie_p12": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "catboost_tweedie_p15": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "catboost_tweedie_p18": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "decision_tree": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "lightgbm_default": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "lightgbm_tweedie_p11": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "lightgbm_tweedie_p12": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "lightgbm_tweedie_p15": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "lightgbm_tweedie_p18": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "moving_average_14d": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "prophet": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "random_forest": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "seasonal_naive": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "xgboost_default": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "xgboost_tweedie_p11": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "xgboost_tweedie_p12": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "xgboost_tweedie_p15": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    },
+    "xgboost_tweedie_p18": {
+      "git_commit": "1ff33fb9471e2e06a1425b83ae0ff99f750fe83b",
+      "git_dirty": false,
+      "source_tree_sha256": "a3e2ec62b18c1a9e4c3e237cf6fe014e93b6ab1e8d944e097b506f1ba8dcc9e5"
+    }
+  },
+  "files": {
+    "models/catboost_default/manifest.json": "278a53606505404137451656c3393c21d74a6d9da17bc7d42247d0fc146c7f06",
+    "models/catboost_default/metrics_annual.csv": "69591164e805bbe3d4cb9c82b512764619762881cd6c8b081dc636ef9a839cfe",
+    "models/catboost_default/metrics_period.csv": "8df208f9be8a4c924a3c7fabfe753fd54f919b22fc964dcf0ecdd98bad81539b",
+    "models/catboost_default/predictions.csv": "ee2172fcd4a8a094a6899ec88ebfb3c334bcd17bf0c67123589c0c5066016e57",
+    "models/catboost_default/selected_config.json": "09d7516aeefcd90d0c9ccde7cebf9a6c989add813bc8bb2ec136bd09c70dc21b",
+    "models/catboost_tweedie_p11/manifest.json": "ccb6df6d34e62ba60734e12228e8b7e3b062e4f234676e913f796f9639e35235",
+    "models/catboost_tweedie_p11/metrics_annual.csv": "310f511adf4ffde1b9bf28742bd77bc8713d155486bf214a21f262985dfcbeaf",
+    "models/catboost_tweedie_p11/metrics_period.csv": "03aa56452f481410afc92a106ac2625d55b0549f3ee7f5d3bf92a187f4bbac85",
+    "models/catboost_tweedie_p11/predictions.csv": "aedf27eee0ad6a20c287cd62dd19a3c44fff9b46482a90acff7f10f5a5ede76d",
+    "models/catboost_tweedie_p11/selected_config.json": "2ecb14e8d4f1265f2b4e4f60588015b35aad081846902eb60ccdfc114b249866",
+    "models/catboost_tweedie_p12/manifest.json": "b92ab05ec3c9dbf51ca6ead315200e201d52208fefc31315f199bab537cdf99b",
+    "models/catboost_tweedie_p12/metrics_annual.csv": "35545c0035f99aa49eb214229c1511ef0d586833ee507e033996be8f3292781e",
+    "models/catboost_tweedie_p12/metrics_period.csv": "361e6f5a84ee6fc6722497733bdd5ef7396620a776258bd07ac10677e9b65699",
+    "models/catboost_tweedie_p12/predictions.csv": "38ae2a7c172ee254c79587df5f6c81cdd17dd76bcd2513d690047f09d3154c4a",
+    "models/catboost_tweedie_p12/selected_config.json": "1ea2d4d923facffad4921a62a3dd291d18923926b0c7c26daadde0edd9e3c6ee",
+    "models/catboost_tweedie_p15/manifest.json": "cf3edaff5bf6d1c5b4fdfe7b13801638f0b6f8b31430609364e78589fe222aad",
+    "models/catboost_tweedie_p15/metrics_annual.csv": "1cb001f69f375a6da477508695f9ed3566597b1c401848098fe417065a5b975d",
+    "models/catboost_tweedie_p15/metrics_period.csv": "65cec50f138391d0c08bd68b2bd20edbd129e55939884dc78adf781bc896caf2",
+    "models/catboost_tweedie_p15/predictions.csv": "501ccfa3f8058df1e26b93c824d1250501c0df90962e53200ee6e341cb7c832b",
+    "models/catboost_tweedie_p15/selected_config.json": "b566a7763cf4e54051a7c40b1c638a3cc3d8d980479c86d673fb03da2907b3ea",
+    "models/catboost_tweedie_p18/manifest.json": "3e136a783d024f92f7e7c4084d4a797162dc1232a369cf0b17026b17b134bcc5",
+    "models/catboost_tweedie_p18/metrics_annual.csv": "4d10afd67c693008efbebd901b6a149ce3c09dc02880ebc13d8b8712fb915c89",
+    "models/catboost_tweedie_p18/metrics_period.csv": "d68c4a74f734c117bcfaf68065dc8f38daeb5208a5f81d000d5dc849068e2c54",
+    "models/catboost_tweedie_p18/predictions.csv": "c54c5564c4e94c22ebc4e1244725a27d83616d44a96ddf7d7782324d903f2ce1",
+    "models/catboost_tweedie_p18/selected_config.json": "f15e8f60c6e2ff8f291bc65275d33bc53c835824adc2a0ebfcbd8fbff58f9894",
+    "models/decision_tree/manifest.json": "8f4eea031757bafa37ae68a6c8ccd60c9d36f6c22ded1318681041141deac39b",
+    "models/decision_tree/metrics_annual.csv": "84c6397b474736b48efe4e440d377a7c2c90fe3b3585d85259f0d6af79753243",
+    "models/decision_tree/metrics_period.csv": "991cf50b50fc6b4f050d71fde3384732199947a152a3be5a2a54fd22c8651922",
+    "models/decision_tree/predictions.csv": "b03b70e5304eaa12c3b78e3d8e32fb7775a3f631299f22cb641f1fcb59e71886",
+    "models/decision_tree/selected_config.json": "5910e1369904d26137e350bc99dbcf26d6a0e6e7394d23267fc524fb027d58b4",
+    "models/lightgbm_default/manifest.json": "25ebc824cfce016b8f55fd017aa9cf78efaf0fccd0022810883632446cd25be9",
+    "models/lightgbm_default/metrics_annual.csv": "35583ce692263cb133106e739dec0ed51bc6ceeb603656e859268b63a85fe064",
+    "models/lightgbm_default/metrics_period.csv": "5e62fac3d4d67b98206fa11e5e91a2816e77e506fa26313b3aaa4fe24914c448",
+    "models/lightgbm_default/predictions.csv": "c2ce9b96697906ee664dc7b1ad0db21252f5b0e2ac6353c3fa43eb83bc202b4b",
+    "models/lightgbm_default/selected_config.json": "4a6b7da9ae2dcd92cc9c326e195bc26195a3b3bcae78aade2ed4e65101d7a202",
+    "models/lightgbm_tweedie_p11/manifest.json": "7e9c054eea49e153704f3ba367d6a4f5ae7df6bbf2537057f68a5333d1fa7e89",
+    "models/lightgbm_tweedie_p11/metrics_annual.csv": "5cd493be8a6abf509d6fcecfb2541ec8983cd08f41fffd44a5f1176224b14438",
+    "models/lightgbm_tweedie_p11/metrics_period.csv": "c7660a0d0cabb9258488c729aed4ef06a5397b0c8065d5ccbbd09e7100e482bb",
+    "models/lightgbm_tweedie_p11/predictions.csv": "98caa6fcd5ce40d108d00c5d5f56159c794127e3363b19fbb01d13b671e00d1a",
+    "models/lightgbm_tweedie_p11/selected_config.json": "81829ab6e493de432bc6c12181ca91908193c0cfa4384d7f57bad4b51660f51a",
+    "models/lightgbm_tweedie_p12/manifest.json": "ba67a27087aef7075fc24cb2962b3ffaa6847767796efd9bdd6fa45157c778ee",
+    "models/lightgbm_tweedie_p12/metrics_annual.csv": "0ec679551ff5d3716af6fc6651902383d29adf4d41b544fcf8ba993d05dfc7c3",
+    "models/lightgbm_tweedie_p12/metrics_period.csv": "4da342299f7e8b7ecc94a07328eedfa4ca7f8fb89010d4e5b3a8201685fd04e6",
+    "models/lightgbm_tweedie_p12/predictions.csv": "aa7cfcd76fb8449a8995f53fceffeee8c81731ca8f3054a5bab462ab81820870",
+    "models/lightgbm_tweedie_p12/selected_config.json": "9ae300bda2c003987222e3cf34cc4fd7726f65c6468db5a0949397bd3b1c72d8",
+    "models/lightgbm_tweedie_p15/manifest.json": "0b2d77347698709885d4b38637081f7a62ee292dcf33569ed32e7855405c3ee4",
+    "models/lightgbm_tweedie_p15/metrics_annual.csv": "83a196ed2fd74dbbc7a9b1ac98b6a2ffdb8a5ebb5073e7a9b7b9926ea4b461a7",
+    "models/lightgbm_tweedie_p15/metrics_period.csv": "716b904e51e9020d2a97025b412ff2de2b448c49beacd2e859b146d1c00e88a5",
+    "models/lightgbm_tweedie_p15/predictions.csv": "5b25c6532d7f12a0dacbbd99160a6c74275941d0a342431564c910d150113715",
+    "models/lightgbm_tweedie_p15/selected_config.json": "dfe0a3fd3a0bae98d005b59f1351965d5a7c9cc75281ed86dd43d6ca091a2645",
+    "models/lightgbm_tweedie_p18/manifest.json": "1d531a10cc854f020d51060e752cb57b87f209434028ef3bfa11bb7adc7be0c3",
+    "models/lightgbm_tweedie_p18/metrics_annual.csv": "83a7caf8b115447543870f09ec1aacba6cb9f8958d97b618c6b5607ce40dddd2",
+    "models/lightgbm_tweedie_p18/metrics_period.csv": "c9b2594c48dbf57387d7be07a3607e9042d0150da5b116a0e771a85a81b4f4b6",
+    "models/lightgbm_tweedie_p18/predictions.csv": "6b6f1946e50e049b2361b4b1c442993792ebf2ece7cf67a7f76ff18cf6f86f95",
+    "models/lightgbm_tweedie_p18/selected_config.json": "d04efb014b2d92b806367715338816a57464140cab59059c5cba174b2d8ba877",
+    "models/moving_average_14d/manifest.json": "9bcd80ec0d95091f3c747a56e4bee73449a26d73594e2238737b321544a745e5",
+    "models/moving_average_14d/metrics_annual.csv": "e922d62e6c678937611f0cf7bb9afd5d722f647ec335faec4b3e7ef50d9a8014",
+    "models/moving_average_14d/metrics_period.csv": "734509f2367da5b87c3d49119e3645d1287b9aa1282883704782ec00a488dabb",
+    "models/moving_average_14d/predictions.csv": "d4ba713c0865e0ae13ab90573b2c15b676944ae294534efc4b33418a343a166c",
+    "models/moving_average_14d/selected_config.json": "bae452859d7be6099d9aff8c9efd602bc1abfd60cd86dbd8d7c8e56c416a4f5a",
+    "models/prophet/manifest.json": "0c8f406987ef6f48a01d3f26f7dca329eccc2986e65eb20e113ae653d5c8592c",
+    "models/prophet/metrics_annual.csv": "1a18c579b16f7024b367b5f50d6713f34494ebddddb120e3f5d386779d3b90a8",
+    "models/prophet/metrics_period.csv": "db5d4b573d56432bcec0b5c90aa6328e7f7c9de233f1e0d3479b1afe69cfb88e",
+    "models/prophet/predictions.csv": "34933889b65f0e1b910ad41601842de06fed00d8fdeac2b33262e944541291f6",
+    "models/prophet/selected_config.json": "88e18e36c1d749a5aea8571f21e248cc742c4b99aa8405c4c3f4cad7e7a351d0",
+    "models/random_forest/manifest.json": "01cedc6b9b94bc59340c7d3a39acb19334df129a31988dbdd149af2e6adb1580",
+    "models/random_forest/metrics_annual.csv": "5d13efcc0c25a44636365de326c282162c5472e8a2d04c5ee009002976128eea",
+    "models/random_forest/metrics_period.csv": "df0aaaf95f88224d98926e51b38600c1ab154cfe2230a13371d0f9ce0d70ce6b",
+    "models/random_forest/predictions.csv": "7ceffe141bcf23c2f065c5f8fe11d21bdd1eb105e9214373f3bc3114c9c3b946",
+    "models/random_forest/selected_config.json": "c2060ef197c75026c2b378779c7401ffe99da4642b2df0cc31582cf28482fe51",
+    "models/seasonal_naive/manifest.json": "004f474f73e198a68f62d55b29e9bc009789ed7f922a9a2439c6eeb9bd0afe06",
+    "models/seasonal_naive/metrics_annual.csv": "411f4f31cfe78e2ab9373998124e5fbfe89cf8dd5eca66aa02a8752c2bef8c4a",
+    "models/seasonal_naive/metrics_period.csv": "6131c8a1fb977664806e703224ec805ff61c63bff451ee52ff530301e9fc2b8b",
+    "models/seasonal_naive/predictions.csv": "3d0430679bbc89012b17e93aa2ea2b32a0b5d3d5dbb107e712b1669c58a0d0d8",
+    "models/seasonal_naive/selected_config.json": "b3f3071d1bc89042bbc9be80c9a717acb79f3dcee2225482c8a11683953a45a6",
+    "models/xgboost_default/manifest.json": "6e9f4b7f2875cd4a151acd0524dc43d491f373ef9ac54e815e161cd64b26384a",
+    "models/xgboost_default/metrics_annual.csv": "99193536bcf051b046b3d44156c07733d87390887febe18b51a25a51b6f8f1c3",
+    "models/xgboost_default/metrics_period.csv": "a9ee1b686653f5d71bb84dab11274a6f88456b83a0cf69ae062f65ac836e3ce3",
+    "models/xgboost_default/predictions.csv": "7c1e240d8d9a11f5452e4b897ab08940643b63e1f621c8df977acc2810031cd5",
+    "models/xgboost_default/selected_config.json": "2e832329cd285f6813d41c96c49ef45e607eaa4841737d5bfee38be8e58cdbc1",
+    "models/xgboost_tweedie_p11/manifest.json": "4eb50f613ad11cb52f5fe7823f9c4df89dd0377cfca1cb3a9d19d05e797992e6",
+    "models/xgboost_tweedie_p11/metrics_annual.csv": "49fcba797a6a58c60bcf27500013bbe30e61d02e046eff5a923734e17ddd9376",
+    "models/xgboost_tweedie_p11/metrics_period.csv": "0c05636f2090c4c3feff67a40a2e92d5e247ef38cc2774a9b4350b990aca210c",
+    "models/xgboost_tweedie_p11/predictions.csv": "38ae6449e43d13f8cf31a9218c56f0f319cfe3e8ef5f7f2336467ea85904dc33",
+    "models/xgboost_tweedie_p11/selected_config.json": "52259dcafc957e44cb7b1dff6767cea28013be4cd43dbd2e0458b22c1b555399",
+    "models/xgboost_tweedie_p12/manifest.json": "a1551a929ab964222264b9aa7b1d410dc11c128005082c99892b6155bba5f423",
+    "models/xgboost_tweedie_p12/metrics_annual.csv": "3f3499317a091853a52b9b8edc07884e82069b6145d6469ce7e10e72ee02eeaa",
+    "models/xgboost_tweedie_p12/metrics_period.csv": "07254b99b7157d281af923cf7bdc877e0e91da869507a2ab191f104a91a71667",
+    "models/xgboost_tweedie_p12/predictions.csv": "61d1073ff9e652595ef49e05f7712ffd86954433a0c69a734e758dc8579a2772",
+    "models/xgboost_tweedie_p12/selected_config.json": "60a89070fe2f3e1272dae063733e8a418fc9d8807aa6cea60cbfca49ad3f1b72",
+    "models/xgboost_tweedie_p15/manifest.json": "012aeb661b8c1888750449fff7f8c7402f2c482ad89d82586750f4252cd05a9a",
+    "models/xgboost_tweedie_p15/metrics_annual.csv": "0970553159a0a11e113f577a0d020218837d7468816d55eae834b0896f56372d",
+    "models/xgboost_tweedie_p15/metrics_period.csv": "467935ba994000d8b0e0f44ac85ec22c5f80f879171e80fb34cac9949d28e36a",
+    "models/xgboost_tweedie_p15/predictions.csv": "ffc4382def766e3bd26eebbde56efa8f36f0768191f7c7662d9bcf810e91841d",
+    "models/xgboost_tweedie_p15/selected_config.json": "0d98bd516841bcb2614d91a33c580030be923e5efe5b87d508ea4adfb0260cbf",
+    "models/xgboost_tweedie_p18/manifest.json": "270e4895726e33565bc1c4bc7cc88358d27a82a2eb2c03fdc548f64187bb57f8",
+    "models/xgboost_tweedie_p18/metrics_annual.csv": "72af44b61ee706cb594f7ddcee7e4ac9a557996d18e492e6f072197fb5b78047",
+    "models/xgboost_tweedie_p18/metrics_period.csv": "48ba34e180ffe00bed6164656b325f30cec50ea58f67c95fb3c46156318b96ec",
+    "models/xgboost_tweedie_p18/predictions.csv": "9891142841b9a31598dd5cddff074c1099c6ebce3da11904ce608003125efcd4",
+    "models/xgboost_tweedie_p18/selected_config.json": "24ab5a851e2c80e38ebad39f483265a65e9f87811796cb87b58c4bafb0fbfc09",
+    "summary/breadth_scorecard.csv": "3d47c380368969e9d0aa718f207281a0c8e61fbdd5e21bdb966a7b434a9ed454",
+    "summary/capability_matrix.csv": "e3c1e3fcf40d1a36b6be4e6491f48e213fa435fac10f715ad5d73818efffe922",
+    "summary/configuration_ablations.csv": "553a3dbc8c67fb76fe4e2d003fb7e9191e22cc2557bdc214893079c0005f8ddf",
+    "summary/paired_fold_wins.csv": "9e3df8a14dfaeb76c16c2cedf22351a7815a8b0e0ec5eec0be88b508babed8da",
+    "summary/period_trajectories.csv": "9ef0233242a43c4a51d1291e647d6e748e0560e9d8bc675cb85ef34ab8516372",
+    "summary/scenario_leaderboard.csv": "819cb39b64ed5ec67051effe48b18443097389d4ba36c6d35f02763dd8dd1597",
+    "summary/summary_manifest.json": "9fac91c8f91ef026939c9b7d979db87193ba821128489b109268d20cd781acf6"
+  }
+}

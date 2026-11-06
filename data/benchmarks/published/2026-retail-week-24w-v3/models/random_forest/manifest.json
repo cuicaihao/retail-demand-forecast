@@ -1,0 +1,21 @@
+{
+  "model_id": "random_forest",
+  "model_name": "Random Forest",
+  "family": "tree_gbdt",
+  "variant": "default",
+  "params": {},
+  "eval_mode": "4week",
+  "train_weeks": 24,
+  "updated_at": "2026-11-04T14:53:43.176577+00:00",
+  "git_commit": "037c8cd60e2903f937bcf794332ab449de7adbb6",
+  "input_hashes": {
+    "grocery_scenario_data.csv": "03340569d0137bc4f6e03e7222f07bc1acae2c6c2a37bf344932767d490847a8",
+    "wine_scenario_data.csv": "7dbdcec0c377fa9d22de9ecded0301484302c1e30db32644c65dac82ac2f04a0",
+    "luxury_scenario_data.csv": "d26da5fbf95426461d8da9ea0bdeb7e9d4cdb4afa1a0560f737fffc3f9a1122e",
+    "scenario_diagnostics.csv": "5a5e52d71cc56aaa8c14201abf1afa47bcd385b3a4e98fca49126237fefeba91",
+    "vic_holidays.csv": "c863a1bf789c3e54875a738ec33aef81b9e11c218de89f7880f46a34d6e3d096",
+    "garden_scenario_data.csv": "acef8fb26398c32130a572af518036ceb9311f92b23b5a1a89e5b8bdb938b307"
+  },
+  "protocol_version": "retail-benchmark-v3-week-aligned",
+  "elapsed_seconds": 8.381448984146118
+}

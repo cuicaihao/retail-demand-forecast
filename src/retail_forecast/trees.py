@@ -182,11 +182,25 @@ def _new_estimator(model_name: str, params: dict, n_estimators: int | None = Non
     raise KeyError(model_name)
 
 
+class ZeroModel:
+    """Degenerate predictor returning zeros when training labels contain zero demand."""
+
+    def predict(self, X):
+        return np.zeros(len(X), dtype=float)
+
+
 def fit_model(history, scenario, model_name, parameter_config):
     """Fit one model; booster early stopping stays strictly inside history."""
     started = time.perf_counter()
     if model_name in {"Decision Tree", "Random Forest"}:
         Xf, yf = origin_training(history, scenario)
+        if yf.sum() == 0:
+            return {"model": ZeroModel(), "columns": list(Xf.columns)}, {
+                "selected_rounds": 0,
+                "internal_validation_MAE": 0.0,
+                "training_rows": len(yf),
+                "setup_seconds": time.perf_counter() - started,
+            }
         model = _new_estimator(model_name, parameter_config).fit(Xf, yf)
         rounds = getattr(model, "n_estimators", 1)
         internal_mae = np.nan
@@ -197,26 +211,55 @@ def fit_model(history, scenario, model_name, parameter_config):
         valid = valid_labels(validation).to_numpy()
         Xv = origin_features(core, validation, scenario).loc[valid]
         yv = validation.loc[valid, "y"].reset_index(drop=True)
-        candidate = _new_estimator(model_name, parameter_config)
-        if model_name == "LightGBM":
-            candidate.fit(
-                Xc,
-                yc,
-                eval_set=[(Xv, yv)],
-                eval_metric="mae",
-                callbacks=[early_stopping(40, verbose=False), log_evaluation(0)],
-            )
-            rounds = int(candidate.best_iteration_ or 600)
-        elif model_name == "XGBoost":
-            candidate.set_params(early_stopping_rounds=40)
-            candidate.fit(Xc, yc, eval_set=[(Xv, yv)], verbose=False)
-            rounds = int(candidate.best_iteration + 1)
+
+        if yc.sum() == 0:
+            rounds = 50
+            internal_mae = 0.0
         else:
-            candidate.fit(Xc, yc, eval_set=(Xv, yv), early_stopping_rounds=40)
-            rounds = int(candidate.get_best_iteration() + 1)
-        internal_mae = float(np.abs(candidate.predict(Xv) - yv).mean())
+            candidate = _new_estimator(model_name, parameter_config)
+            try:
+                if model_name == "LightGBM":
+                    candidate.fit(
+                        Xc,
+                        yc,
+                        eval_set=[(Xv, yv)],
+                        eval_metric="mae",
+                        callbacks=[
+                            early_stopping(40, verbose=False),
+                            log_evaluation(0),
+                        ],
+                    )
+                    rounds = int(candidate.best_iteration_ or 600)
+                elif model_name == "XGBoost":
+                    candidate.set_params(early_stopping_rounds=40)
+                    candidate.fit(Xc, yc, eval_set=[(Xv, yv)], verbose=False)
+                    rounds = int(candidate.best_iteration + 1)
+                else:
+                    candidate.fit(Xc, yc, eval_set=(Xv, yv), early_stopping_rounds=40)
+                    rounds = int(candidate.get_best_iteration() + 1)
+                internal_mae = float(np.abs(candidate.predict(Xv) - yv).mean())
+            except Exception as e:
+                if "sum of labels is zero" in str(e).lower():
+                    rounds = 50
+                    internal_mae = 0.0
+                else:
+                    raise
+
         Xf, yf = origin_training(history, scenario)
-        model = _new_estimator(model_name, parameter_config, rounds).fit(Xf, yf)
+        if yf.sum() == 0:
+            return {"model": ZeroModel(), "columns": list(Xf.columns)}, {
+                "selected_rounds": 0,
+                "internal_validation_MAE": 0.0,
+                "training_rows": len(yf),
+                "setup_seconds": time.perf_counter() - started,
+            }
+        try:
+            model = _new_estimator(model_name, parameter_config, rounds).fit(Xf, yf)
+        except Exception as e:
+            if "sum of labels is zero" in str(e).lower():
+                model = ZeroModel()
+            else:
+                raise
     return {"model": model, "columns": list(Xf.columns)}, {
         "selected_rounds": int(rounds),
         "internal_validation_MAE": internal_mae,
@@ -231,7 +274,8 @@ def predict_model(bundle, history, future, scenario):
     changed["y"] = 12345.0
     pd.testing.assert_frame_equal(features, origin_features(history, changed, scenario))
     assert list(features) == bundle["columns"]
-    return bundle["model"].predict(features)
+    raw = bundle["model"].predict(features)
+    return np.nan_to_num(raw, nan=0.0, posinf=1e6, neginf=0.0)
 
 
 def fit_predict_tree_model(

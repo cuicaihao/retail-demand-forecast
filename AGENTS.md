@@ -26,7 +26,7 @@ retail-demand-forecast/
 ├── data/                       # Ground truth data, schemas, persistent benchmarks & model weights
 │   ├── teaching/               # 4 Scenario CSVs, VIC holidays, and BigQuery JSON schemas
 │   ├── artifacts/              # Reviewed golden snapshots (published/)
-│   ├── benchmarks/             # Persistent benchmark results store (results/ & summary/)
+│   ├── benchmarks/             # Versioned protocols, reviewed releases, and historical archive
 │   └── models/                 # Pretrained model checkpoints (reference/)
 ├── docs/                       # Single documentation hub
 │   ├── articles/               # Public blog posts (*-retail-demand-forecast.md)
@@ -41,10 +41,10 @@ retail-demand-forecast/
 ```
 
 ### Critical Rules for AI Agents:
-- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, benchmark results belong in `data/benchmarks/results/`.
+- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, local benchmark runs belong in `runs/`, reviewed model releases belong in `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`, and reviewed cross-protocol comparisons belong in `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`.
 - **Rule 2 (Notebook Invariant)**: All Jupyter Notebooks (`notebooks/*.ipynb`) must NOT contain saved execution outputs. Cells must have `"outputs": []` and `"execution_count": null`. The test suite strictly asserts this.
 - **Rule 3 (PEP 518/621 Layout)**: `tests/` must remain in the root directory and never be merged into `src/`.
-- **Rule 4 (No Data Leakage)**: The final test set is strictly the **last 28 calendar days** (`2025-12-04` to `2025-12-31`). During inference, future `y` values must be masked or set to `NaN` / `NULL`. Future known covariates (`is_open`, `discount`, holidays) are permitted.
+- **Rule 4 (No Data Leakage)**: Evaluation dates are frozen by the selected file in `data/benchmarks/protocols/`. Parameter selection must end before formal evaluation. During inference, future `y` and diagnostic ground-truth columns must be invisible. Future known covariates (`is_open`, planned discounts, holidays) are permitted.
 - **Rule 5 (`runs/` Directory Naming Invariant)**: Any experiment execution directory generated under `runs/` must strictly adopt the format `[时间]+[模型]+[type]` (i.e. `YYYYMMDD-[model]-[type]` in lowercase kebab-case, e.g., `20261020-prophet-experiment`, `20261020-all-models-summary`, `20261020-tree-models-validation`, `20261020-autogluon-validation`, `20261103-timesfm-validation`).
 
 ---
@@ -53,10 +53,12 @@ retail-demand-forecast/
 
 To avoid expensive repeated retraining of deep learning models (TFT, neural nets) and AutoML (AutoGluon):
 
-1. **Standard Contract**: Every model persists two lightweight CSV files in `data/benchmarks/results/<model_key>/`:
-   - `predictions.csv`: `[scenario, model, split, forecast_origin, ds, y, prediction, (q10, q90)]`
-   - `metrics.csv`: `[scenario, model, split, (forecast_origin), MAE, RMSE, WAPE, Bias, (Coverage80)]`
-   - `manifest.json`: Metadata, input hashes, and timestamps.
+1. **V4 Standard Contract**: Every local model run persists five lightweight files below `runs/<run-id>/<benchmark-id>/models/<model-id>/`:
+   - `predictions.csv`: daily fold predictions and forecast origins;
+   - `metrics_period.csv`: fold metrics, WAPE denominators, and sample counts;
+   - `metrics_annual.csv`: metrics recomputed from pooled valid predictions;
+   - `selected_config.json`: parameters frozen before formal evaluation;
+   - `manifest.json`: protocol/fold/scenario/input/config provenance.
 2. **Independent Re-computation**:
    Agents and developers can recompute or experiment with a single model or a subset of models without re-running everything:
    ```bash
@@ -64,11 +66,11 @@ To avoid expensive repeated retraining of deep learning models (TFT, neural nets
    uv run python scripts/run_benchmark.py --list
 
    # Run or re-run a specific model independently
-   uv run python scripts/run_benchmark.py --models prophet
-   uv run python scripts/run_benchmark.py --models lightgbm,xgboost
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models prophet
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models lightgbm,xgboost
 
    # Refresh leaderboard across all registered models (0 re-training, milliseconds)
-   uv run python scripts/run_benchmark.py --compare-only
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --compare-only --source-root runs/<run-id>
    ```
 
 ---
@@ -80,7 +82,7 @@ When tasked with adding a new forecasting model (e.g. Chronos, MOIRAI, TiDE, Pat
 1. **Study Protocol**: Read [`docs/reports/model-onboarding-protocol.md`](docs/reports/model-onboarding-protocol.md).
 2. **Implement Adapter**: In `src/retail_forecast/<model_key>.py`, subclass `BaseRetailForecaster` from `retail_forecast.benchmark_registry`.
 3. **Add CLI Runner**: Register the runner in `AVAILABLE_RUNNERS` within `scripts/run_benchmark.py`.
-4. **Execute Benchmark**: Run `uv run python scripts/run_benchmark.py --models <model_key>` to evaluate on all 4 scenarios.
+4. **Execute Benchmark**: Run `uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models <model_key>` to evaluate on all 4 scenarios.
 5. **Create Tutorial Notebook**: Generate `notebooks/3X-<model_key>-tutorial.ipynb` with stripped outputs (`"outputs": []`).
 6. **Verify Tests**: Run `.venv/bin/python -m unittest discover -s tests -v` to ensure 100% test pass rate.
 
