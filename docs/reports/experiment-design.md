@@ -128,7 +128,7 @@ comparison release 配对比较。
 
 ## 4. 当前模型与配置矩阵
 
-当前 V4 release `20261106-autogluon-v1` 包含 24 个普通配置和 15 个独立 AutoML 配置。
+当前 V4 release `20261106-timesfm-v1` 包含 26 个普通配置和 15 个独立 AutoML 配置。
 
 ### 4.1 工具包广度配置
 
@@ -145,7 +145,8 @@ comparison release 配对比较。
 - Regression + ARIMA(1,0,1)；
 - MLP；
 - LSTM；
-- TFT。
+- TFT；
+- TimesFM 3.0 单变量零样本预测。
 
 ### 4.2 配置深度
 
@@ -167,7 +168,8 @@ default 是工具包代表配置；Tweedie 配置只进入独立消融表，不�
 - 树模型用一个 pooled direct 模型，根据未来日期、已知协变量和 `horizon_day` 输出 28 日预测；
 - Prophet 和 ARIMA 使用各自的原生多步预测接口；
 - MLP 与 LSTM 使用冻结的直接 28 日输出网络；TFT 使用原生多步预测接口；
-- ARIMA 输出名义 80% 预测区间；其余当前模型只输出点预测。
+- ARIMA 输出名义 80% 预测区间；TimesFM 3.0 和 AutoGluon 输出 P10/P90 分位数区间；
+  其余当前模型只输出点预测。
 
 V4 当前不把预测方式作为独立消融因素，因此不得根据这些结果声称某种多步策略普遍更优。
 
@@ -188,7 +190,7 @@ AutoGluon 不进入普通工具包广度榜，也不与 GBDT 配置消融混排�
 因此，AutoML 表回答的是“固定计算预算下使用 AutoML 管线与不使用 AutoML 的差异”，
 不是为 AutoGluon 的每个内部组件增加普通广度榜投票权。
 
-### 4.5 TimesFM 3.0 预声明迁移配置
+### 4.5 TimesFM 3.0 配置
 
 TimesFM 3.0 在进入 release 前冻结为两个配置，不使用正式 13-fold 成绩事后选择：
 
@@ -202,8 +204,8 @@ TimesFM 3.0 在进入 release 前冻结为两个配置，不使用正式 13-fold
 固定为 `(特征数, 历史长度 + 预测长度)`，不得读取预测期 `y`、实际 stockout 或诊断真值。
 
 该 checkpoint 当前受 TimesFM 非商业权重许可证约束；本仓库只将其用于教学和实验比较，
-不得把结果解释为默认权重已经获准商业生产部署。在两套协议完成、发布快照通过复算前，
-这两个预声明配置不属于当前 `20261106-autogluon-v1` release。
+不得把结果解释为默认权重已经获准商业生产部署。两套协议结果已经进入当前
+`20261106-timesfm-v1` release。
 
 ## 5. 目标、有效标签与指标
 

@@ -1,6 +1,7 @@
 # TimesFM 在四个合成零售场景上的 BigQuery 企业级受控实验计划（Experiment Plan & Spec）
 
-> **归档状态**：旧单切分实验方案，仅供追溯；TimesFM 尚未按当前 V4 协议重新评估。
+> **归档状态**：旧单切分实验方案，仅供追溯；当前 TimesFM V4 结果见
+> `20261106-timesfm-v1`，不得用本页方案替代当前双协议结论。
 
 > **用途说明**：本文档面向 `retail-demand-forecast` 仓库的开发者与 AI Agent。
 > 本实验全面拥抱 Google Cloud 官方最新发布的 [BigQuery TimesFM 3.0 with Multivariate Forecasting](https://cloud.google.com/blog/products/data-analytics/bigquery-timesfm-3-0-with-multivariate-time-series-forecasting) 与 [TimesFM Univariate Tutorial](https://cloud.google.com/bigquery/docs/timesfm-univariate-tutorial)。
@@ -38,8 +39,8 @@ flowchart TD
         H["images/tsfm/*.png 可视化图表"]
         I["reports/2026-11-03-timesfm-validation-report.md"]
 
-        F -->|"scripts/run_timesfm_benchmark.py"| G
-        F -->|"scripts/run_timesfm_benchmark.py"| H
+        F -->|"scripts/archive/run_timesfm_v2.py"| G
+        F -->|"scripts/archive/run_timesfm_v2.py"| H
         G --> I
     end
 
@@ -210,7 +211,7 @@ FROM AI.FORECAST(
 1. **执行自动化 SQL 套件**：
    在本地终端一键触发全套 4 组受控实验：
    ```bash
-   bq query --use_legacy_sql=false < src/retail_forecast/sql/bigquery_timesfm_experiments.sql
+   bq query --use_legacy_sql=false < src/retail_forecast/sql/archive_bigquery_timesfm_v2_experiments.sql
    ```
    该脚本将所有场景的预测结果写入 `retail_forecast_output` 对应的 4 张独立实验表中，并自动聚合成总表 `retail_forecast_output.all_timesfm_predictions`。
 
@@ -224,7 +225,7 @@ FROM AI.FORECAST(
 3. **本地多维指标评估与报告输出**：
    ```bash
    # 一键计算全部对比指标，输出表格与出版级对比图表
-   uv run python scripts/run_timesfm_benchmark.py
+   uv run python scripts/archive/run_timesfm_v2.py
    ```
 
 ---

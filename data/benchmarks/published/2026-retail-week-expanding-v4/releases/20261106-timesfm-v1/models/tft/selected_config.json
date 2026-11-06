@@ -1,0 +1,253 @@
+{
+  "selection_cache_key": "480fa2ac613b03b9d5d4d8d84ff0ea864f7ae4ead7eb9c43cde22926e8df4dda",
+  "selection_policy": "fixed-pre-evaluation-windows-v1",
+  "selection_end": "2025-12-28",
+  "toolkit": "pytorch_forecasting",
+  "selection_identity": "tft",
+  "input_hashes": {
+    "grocery_scenario_data.csv": "03340569d0137bc4f6e03e7222f07bc1acae2c6c2a37bf344932767d490847a8",
+    "wine_scenario_data.csv": "7dbdcec0c377fa9d22de9ecded0301484302c1e30db32644c65dac82ac2f04a0",
+    "luxury_scenario_data.csv": "d26da5fbf95426461d8da9ea0bdeb7e9d4cdb4afa1a0560f737fffc3f9a1122e",
+    "scenario_diagnostics.csv": "5a5e52d71cc56aaa8c14201abf1afa47bcd385b3a4e98fca49126237fefeba91",
+    "vic_holidays.csv": "c863a1bf789c3e54875a738ec33aef81b9e11c218de89f7880f46a34d6e3d096",
+    "garden_scenario_data.csv": "acef8fb26398c32130a572af518036ceb9311f92b23b5a1a89e5b8bdb938b307"
+  },
+  "candidate_grid": [
+    {
+      "hidden_size": 8,
+      "attention_head_size": 1,
+      "hidden_continuous_size": 8,
+      "dropout": 0.1,
+      "learning_rate": 0.005,
+      "max_epochs": 12
+    },
+    {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.1,
+      "learning_rate": 0.005,
+      "max_epochs": 12
+    },
+    {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    }
+  ],
+  "selection_details_by_scenario": {
+    "grocery": [
+      {
+        "scenario": "grocery",
+        "model": "TFT",
+        "candidate_id": 0,
+        "parameters": "{\"attention_head_size\": 1, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 8, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 5.9446278163,
+        "validation_RMSE": 7.4732188223,
+        "validation_WAPE": 0.0491949811,
+        "mean_selected_epochs": 8.0,
+        "tuning_seconds": 71.8988968339
+      },
+      {
+        "scenario": "grocery",
+        "model": "TFT",
+        "candidate_id": 2,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.2, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.001, \"max_epochs\": 12}",
+        "validation_MAE": 6.0860187349,
+        "validation_RMSE": 7.9004677306,
+        "validation_WAPE": 0.0503650668,
+        "mean_selected_epochs": 11.75,
+        "tuning_seconds": 141.366804458
+      },
+      {
+        "scenario": "grocery",
+        "model": "TFT",
+        "candidate_id": 1,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 6.3360996065,
+        "validation_RMSE": 7.9605498149,
+        "validation_WAPE": 0.05243462,
+        "mean_selected_epochs": 10.25,
+        "tuning_seconds": 132.806523833
+      }
+    ],
+    "wine": [
+      {
+        "scenario": "wine",
+        "model": "TFT",
+        "candidate_id": 2,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.2, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.001, \"max_epochs\": 12}",
+        "validation_MAE": 2.4768546011,
+        "validation_RMSE": 3.4625977595,
+        "validation_WAPE": 0.220514877,
+        "mean_selected_epochs": 8.75,
+        "tuning_seconds": 123.0070886241
+      },
+      {
+        "scenario": "wine",
+        "model": "TFT",
+        "candidate_id": 1,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 2.7142886136,
+        "validation_RMSE": 3.7014179281,
+        "validation_WAPE": 0.2416536763,
+        "mean_selected_epochs": 7.0,
+        "tuning_seconds": 109.785103542
+      },
+      {
+        "scenario": "wine",
+        "model": "TFT",
+        "candidate_id": 0,
+        "parameters": "{\"attention_head_size\": 1, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 8, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 2.8309736933,
+        "validation_RMSE": 3.7282049841,
+        "validation_WAPE": 0.252042173,
+        "mean_selected_epochs": 7.5,
+        "tuning_seconds": 72.575271917
+      }
+    ],
+    "garden": [
+      {
+        "scenario": "garden",
+        "model": "TFT",
+        "candidate_id": 2,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.2, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.001, \"max_epochs\": 12}",
+        "validation_MAE": 6.4703328932,
+        "validation_RMSE": 7.9344934392,
+        "validation_WAPE": 0.0796414894,
+        "mean_selected_epochs": 10.75,
+        "tuning_seconds": 139.317922834
+      },
+      {
+        "scenario": "garden",
+        "model": "TFT",
+        "candidate_id": 1,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 7.9763847557,
+        "validation_RMSE": 9.808641295,
+        "validation_WAPE": 0.0981790539,
+        "mean_selected_epochs": 9.0,
+        "tuning_seconds": 128.259906667
+      },
+      {
+        "scenario": "garden",
+        "model": "TFT",
+        "candidate_id": 0,
+        "parameters": "{\"attention_head_size\": 1, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 8, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 8.0566572585,
+        "validation_RMSE": 10.1791088462,
+        "validation_WAPE": 0.0991671053,
+        "mean_selected_epochs": 8.25,
+        "tuning_seconds": 79.252992543
+      }
+    ],
+    "luxury": [
+      {
+        "scenario": "luxury",
+        "model": "TFT",
+        "candidate_id": 2,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.2, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.001, \"max_epochs\": 12}",
+        "validation_MAE": 0.1493958489,
+        "validation_RMSE": 0.3285570721,
+        "validation_WAPE": 1.8259492641,
+        "mean_selected_epochs": 4.75,
+        "tuning_seconds": 89.631259292
+      },
+      {
+        "scenario": "luxury",
+        "model": "TFT",
+        "candidate_id": 0,
+        "parameters": "{\"attention_head_size\": 1, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 8, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 0.186536143,
+        "validation_RMSE": 0.3296435247,
+        "validation_WAPE": 2.2798861927,
+        "mean_selected_epochs": 4.0,
+        "tuning_seconds": 52.8599978751
+      },
+      {
+        "scenario": "luxury",
+        "model": "TFT",
+        "candidate_id": 1,
+        "parameters": "{\"attention_head_size\": 2, \"dropout\": 0.1, \"hidden_continuous_size\": 8, \"hidden_size\": 16, \"learning_rate\": 0.005, \"max_epochs\": 12}",
+        "validation_MAE": 0.187717972,
+        "validation_RMSE": 0.3676431149,
+        "validation_WAPE": 2.2943307683,
+        "mean_selected_epochs": 7.0,
+        "tuning_seconds": 117.9441915841
+      }
+    ]
+  },
+  "base_params_by_scenario": {
+    "grocery": {
+      "hidden_size": 8,
+      "attention_head_size": 1,
+      "hidden_continuous_size": 8,
+      "dropout": 0.1,
+      "learning_rate": 0.005,
+      "max_epochs": 12
+    },
+    "wine": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    },
+    "garden": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    },
+    "luxury": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    }
+  },
+  "model_id": "tft",
+  "declared_variant_params": {},
+  "resolved_params_by_scenario": {
+    "grocery": {
+      "hidden_size": 8,
+      "attention_head_size": 1,
+      "hidden_continuous_size": 8,
+      "dropout": 0.1,
+      "learning_rate": 0.005,
+      "max_epochs": 12
+    },
+    "wine": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    },
+    "garden": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    },
+    "luxury": {
+      "hidden_size": 16,
+      "attention_head_size": 2,
+      "hidden_continuous_size": 8,
+      "dropout": 0.2,
+      "learning_rate": 0.001,
+      "max_epochs": 12
+    }
+  }
+}

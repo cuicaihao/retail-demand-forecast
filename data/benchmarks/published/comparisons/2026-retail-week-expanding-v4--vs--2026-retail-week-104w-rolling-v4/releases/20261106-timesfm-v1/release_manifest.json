@@ -1,0 +1,83 @@
+{
+  "release_schema_version": "training-history-comparison-release-v2",
+  "release_id": "20261106-timesfm-v1",
+  "comparison_id": "2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4",
+  "published_at": "2026-11-06T04:09:14.059862+00:00",
+  "published_by_source_provenance": {
+    "git_commit": "6728bc44393b718bfe85a36cc56f266417c2b3d1",
+    "git_dirty": false,
+    "source_tree_sha256": "5722bb4ed20a22a7af678e14abad6c0287ea9f2b1b88b0f0759794d0174ae596",
+    "pending_release_outputs": [
+      "data/benchmarks/published/2026-retail-week-104w-rolling-v4/releases/20261106-timesfm-v1/",
+      "data/benchmarks/published/2026-retail-week-expanding-v4/releases/20261106-timesfm-v1/"
+    ]
+  },
+  "main_source_release": {
+    "benchmark_id": "2026-retail-week-expanding-v4",
+    "release_id": "20261106-timesfm-v1",
+    "protocol_hash": "281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e",
+    "release_manifest_sha256": "4a086433f728cfa48ea301b4876a011ef1a6b4ca3b42eb32f55053224c34c51e",
+    "relative_path": "2026-retail-week-expanding-v4/releases/20261106-timesfm-v1"
+  },
+  "fixed_window_source_release": {
+    "benchmark_id": "2026-retail-week-104w-rolling-v4",
+    "release_id": "20261106-timesfm-v1",
+    "protocol_hash": "13918ef24a240992a4254869b6dd968a8246ed615e927eda452217428188ecbf",
+    "release_manifest_sha256": "510d3994fb62dd5b5fa661d591702d4bc4fc1d2268201ba88d516cc6297a57ac",
+    "relative_path": "2026-retail-week-104w-rolling-v4/releases/20261106-timesfm-v1"
+  },
+  "fixed_window_weeks": 104,
+  "model_ids": [
+    "ag-adida",
+    "ag-auto-arima",
+    "ag-croston",
+    "ag-deepar",
+    "ag-direct-tabular",
+    "ag-dlinear",
+    "ag-ets",
+    "ag-imapa",
+    "ag-npts",
+    "ag-recursive-tabular",
+    "ag-seasonal-naive",
+    "ag-simple-feedforward",
+    "ag-theta",
+    "ag-weighted-ensemble",
+    "ag-zero",
+    "arima",
+    "catboost_default",
+    "catboost_tweedie_p11",
+    "catboost_tweedie_p12",
+    "catboost_tweedie_p15",
+    "catboost_tweedie_p18",
+    "decision_tree",
+    "lightgbm_default",
+    "lightgbm_tweedie_p11",
+    "lightgbm_tweedie_p12",
+    "lightgbm_tweedie_p15",
+    "lightgbm_tweedie_p18",
+    "lstm",
+    "mlp",
+    "moving_average_14d",
+    "prophet",
+    "random_forest",
+    "seasonal_naive",
+    "tft",
+    "timesfm-3-0-known-covariates",
+    "timesfm-3-0-univariate",
+    "xgboost_default",
+    "xgboost_tweedie_p11",
+    "xgboost_tweedie_p12",
+    "xgboost_tweedie_p15",
+    "xgboost_tweedie_p18"
+  ],
+  "scenarios": [
+    "grocery",
+    "wine",
+    "garden",
+    "luxury"
+  ],
+  "files": {
+    "scenario_summary.csv": "e72e785f2423023161a9ca3a4cd641ba948ae5f7c7ce86f4ce8dacd5b5652984",
+    "training_history_comparison.csv": "98095e3f3501680a726f3f2d366020c62de729a4ee841593c1a4878eb12289cf"
+  }
+}

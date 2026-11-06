@@ -8,6 +8,11 @@ categories: ["机器学习工程"]
 math: true
 ---
 
+> **历史归档说明**：本文记录旧版单一 28 天切片与 BigQuery 实验，不属于当前 V4
+> 13-fold 基准结论。当前可比较结果请以
+> [`2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md)
+> 和 `20261106-timesfm-v1` release 为准。
+
 ## 一、引言：时序大模型走向企业级数仓
 
 在零售需求预测领域，传统的建模路径通常分为两条：
@@ -22,7 +27,7 @@ math: true
 > - 历史实验方案：[`reports/archive/2026-11-03-timesfm-experiment-plan.md`](../reports/archive/2026-11-03-timesfm-experiment-plan.md)
 > - 历史量化报告：[`reports/archive/2026-11-03-timesfm-validation-report.md`](../reports/archive/2026-11-03-timesfm-validation-report.md)
 > - 交互实操代码：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../../notebooks/36-timesfm-bigquery-tutorial.ipynb)
-> - 生产 SQL 资产：[`src/retail_forecast/sql/bigquery_timesfm_experiments.sql`](../../src/retail_forecast/sql/bigquery_timesfm_experiments.sql)
+> - 历史 SQL 资产：[`src/retail_forecast/sql/archive_bigquery_timesfm_v2_experiments.sql`](../../src/retail_forecast/sql/archive_bigquery_timesfm_v2_experiments.sql)
 
 ---
 

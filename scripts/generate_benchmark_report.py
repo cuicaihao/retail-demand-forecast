@@ -158,19 +158,20 @@ def generate_blocks(benchmark_id: str, release_id: str) -> Path:
     tables = "\n".join(blocks).rstrip() + "\n"
     (output / "scenario_leaderboards.md").write_text(tables, encoding="utf-8")
 
-    tree_defaults = breadth[breadth.toolkit.isin(["lightgbm", "xgboost", "catboost"])]
-    configuration = pd.concat([tree_defaults, ablations], ignore_index=True)
+    ablation_groups = sorted(ablations.config_group.dropna().unique())
+    representatives = breadth[breadth.config_group.isin(ablation_groups)]
+    configuration = pd.concat([representatives, ablations], ignore_index=True)
     ablation_blocks = []
     for scenario_name in spec.scenarios:
         columns = luxury_columns if scenario_name == "luxury" else general_columns
-        for toolkit in ["lightgbm", "xgboost", "catboost"]:
+        for config_group in ablation_groups:
             subset = configuration[
                 configuration.scenario.eq(scenario_name)
-                & configuration.toolkit.eq(toolkit)
+                & configuration.config_group.eq(config_group)
             ].sort_values("WAPE")
             ablation_blocks.extend(
                 [
-                    f"## {scenario_name} / {toolkit}",
+                    f"## {scenario_name} / {config_group}",
                     "",
                     _markdown_table(subset, columns),
                     "",

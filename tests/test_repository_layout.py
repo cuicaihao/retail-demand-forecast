@@ -107,6 +107,37 @@ class RepositoryLayoutTests(unittest.TestCase):
                     hashlib.sha256(path.read_bytes()).hexdigest(), expected
                 )
 
+    def test_current_v4_report_matches_timesfm_release_provenance(self) -> None:
+        release_id = "20261106-timesfm-v1"
+        expanding = (
+            ROOT
+            / "data/benchmarks/published/2026-retail-week-expanding-v4/releases"
+            / release_id
+        )
+        comparison = (
+            ROOT
+            / "data/benchmarks/published/comparisons"
+            / "2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4"
+            / "releases"
+            / release_id
+        )
+        report = (
+            ROOT / "docs/reports/2026-retail-week-v4-first-stage-report.md"
+        ).read_text()
+        expanding_manifest = expanding / "release_manifest.json"
+        comparison_manifest = comparison / "release_manifest.json"
+        release = json.loads(expanding_manifest.read_text())
+
+        self.assertEqual(len(release["model_ids"]), 41)
+        self.assertIn(release_id, report)
+        self.assertIn(
+            hashlib.sha256(expanding_manifest.read_bytes()).hexdigest(), report
+        )
+        self.assertIn(
+            hashlib.sha256(comparison_manifest.read_bytes()).hexdigest(), report
+        )
+        self.assertIn("TimesFM 3.0 + Known Covariates", report)
+
     def test_reference_snapshot_provenance_is_explicit(self) -> None:
         data_dir = ROOT / "data" / "teaching"
         prophet_manifest = ROOT / "data/artifacts/published/prophet/run_manifest.json"

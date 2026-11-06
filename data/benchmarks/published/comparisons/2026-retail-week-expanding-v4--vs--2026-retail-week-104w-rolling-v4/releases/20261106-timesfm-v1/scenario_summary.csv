@@ -1,0 +1,5 @@
+scenario,model_count,expanding_wins,fixed_window_wins,ties,median_WAPE_delta_fixed_window_minus_expanding,breadth_median_WAPE_delta_fixed_window_minus_expanding
+garden,41,23,13,5,0.00034699656566068715,0.0004993431823022976
+grocery,41,30,4,7,0.0019274355873588056,0.0017643434945669029
+luxury,41,17,19,5,0.0,-0.03576638485337136
+wine,41,32,2,7,0.007452095272690307,0.005382900958641107

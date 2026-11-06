@@ -1,4 +1,4 @@
-# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML）
+# 2026 零售周 V4 分阶段基准报告（第一阶段 + ARIMA + 神经模型 + AutoML + TimesFM）
 
 本报告记录 `2026-retail-week-expanding-v4` 的首阶段审核结果，并使用
 `2026-retail-week-104w-rolling-v4` 模拟每月以此前两年数据训练、预测随后 4 周的生产流程。正式评估覆盖
@@ -7,26 +7,30 @@
 
 当前发布包含基线、Prophet、ARIMA 动态回归、经典树、MLP、LSTM、TFT，以及
 LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.8`
-消融，共 24 个普通模型配置。AutoGluon 另以固定 240 秒预算运行 15 个 `ag-*` 配置，
-只进入独立 AutoML 对比层，不占据普通广度榜名次。TimesFM 尚未迁移到 V4。
+消融，以及 TimesFM 3.0 单变量代表和已知协变量消融，共 26 个普通模型配置。AutoGluon
+另以固定 240 秒预算运行 15 个 `ag-*` 配置，只进入独立 AutoML 对比层，不占据普通广度榜名次。
 
 ## 1. 证据边界与主要结论
 
-- 在全部 39 个普通与 AutoML 配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden
-  分别取得 `28/4/7`、`30/2/7`、`22/12/5`（扩展历史胜 / 104 周胜 / 平局）。因此，
+- 在全部 41 个普通与 AutoML 配置中，扩展历史相对固定 104 周在 Grocery、Wine、Garden
+  分别取得 `30/4/7`、`32/2/7`、`23/13/5`（扩展历史胜 / 104 周胜 / 平局）。因此，
   两年滚动窗口在 Grocery 与 Wine 上多数略逊，但在 Garden 上并非单向劣化。
 - 扩展历史下，ARIMA 在 Grocery、Wine、Garden 的 WAPE 分别为 `4.17%`、`22.10%`、
   `7.80%`，其中 Wine 与 Garden 为广度榜最低值，Grocery 与 Prophet 的 `4.16%` 接近。
   这只是当前合成机制和固定配置下的结果，不构成统计模型的一般优越性结论。
 - 104 周生产滚动实验与扩展历史使用相同的模型配置、预测日期和已知未来信息，只改变
   每个 forecast origin 可见的训练历史范围。代表配置的 WAPE 差值中位数在 Grocery、
-  Wine、Garden 分别为 `+0.15`、`+0.47`、`+0.10` 个百分点；Luxury 为 `-5.56`
+  Wine、Garden 分别为 `+0.18`、`+0.54`、`+0.05` 个百分点；Luxury 为 `-3.58`
   个百分点，但不同模型的方向并不一致，必须同时检查事件召回与 F1，不能只看 WAPE。
 - 广度榜每个工具包只保留一个预先声明的代表配置；Tweedie power 的比较单列为配置
   消融，不重复占据工具包广度排名。
 - AutoGluon 加权集成在扩展历史 Grocery、Garden 的 WAPE 为 `5.52%`、`10.19%`，
   但 Wine 的 `ag-deepar` 优于加权集成；Luxury 加权集成虽然 WAPE 为 `100%`，需求事件
   召回和 F1 均为 `0%`，本质是漏掉全部需求事件，不能视为有效胜出。
+- TimesFM 3.0 单变量配置在 Grocery、Wine、Garden 的扩展历史 WAPE 为 `4.91%`、
+  `24.29%`、`8.86%`；加入预测起点已知协变量后分别降至 `4.54%`、`22.69%`、
+  `8.17%`。Luxury 两个配置的需求事件召回和 F1 仍均为 `0%`，因此该消融没有解决
+  极端间歇需求的事件识别问题。
 - 所有区间和 fold 分布只用于描述稳定性。本报告没有进行预注册的显著性检验，也不把
   bootstrap 描述区间表述为统计显著。
 
@@ -34,9 +38,9 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 
 <!-- BENCHMARK_BLOCK:provenance:START -->
 > Benchmark ID: `2026-retail-week-expanding-v4`<br>
-> Release ID: `20261106-autogluon-v1`<br>
+> Release ID: `20261106-timesfm-v1`<br>
 > Protocol hash: `281307a393825938d595cf34f22be25c9a894f634ddbadcf073c2d82eea8612e`<br>
-> Release manifest SHA-256: `b9cfdf094d9622e9d13608996efcaae237f935cd97199750731d81f838232ab4`<br>
+> Release manifest SHA-256: `4a086433f728cfa48ea301b4876a011ef1a6b4ca3b42eb32f55053224c34c51e`<br>
 > Fold uncertainty intervals are descriptive; they are not claims of statistical significance.
 <!-- BENCHMARK_BLOCK:provenance:END -->
 
@@ -54,6 +58,7 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 | Regression + ARIMA (1,0,1) | statsmodels | default | 4.17% | 5.1005 | 6.4488 | 0.19% | 0.1867 | 0.0413 | 0.0062 |
 | LSTM | pytorch_lstm | default | 4.44% | 5.4350 | 6.8335 | -0.19% | 0.1989 | 0.0424 | 0.0079 |
 | MLP | pytorch_mlp | default | 4.66% | 5.6944 | 7.1760 | 0.81% | 0.2084 | 0.0478 | 0.0088 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 4.91% | 6.0039 | 8.2953 | -0.65% | 0.2198 | 0.0479 | 0.0106 |
 | TFT | pytorch_forecasting | default | 4.99% | 6.1063 | 7.8900 | -1.96% | 0.2235 | 0.0506 | 0.0076 |
 | XGBoost Default (MSE) | xgboost | default | 5.01% | 6.1295 | 7.8354 | -1.17% | 0.2244 | 0.0485 | 0.0178 |
 | CatBoost Default (MAE) | catboost | default | 5.05% | 6.1832 | 8.2256 | -1.33% | 0.2263 | 0.0512 | 0.0154 |
@@ -72,6 +77,7 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 | LSTM | pytorch_lstm | default | 23.20% | 2.7146 | 3.4496 | 2.54% | 0.4514 | 0.2244 | 0.0489 |
 | MLP | pytorch_mlp | default | 23.23% | 2.7173 | 3.4086 | 3.17% | 0.4518 | 0.2221 | 0.0473 |
 | XGBoost Default (MSE) | xgboost | default | 23.94% | 2.8004 | 3.5918 | -2.26% | 0.4656 | 0.2278 | 0.0671 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 24.29% | 2.8419 | 3.6736 | -2.51% | 0.4725 | 0.2320 | 0.0654 |
 | TFT | pytorch_forecasting | default | 24.40% | 2.8544 | 3.5873 | 0.49% | 0.4746 | 0.2307 | 0.0588 |
 | CatBoost Default (MAE) | catboost | default | 24.40% | 2.8551 | 3.7194 | -6.04% | 0.4747 | 0.2307 | 0.0692 |
 | LightGBM Default (MSE) | lightgbm | default | 25.08% | 2.9346 | 3.7990 | -4.04% | 0.4879 | 0.2440 | 0.0786 |
@@ -89,6 +95,7 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 | TFT | pytorch_forecasting | default | 8.76% | 6.2915 | 7.9981 | -1.11% | 0.6623 | 0.0975 | 0.0658 |
 | MLP | pytorch_mlp | default | 8.82% | 6.3334 | 7.8508 | -0.62% | 0.6667 | 0.0942 | 0.0539 |
 | CatBoost Default (MAE) | catboost | default | 8.86% | 6.3611 | 7.8148 | -1.59% | 0.6696 | 0.0889 | 0.0848 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 8.86% | 6.3649 | 8.4272 | -0.58% | 0.6700 | 0.0869 | 0.0402 |
 | XGBoost Default (MSE) | xgboost | default | 9.03% | 6.4864 | 8.0532 | -1.53% | 0.6828 | 0.0880 | 0.0855 |
 | LightGBM Default (MSE) | lightgbm | default | 9.17% | 6.5871 | 8.0916 | -1.21% | 0.6934 | 0.0880 | 0.0747 |
 | Random Forest | random_forest | default | 9.33% | 6.7041 | 8.2132 | -4.16% | 0.7057 | 0.1032 | 0.0773 |
@@ -102,6 +109,7 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 | 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | CatBoost Default (MAE) | catboost | default | 100.25% | 0.0803 | 100.00% | 4.76% | 9.09% | 1.3355 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 100.35% | 0.0804 | 100.00% | 0.00% | 0.00% | 1.3807 |
 | Moving Average (14d) | moving_average | default | 161.82% | 0.1296 | 100.00% | 0.00% | 0.00% | 1.2891 |
 | Prophet | prophet | default | 172.55% | 0.1382 | 99.12% | 4.76% | 8.00% | 1.2954 |
 | Seasonal Naive (7d) | seasonal_naive | default | 182.76% | 0.1464 | 93.55% | 9.52% | 8.89% | 1.2857 |
@@ -118,9 +126,19 @@ LightGBM、XGBoost、CatBoost 的默认配置与对称 Tweedie `p=1.1/1.2/1.5/1.
 Luxury 表必须联合阅读 WAPE、`ZeroRecall@0.5`、`DemandRecall@0.5`、事件 F1 和正需求
 MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明它识别了真实需求事件。
 
-## 4. GBDT 配置消融
+## 4. 配置消融
 
 <!-- BENCHMARK_BLOCK:configuration_ablations:START -->
+## grocery / catboost
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 4.94% | 6.0435 | 7.7332 | -1.24% | 0.2212 | 0.0461 | 0.0116 |
+| CatBoost Tweedie (p=1.5) | catboost | tweedie_p15 | 4.97% | 6.0820 | 7.7716 | -1.61% | 0.2226 | 0.0487 | 0.0148 |
+| CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 5.00% | 6.1199 | 7.7418 | -1.44% | 0.2240 | 0.0486 | 0.0078 |
+| CatBoost Default (MAE) | catboost | default | 5.05% | 6.1832 | 8.2256 | -1.33% | 0.2263 | 0.0512 | 0.0154 |
+| CatBoost Tweedie (p=1.8) | catboost | tweedie_p18 | 5.15% | 6.2981 | 8.0769 | -2.21% | 0.2305 | 0.0519 | 0.0161 |
+
 ## grocery / lightgbm
 
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
@@ -130,6 +148,13 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | LightGBM Tweedie (p=1.1) | lightgbm | tweedie_p11 | 5.40% | 6.6071 | 8.7282 | -1.78% | 0.2418 | 0.0548 | 0.0142 |
 | LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 5.44% | 6.6556 | 8.7709 | -1.88% | 0.2436 | 0.0558 | 0.0094 |
 | LightGBM Tweedie (p=1.2) | lightgbm | tweedie_p12 | 5.55% | 6.7829 | 8.9827 | -1.96% | 0.2483 | 0.0567 | 0.0161 |
+
+## grocery / timesfm_3_0
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | known_covariates | 4.54% | 5.5501 | 7.1767 | -1.06% | 0.2032 | 0.0448 | 0.0058 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 4.91% | 6.0039 | 8.2953 | -0.65% | 0.2198 | 0.0479 | 0.0106 |
 
 ## grocery / xgboost
 
@@ -141,15 +166,15 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | XGBoost Default (MSE) | xgboost | default | 5.01% | 6.1295 | 7.8354 | -1.17% | 0.2244 | 0.0485 | 0.0178 |
 | XGBoost Tweedie (p=1.8) | xgboost | tweedie_p18 | 5.03% | 6.1537 | 7.8465 | -1.32% | 0.2253 | 0.0514 | 0.0156 |
 
-## grocery / catboost
+## wine / catboost
 
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 4.94% | 6.0435 | 7.7332 | -1.24% | 0.2212 | 0.0461 | 0.0116 |
-| CatBoost Tweedie (p=1.5) | catboost | tweedie_p15 | 4.97% | 6.0820 | 7.7716 | -1.61% | 0.2226 | 0.0487 | 0.0148 |
-| CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 5.00% | 6.1199 | 7.7418 | -1.44% | 0.2240 | 0.0486 | 0.0078 |
-| CatBoost Default (MAE) | catboost | default | 5.05% | 6.1832 | 8.2256 | -1.33% | 0.2263 | 0.0512 | 0.0154 |
-| CatBoost Tweedie (p=1.8) | catboost | tweedie_p18 | 5.15% | 6.2981 | 8.0769 | -2.21% | 0.2305 | 0.0519 | 0.0161 |
+| CatBoost Tweedie (p=1.8) | catboost | tweedie_p18 | 23.26% | 2.7208 | 3.4742 | -4.10% | 0.4524 | 0.2271 | 0.0538 |
+| CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 23.65% | 2.7671 | 3.5196 | -2.94% | 0.4601 | 0.2380 | 0.0288 |
+| CatBoost Tweedie (p=1.5) | catboost | tweedie_p15 | 23.67% | 2.7693 | 3.5554 | -3.75% | 0.4605 | 0.2351 | 0.0373 |
+| CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 24.06% | 2.8150 | 3.5914 | -3.82% | 0.4680 | 0.2397 | 0.0504 |
+| CatBoost Default (MAE) | catboost | default | 24.40% | 2.8551 | 3.7194 | -6.04% | 0.4747 | 0.2307 | 0.0692 |
 
 ## wine / lightgbm
 
@@ -161,6 +186,13 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 24.48% | 2.8639 | 3.6991 | -5.54% | 0.4762 | 0.2332 | 0.0877 |
 | LightGBM Default (MSE) | lightgbm | default | 25.08% | 2.9346 | 3.7990 | -4.04% | 0.4879 | 0.2440 | 0.0786 |
 
+## wine / timesfm_3_0
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | known_covariates | 22.69% | 2.6543 | 3.4164 | -3.11% | 0.4413 | 0.2219 | 0.0314 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 24.29% | 2.8419 | 3.6736 | -2.51% | 0.4725 | 0.2320 | 0.0654 |
+
 ## wine / xgboost
 
 | 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
@@ -170,36 +202,6 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | XGBoost Tweedie (p=1.1) | xgboost | tweedie_p11 | 24.63% | 2.8810 | 3.7107 | -4.92% | 0.4790 | 0.2476 | 0.0858 |
 | XGBoost Tweedie (p=1.5) | xgboost | tweedie_p15 | 24.83% | 2.9049 | 3.8082 | -7.01% | 0.4830 | 0.2443 | 0.0934 |
 | XGBoost Tweedie (p=1.2) | xgboost | tweedie_p12 | 24.83% | 2.9050 | 3.7344 | -5.26% | 0.4830 | 0.2451 | 0.0934 |
-
-## wine / catboost
-
-| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| CatBoost Tweedie (p=1.8) | catboost | tweedie_p18 | 23.26% | 2.7208 | 3.4742 | -4.10% | 0.4524 | 0.2271 | 0.0538 |
-| CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 23.65% | 2.7671 | 3.5196 | -2.94% | 0.4601 | 0.2380 | 0.0288 |
-| CatBoost Tweedie (p=1.5) | catboost | tweedie_p15 | 23.67% | 2.7693 | 3.5554 | -3.75% | 0.4605 | 0.2351 | 0.0373 |
-| CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 24.06% | 2.8150 | 3.5914 | -3.82% | 0.4680 | 0.2397 | 0.0504 |
-| CatBoost Default (MAE) | catboost | default | 24.40% | 2.8551 | 3.7194 | -6.04% | 0.4747 | 0.2307 | 0.0692 |
-
-## garden / lightgbm
-
-| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| LightGBM Tweedie (p=1.2) | lightgbm | tweedie_p12 | 9.15% | 6.5691 | 8.2037 | -2.28% | 0.6915 | 0.0896 | 0.0892 |
-| LightGBM Default (MSE) | lightgbm | default | 9.17% | 6.5871 | 8.0916 | -1.21% | 0.6934 | 0.0880 | 0.0747 |
-| LightGBM Tweedie (p=1.1) | lightgbm | tweedie_p11 | 9.21% | 6.6189 | 8.1860 | -2.52% | 0.6967 | 0.0946 | 0.0638 |
-| LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 9.32% | 6.6937 | 8.3763 | -2.98% | 0.7046 | 0.0855 | 0.0901 |
-| LightGBM Tweedie (p=1.5) | lightgbm | tweedie_p15 | 9.39% | 6.7460 | 8.3332 | -2.56% | 0.7101 | 0.0924 | 0.0839 |
-
-## garden / xgboost
-
-| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| XGBoost Tweedie (p=1.8) | xgboost | tweedie_p18 | 8.88% | 6.3793 | 7.9584 | -2.95% | 0.6715 | 0.0874 | 0.0807 |
-| XGBoost Tweedie (p=1.5) | xgboost | tweedie_p15 | 8.94% | 6.4216 | 8.0111 | -2.17% | 0.6760 | 0.0814 | 0.0890 |
-| XGBoost Tweedie (p=1.2) | xgboost | tweedie_p12 | 8.97% | 6.4425 | 7.9938 | -2.06% | 0.6782 | 0.0842 | 0.0840 |
-| XGBoost Tweedie (p=1.1) | xgboost | tweedie_p11 | 9.02% | 6.4817 | 8.0127 | -2.07% | 0.6823 | 0.0888 | 0.0902 |
-| XGBoost Default (MSE) | xgboost | default | 9.03% | 6.4864 | 8.0532 | -1.53% | 0.6828 | 0.0880 | 0.0855 |
 
 ## garden / catboost
 
@@ -211,25 +213,32 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 8.96% | 6.4367 | 8.1183 | -3.32% | 0.6776 | 0.0873 | 0.0742 |
 | CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 9.07% | 6.5158 | 8.2189 | -3.24% | 0.6859 | 0.0934 | 0.0687 |
 
-## luxury / lightgbm
+## garden / lightgbm
 
-| 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 150.80% | 0.1208 | 100.00% | 0.00% | 0.00% | 1.2985 |
-| LightGBM Tweedie (p=1.5) | lightgbm | tweedie_p15 | 161.70% | 0.1295 | 100.00% | 0.00% | 0.00% | 1.3018 |
-| LightGBM Tweedie (p=1.2) | lightgbm | tweedie_p12 | 168.45% | 0.1349 | 100.00% | 0.00% | 0.00% | 1.3010 |
-| LightGBM Tweedie (p=1.1) | lightgbm | tweedie_p11 | 172.96% | 0.1386 | 100.00% | 0.00% | 0.00% | 1.2950 |
-| LightGBM Default (MSE) | lightgbm | default | 239.15% | 0.1916 | 98.53% | 4.76% | 7.41% | 1.2444 |
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| LightGBM Tweedie (p=1.2) | lightgbm | tweedie_p12 | 9.15% | 6.5691 | 8.2037 | -2.28% | 0.6915 | 0.0896 | 0.0892 |
+| LightGBM Default (MSE) | lightgbm | default | 9.17% | 6.5871 | 8.0916 | -1.21% | 0.6934 | 0.0880 | 0.0747 |
+| LightGBM Tweedie (p=1.1) | lightgbm | tweedie_p11 | 9.21% | 6.6189 | 8.1860 | -2.52% | 0.6967 | 0.0946 | 0.0638 |
+| LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 9.32% | 6.6937 | 8.3763 | -2.98% | 0.7046 | 0.0855 | 0.0901 |
+| LightGBM Tweedie (p=1.5) | lightgbm | tweedie_p15 | 9.39% | 6.7460 | 8.3332 | -2.56% | 0.7101 | 0.0924 | 0.0839 |
 
-## luxury / xgboost
+## garden / timesfm_3_0
 
-| 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| XGBoost Tweedie (p=1.8) | xgboost | tweedie_p18 | 109.29% | 0.0876 | 99.71% | 0.00% | 0.00% | 1.3789 |
-| XGBoost Tweedie (p=1.5) | xgboost | tweedie_p15 | 128.79% | 0.1032 | 99.12% | 0.00% | 0.00% | 1.3508 |
-| XGBoost Tweedie (p=1.2) | xgboost | tweedie_p12 | 164.77% | 0.1320 | 98.83% | 0.00% | 0.00% | 1.3113 |
-| XGBoost Tweedie (p=1.1) | xgboost | tweedie_p11 | 185.16% | 0.1483 | 98.53% | 0.00% | 0.00% | 1.3065 |
-| XGBoost Default (MSE) | xgboost | default | 224.11% | 0.1795 | 98.24% | 0.00% | 0.00% | 1.2531 |
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | known_covariates | 8.17% | 5.8716 | 7.2434 | -0.22% | 0.6181 | 0.0874 | 0.0609 |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 8.86% | 6.3649 | 8.4272 | -0.58% | 0.6700 | 0.0869 | 0.0402 |
+
+## garden / xgboost
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | RMSE | Bias | MASE | Fold WAPE median | Fold WAPE IQR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| XGBoost Tweedie (p=1.8) | xgboost | tweedie_p18 | 8.88% | 6.3793 | 7.9584 | -2.95% | 0.6715 | 0.0874 | 0.0807 |
+| XGBoost Tweedie (p=1.5) | xgboost | tweedie_p15 | 8.94% | 6.4216 | 8.0111 | -2.17% | 0.6760 | 0.0814 | 0.0890 |
+| XGBoost Tweedie (p=1.2) | xgboost | tweedie_p12 | 8.97% | 6.4425 | 7.9938 | -2.06% | 0.6782 | 0.0842 | 0.0840 |
+| XGBoost Tweedie (p=1.1) | xgboost | tweedie_p11 | 9.02% | 6.4817 | 8.0127 | -2.07% | 0.6823 | 0.0888 | 0.0902 |
+| XGBoost Default (MSE) | xgboost | default | 9.03% | 6.4864 | 8.0532 | -1.53% | 0.6828 | 0.0880 | 0.0855 |
 
 ## luxury / catboost
 
@@ -240,13 +249,40 @@ MAE。高零值召回可能仅表示模型倾向预测零，不能独立证明�
 | CatBoost Tweedie (p=1.5) | catboost | tweedie_p15 | 190.03% | 0.1522 | 100.00% | 0.00% | 0.00% | 1.2252 |
 | CatBoost Tweedie (p=1.2) | catboost | tweedie_p12 | 198.23% | 0.1588 | 100.00% | 0.00% | 0.00% | 1.2227 |
 | CatBoost Tweedie (p=1.1) | catboost | tweedie_p11 | 205.06% | 0.1643 | 100.00% | 0.00% | 0.00% | 1.2142 |
+
+## luxury / lightgbm
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| LightGBM Tweedie (p=1.8) | lightgbm | tweedie_p18 | 150.80% | 0.1208 | 100.00% | 0.00% | 0.00% | 1.2985 |
+| LightGBM Tweedie (p=1.5) | lightgbm | tweedie_p15 | 161.70% | 0.1295 | 100.00% | 0.00% | 0.00% | 1.3018 |
+| LightGBM Tweedie (p=1.2) | lightgbm | tweedie_p12 | 168.45% | 0.1349 | 100.00% | 0.00% | 0.00% | 1.3010 |
+| LightGBM Tweedie (p=1.1) | lightgbm | tweedie_p11 | 172.96% | 0.1386 | 100.00% | 0.00% | 0.00% | 1.2950 |
+| LightGBM Default (MSE) | lightgbm | default | 239.15% | 0.1916 | 98.53% | 4.76% | 7.41% | 1.2444 |
+
+## luxury / timesfm_3_0
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TimesFM 3.0 | timesfm_3_0 | univariate | 100.35% | 0.0804 | 100.00% | 0.00% | 0.00% | 1.3807 |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | known_covariates | 100.41% | 0.0804 | 100.00% | 0.00% | 0.00% | 1.3800 |
+
+## luxury / xgboost
+
+| 模型 | 工具包 | 配置 | WAPE | MAE | ZeroRecall@0.5 | DemandRecall@0.5 | Event F1@0.5 | Positive-demand MAE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| XGBoost Tweedie (p=1.8) | xgboost | tweedie_p18 | 109.29% | 0.0876 | 99.71% | 0.00% | 0.00% | 1.3789 |
+| XGBoost Tweedie (p=1.5) | xgboost | tweedie_p15 | 128.79% | 0.1032 | 99.12% | 0.00% | 0.00% | 1.3508 |
+| XGBoost Tweedie (p=1.2) | xgboost | tweedie_p12 | 164.77% | 0.1320 | 98.83% | 0.00% | 0.00% | 1.3113 |
+| XGBoost Tweedie (p=1.1) | xgboost | tweedie_p11 | 185.16% | 0.1483 | 98.53% | 0.00% | 0.00% | 1.3065 |
+| XGBoost Default (MSE) | xgboost | default | 224.11% | 0.1795 | 98.24% | 0.00% | 0.00% | 1.2531 |
 <!-- BENCHMARK_BLOCK:configuration_ablations:END -->
 
-配置表回答的是同一工具包内损失函数与 Tweedie power 的敏感性问题，不用于增加该工具包
-在广度榜中的投票权。完整图表位于：
+配置表回答的是同一工具包内损失函数、Tweedie power 或已知协变量输入的敏感性问题，
+不用于增加该工具包在广度榜中的投票权。完整图表位于：
 
-- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
-- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
+- [扩展历史场景图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-timesfm-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
+- [扩展历史 Tweedie 消融图](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-timesfm-v1/fig-03-gbdt-tweedie-ablation-deepdive.png)
 
 ## 5. 固定预算 AutoML 独立对比
 
@@ -352,26 +388,26 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 正式测试结果事后替换已选择的集成。区间指标是 AutoGluon 的原生 10%–90% 分位数诊断，
 不能直接解释为库存服务水平。
 
-![AutoGluon 组件与加权集成对比](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-autogluon-v1/fig-05-autogluon-automl-scorecard.png)
+![AutoGluon 组件与加权集成对比](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-timesfm-v1/fig-05-autogluon-automl-scorecard.png)
 
 ## 6. 生产式训练历史比较：104 周训练 → 4 周预测
 
 <!-- BENCHMARK_BLOCK:history_provenance:START -->
 > Comparison ID: `2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4`<br>
-> Release ID: `20261106-autogluon-v1`<br>
-> Main source: `2026-retail-week-expanding-v4` / `20261106-autogluon-v1`<br>
-> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-autogluon-v1`<br>
-> Comparison release manifest SHA-256: `556689f4ee07af71e5432c0ddf836acc73b5910b74ce28dc32ec21dd33951b1e`<br>
+> Release ID: `20261106-timesfm-v1`<br>
+> Main source: `2026-retail-week-expanding-v4` / `20261106-timesfm-v1`<br>
+> Fixed-window source: `2026-retail-week-104w-rolling-v4` / `20261106-timesfm-v1`<br>
+> Comparison release manifest SHA-256: `3711fa3d1cbc6f3a8874d3a7f534cb374cf3168d7b23941a0aa056508508c385`<br>
 > WAPE differences are paired descriptive results, not statistical significance claims.
 <!-- BENCHMARK_BLOCK:history_provenance:END -->
 
 <!-- BENCHMARK_BLOCK:history_policy_summary:START -->
 | 场景 | 配置数 | 扩展历史胜 | 104 周胜 | 平局 | WAPE 差值中位数 (104w-expanding) | 广度配置 WAPE 差值中位数 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| garden | 39 | 22 | 12 | 5 | +0.03 pp | +0.10 pp |
-| grocery | 39 | 28 | 4 | 7 | +0.18 pp | +0.15 pp |
-| luxury | 39 | 15 | 19 | 5 | +0.00 pp | -5.56 pp |
-| wine | 39 | 30 | 2 | 7 | +0.68 pp | +0.47 pp |
+| garden | 41 | 23 | 13 | 5 | +0.03 pp | +0.05 pp |
+| grocery | 41 | 30 | 4 | 7 | +0.19 pp | +0.18 pp |
+| luxury | 41 | 17 | 19 | 5 | +0.00 pp | -3.58 pp |
+| wine | 41 | 32 | 2 | 7 | +0.75 pp | +0.54 pp |
 <!-- BENCHMARK_BLOCK:history_policy_summary:END -->
 
 正差值表示 104 周 WAPE 更高，因而扩展历史更好；负差值表示 104 周结果更低。该方向只描述
@@ -386,6 +422,7 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | CatBoost Default (MAE) | catboost | 5.05% | 5.37% | +0.32 pp | expanding |
 | XGBoost Default (MSE) | xgboost | 5.01% | 5.33% | +0.31 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 5.31% | 5.61% | +0.30 pp | expanding |
+| TimesFM 3.0 | timesfm_3_0 | 4.91% | 5.19% | +0.28 pp | expanding |
 | MLP | pytorch_mlp | 4.66% | 4.91% | +0.26 pp | expanding |
 | LSTM | pytorch_lstm | 4.44% | 4.62% | +0.18 pp | expanding |
 | Prophet | prophet | 4.16% | 4.28% | +0.12 pp | expanding |
@@ -403,6 +440,7 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | XGBoost Default (MSE) | xgboost | 23.94% | 25.38% | +1.44 pp | expanding |
 | MLP | pytorch_mlp | 23.23% | 24.66% | +1.43 pp | expanding |
 | CatBoost Default (MAE) | catboost | 24.40% | 25.61% | +1.21 pp | expanding |
+| TimesFM 3.0 | timesfm_3_0 | 24.29% | 25.19% | +0.90 pp | expanding |
 | LightGBM Default (MSE) | lightgbm | 25.08% | 25.63% | +0.55 pp | expanding |
 | LSTM | pytorch_lstm | 23.20% | 23.74% | +0.54 pp | expanding |
 | Decision Tree | decision_tree | 27.05% | 27.44% | +0.40 pp | expanding |
@@ -427,6 +465,7 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | Prophet | prophet | 7.81% | 7.84% | +0.03 pp | expanding |
 | Moving Average (14d) | moving_average | 20.02% | 20.02% | +0.00 pp | tie |
 | Seasonal Naive (7d) | seasonal_naive | 15.36% | 15.36% | +0.00 pp | tie |
+| TimesFM 3.0 | timesfm_3_0 | 8.86% | 8.86% | -0.00 pp | sliding_104w |
 | Decision Tree | decision_tree | 10.75% | 10.70% | -0.06 pp | sliding_104w |
 
 ## luxury
@@ -436,6 +475,7 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | Decision Tree | decision_tree | 238.73% | 275.31% | +36.58 pp | expanding | 11.76% | 13.56% |
 | CatBoost Default (MAE) | catboost | 100.25% | 111.81% | +11.56 pp | expanding | 9.09% | 16.00% |
 | XGBoost Default (MSE) | xgboost | 224.11% | 228.91% | +4.80 pp | expanding | 0.00% | 8.33% |
+| TimesFM 3.0 | timesfm_3_0 | 100.35% | 100.87% | +0.52 pp | expanding | 0.00% | 0.00% |
 | Moving Average (14d) | moving_average | 161.82% | 161.82% | +0.00 pp | tie | 0.00% | 0.00% |
 | Seasonal Naive (7d) | seasonal_naive | 182.76% | 182.76% | +0.00 pp | tie | 8.89% | 8.89% |
 | MLP | pytorch_mlp | 202.14% | 198.56% | -3.58 pp | sliding_104w | 8.70% | 8.70% |
@@ -446,6 +486,82 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | Regression + ARIMA (1,0,1) | statsmodels | 209.29% | 174.82% | -34.47 pp | sliding_104w | 15.38% | 9.09% |
 | TFT | pytorch_forecasting | 195.41% | 150.09% | -45.32 pp | sliding_104w | 0.00% | 9.09% |
 <!-- BENCHMARK_BLOCK:history_policy_breadth:END -->
+
+### 配置消融的训练历史差异
+
+<!-- BENCHMARK_BLOCK:history_policy_ablations:START -->
+## grocery
+
+| 消融配置 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| CatBoost Tweedie (p=1.1) | catboost | 5.00% | 17.03% | +12.02 pp | expanding |
+| CatBoost Tweedie (p=1.2) | catboost | 4.94% | 12.19% | +7.25 pp | expanding |
+| CatBoost Tweedie (p=1.5) | catboost | 4.97% | 8.78% | +3.80 pp | expanding |
+| CatBoost Tweedie (p=1.8) | catboost | 5.15% | 7.48% | +2.33 pp | expanding |
+| LightGBM Tweedie (p=1.1) | lightgbm | 5.40% | 5.70% | +0.30 pp | expanding |
+| LightGBM Tweedie (p=1.5) | lightgbm | 5.37% | 5.64% | +0.28 pp | expanding |
+| LightGBM Tweedie (p=1.2) | lightgbm | 5.55% | 5.75% | +0.21 pp | expanding |
+| LightGBM Tweedie (p=1.8) | lightgbm | 5.44% | 5.61% | +0.17 pp | expanding |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | 4.54% | 4.93% | +0.39 pp | expanding |
+| XGBoost Tweedie (p=1.2) | xgboost | 4.87% | 5.28% | +0.41 pp | expanding |
+| XGBoost Tweedie (p=1.1) | xgboost | 4.86% | 5.20% | +0.34 pp | expanding |
+| XGBoost Tweedie (p=1.8) | xgboost | 5.03% | 5.19% | +0.16 pp | expanding |
+| XGBoost Tweedie (p=1.5) | xgboost | 4.92% | 5.04% | +0.12 pp | expanding |
+
+## wine
+
+| 消融配置 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| CatBoost Tweedie (p=1.8) | catboost | 23.26% | 24.93% | +1.68 pp | expanding |
+| CatBoost Tweedie (p=1.1) | catboost | 23.65% | 25.32% | +1.67 pp | expanding |
+| CatBoost Tweedie (p=1.5) | catboost | 23.67% | 24.97% | +1.29 pp | expanding |
+| CatBoost Tweedie (p=1.2) | catboost | 24.06% | 25.27% | +1.21 pp | expanding |
+| LightGBM Tweedie (p=1.1) | lightgbm | 23.96% | 25.68% | +1.71 pp | expanding |
+| LightGBM Tweedie (p=1.2) | lightgbm | 24.21% | 25.55% | +1.34 pp | expanding |
+| LightGBM Tweedie (p=1.5) | lightgbm | 23.92% | 24.94% | +1.02 pp | expanding |
+| LightGBM Tweedie (p=1.8) | lightgbm | 24.48% | 25.16% | +0.68 pp | expanding |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | 22.69% | 23.98% | +1.30 pp | expanding |
+| XGBoost Tweedie (p=1.8) | xgboost | 24.48% | 25.84% | +1.36 pp | expanding |
+| XGBoost Tweedie (p=1.5) | xgboost | 24.83% | 25.46% | +0.63 pp | expanding |
+| XGBoost Tweedie (p=1.1) | xgboost | 24.63% | 24.98% | +0.36 pp | expanding |
+| XGBoost Tweedie (p=1.2) | xgboost | 24.83% | 24.99% | +0.16 pp | expanding |
+
+## garden
+
+| 消融配置 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| CatBoost Tweedie (p=1.8) | catboost | 8.85% | 9.55% | +0.70 pp | expanding |
+| CatBoost Tweedie (p=1.5) | catboost | 8.73% | 8.76% | +0.03 pp | expanding |
+| CatBoost Tweedie (p=1.2) | catboost | 8.96% | 8.80% | -0.16 pp | sliding_104w |
+| CatBoost Tweedie (p=1.1) | catboost | 9.07% | 8.80% | -0.27 pp | sliding_104w |
+| LightGBM Tweedie (p=1.1) | lightgbm | 9.21% | 9.10% | -0.12 pp | sliding_104w |
+| LightGBM Tweedie (p=1.8) | lightgbm | 9.32% | 9.09% | -0.23 pp | sliding_104w |
+| LightGBM Tweedie (p=1.2) | lightgbm | 9.15% | 8.87% | -0.27 pp | sliding_104w |
+| LightGBM Tweedie (p=1.5) | lightgbm | 9.39% | 9.12% | -0.28 pp | sliding_104w |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | 8.17% | 8.55% | +0.37 pp | expanding |
+| XGBoost Tweedie (p=1.8) | xgboost | 8.88% | 9.44% | +0.56 pp | expanding |
+| XGBoost Tweedie (p=1.5) | xgboost | 8.94% | 9.35% | +0.41 pp | expanding |
+| XGBoost Tweedie (p=1.2) | xgboost | 8.97% | 9.10% | +0.13 pp | expanding |
+| XGBoost Tweedie (p=1.1) | xgboost | 9.02% | 8.80% | -0.23 pp | sliding_104w |
+
+## luxury
+
+| 消融配置 | 工具包 | 扩展历史 WAPE | 104 周 WAPE | 差值 | WAPE 胜者 | 扩展历史 Event F1 | 104 周 Event F1 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| CatBoost Tweedie (p=1.8) | catboost | 186.46% | 196.71% | +10.25 pp | expanding | 9.09% | 16.67% |
+| CatBoost Tweedie (p=1.2) | catboost | 198.23% | 207.72% | +9.48 pp | expanding | 0.00% | 8.70% |
+| CatBoost Tweedie (p=1.1) | catboost | 205.06% | 209.56% | +4.50 pp | expanding | 0.00% | 16.00% |
+| CatBoost Tweedie (p=1.5) | catboost | 190.03% | 191.72% | +1.69 pp | expanding | 0.00% | 17.39% |
+| LightGBM Tweedie (p=1.8) | lightgbm | 150.80% | 154.47% | +3.67 pp | expanding | 0.00% | 0.00% |
+| LightGBM Tweedie (p=1.5) | lightgbm | 161.70% | 160.63% | -1.08 pp | sliding_104w | 0.00% | 0.00% |
+| LightGBM Tweedie (p=1.2) | lightgbm | 168.45% | 164.43% | -4.02 pp | sliding_104w | 0.00% | 0.00% |
+| LightGBM Tweedie (p=1.1) | lightgbm | 172.96% | 161.84% | -11.12 pp | sliding_104w | 0.00% | 0.00% |
+| TimesFM 3.0 + Known Covariates | timesfm_3_0 | 100.41% | 100.47% | +0.06 pp | expanding | 0.00% | 0.00% |
+| XGBoost Tweedie (p=1.2) | xgboost | 164.77% | 182.84% | +18.07 pp | expanding | 0.00% | 14.29% |
+| XGBoost Tweedie (p=1.5) | xgboost | 128.79% | 146.28% | +17.49 pp | expanding | 0.00% | 7.69% |
+| XGBoost Tweedie (p=1.8) | xgboost | 109.29% | 108.42% | -0.87 pp | sliding_104w | 0.00% | 0.00% |
+| XGBoost Tweedie (p=1.1) | xgboost | 185.16% | 170.89% | -14.27 pp | sliding_104w | 0.00% | 7.41% |
+<!-- BENCHMARK_BLOCK:history_policy_ablations:END -->
 
 ### AutoML 组件的训练历史差异
 
@@ -531,7 +647,7 @@ AutoGluon 每个场景、每个 fold 共享一次最多 240 秒的 fit。表中�
 | AG AutoARIMA | autogluon_timeseries | 212.34% | 188.75% | -23.59 pp | sliding_104w | 0.00% | 0.00% |
 <!-- BENCHMARK_BLOCK:history_policy_automl:END -->
 
-![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-autogluon-v1/fig-01-training-history-wape-delta.png)
+![扩展历史与固定 104 周训练窗口的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-timesfm-v1/fig-01-training-history-wape-delta.png)
 
 图中只展示代表配置。Luxury 面板仍需回到表中的事件 F1 一起解释：例如 Prophet 和
 ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据此宣称事件识别能力改善。
@@ -543,8 +659,7 @@ ARIMA 在 104 周窗口下 WAPE 更低，但 Event F1 同时下降，不能据�
    4 周的 MLOps 流程。它严格等于 728 天，不等于两个完整日历年；Prophet 因而会触发
    “少于 730 天”的年度季节性提示。这是周对齐协议的已知边界，不是对所有企业历史
    保留策略的普遍建议。
-3. 普通模型中只有 ARIMA 输出区间；AutoGluon 组件另输出原生 10%–90% 分位数区间。
+3. 普通模型中 ARIMA 和 TimesFM 3.0 输出区间；AutoGluon 组件另输出原生 10%–90% 分位数区间。
    ARIMA 的名义 80% 区间在扩展历史下覆盖率依次为 `76.81%`、`78.73%`、`80.66%`、
-   `94.75%`；两类区间都未经业务校准，不能直接解释为库存服务水平。
-4. 下一阶段按相同适配器和发布协议迁移 TimesFM，
-   每个模型单独审核并通过新 release 继承现有结果，不重写本次快照。
+   `94.75%`；这些区间都未经业务校准，不能直接解释为库存服务水平。
+4. TimesFM 3.0 权重受非商业许可证约束；这里的本地实验结果不能直接转换为商业生产部署许可。
