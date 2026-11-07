@@ -4,12 +4,13 @@ Tweedie variance power parameter p and probability density/mass functions.
 """
 
 from pathlib import Path
+
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
 import numpy as np
+from matplotlib import font_manager
 from scipy import stats
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +260,7 @@ def plot_tweedie_spectrum():
 
     # (c) p = 1.2: Tweedie Compound Poisson-Gamma (Near Poisson)
     ax_c = fig.add_subplot(gs[1, 2])
-    sim_c, p0_c, lam_c, _, _ = simulate_compound_poisson_gamma(mu=1.8, p=1.2, phi=1.0)
+    sim_c, p0_c, _lam_c, _, _ = simulate_compound_poisson_gamma(mu=1.8, p=1.2, phi=1.0)
     pos_c = sim_c[sim_c > 0]
     ax_c.bar(
         [0.0],
@@ -302,7 +303,7 @@ def plot_tweedie_spectrum():
 
     # (d) p = 1.6: Tweedie Compound Poisson-Gamma (Near Gamma, Extreme Zero-Inflation)
     ax_d = fig.add_subplot(gs[2, 0])
-    sim_d, p0_d, lam_d, _, _ = simulate_compound_poisson_gamma(mu=0.35, p=1.6, phi=1.0)
+    sim_d, p0_d, _lam_d, _, _ = simulate_compound_poisson_gamma(mu=0.35, p=1.6, phi=1.0)
     pos_d = sim_d[sim_d > 0]
     ax_d.bar(
         [0.0],

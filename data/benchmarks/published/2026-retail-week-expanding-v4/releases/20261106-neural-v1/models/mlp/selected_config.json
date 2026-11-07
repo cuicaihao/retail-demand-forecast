@@ -1,0 +1,269 @@
+{
+  "selection_cache_key": "285866d2138a9aa6dd5991d8e0fe655f5b0bffbcbcb9cd754b614ae2dedbaf79",
+  "selection_policy": "fixed-pre-evaluation-windows-v1",
+  "selection_end": "2025-12-28",
+  "toolkit": "pytorch_mlp",
+  "selection_identity": "mlp",
+  "input_hashes": {
+    "grocery_scenario_data.csv": "03340569d0137bc4f6e03e7222f07bc1acae2c6c2a37bf344932767d490847a8",
+    "wine_scenario_data.csv": "7dbdcec0c377fa9d22de9ecded0301484302c1e30db32644c65dac82ac2f04a0",
+    "luxury_scenario_data.csv": "d26da5fbf95426461d8da9ea0bdeb7e9d4cdb4afa1a0560f737fffc3f9a1122e",
+    "scenario_diagnostics.csv": "5a5e52d71cc56aaa8c14201abf1afa47bcd385b3a4e98fca49126237fefeba91",
+    "vic_holidays.csv": "c863a1bf789c3e54875a738ec33aef81b9e11c218de89f7880f46a34d6e3d096",
+    "garden_scenario_data.csv": "acef8fb26398c32130a572af518036ceb9311f92b23b5a1a89e5b8bdb938b307"
+  },
+  "candidate_grid": [
+    {
+      "hidden": 16,
+      "learning_rate": 0.001,
+      "weight_decay": 0.001
+    },
+    {
+      "hidden": 32,
+      "learning_rate": 0.001,
+      "weight_decay": 0.001
+    },
+    {
+      "hidden": 16,
+      "learning_rate": 0.003,
+      "weight_decay": 0.0001
+    },
+    {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    }
+  ],
+  "selection_details_by_scenario": {
+    "grocery": [
+      {
+        "scenario": "grocery",
+        "model": "MLP",
+        "candidate_id": 3,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.003, \"weight_decay\": 0.001}",
+        "validation_MAE": 5.438731021,
+        "validation_RMSE": 6.9075356756,
+        "validation_WAPE": 0.045008414,
+        "mean_selected_epochs": 27.25,
+        "tuning_seconds": 6.313979749
+      },
+      {
+        "scenario": "grocery",
+        "model": "MLP",
+        "candidate_id": 2,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.003, \"weight_decay\": 0.0001}",
+        "validation_MAE": 5.6124043783,
+        "validation_RMSE": 7.1106946138,
+        "validation_WAPE": 0.0464456541,
+        "mean_selected_epochs": 26.25,
+        "tuning_seconds": 6.2442975841
+      },
+      {
+        "scenario": "grocery",
+        "model": "MLP",
+        "candidate_id": 1,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 6.7914863223,
+        "validation_RMSE": 8.6171382132,
+        "validation_WAPE": 0.0562031891,
+        "mean_selected_epochs": 35.0,
+        "tuning_seconds": 6.318390625
+      },
+      {
+        "scenario": "grocery",
+        "model": "MLP",
+        "candidate_id": 0,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 7.5995109921,
+        "validation_RMSE": 9.3960728806,
+        "validation_WAPE": 0.0628900263,
+        "mean_selected_epochs": 35.0,
+        "tuning_seconds": 6.335940375
+      }
+    ],
+    "wine": [
+      {
+        "scenario": "wine",
+        "model": "MLP",
+        "candidate_id": 3,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.003, \"weight_decay\": 0.001}",
+        "validation_MAE": 2.6818307681,
+        "validation_RMSE": 3.6167778227,
+        "validation_WAPE": 0.2387639476,
+        "mean_selected_epochs": 25.5,
+        "tuning_seconds": 6.530981083
+      },
+      {
+        "scenario": "wine",
+        "model": "MLP",
+        "candidate_id": 2,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.003, \"weight_decay\": 0.0001}",
+        "validation_MAE": 2.7108350737,
+        "validation_RMSE": 3.5965899916,
+        "validation_WAPE": 0.2413462069,
+        "mean_selected_epochs": 28.75,
+        "tuning_seconds": 6.55183875
+      },
+      {
+        "scenario": "wine",
+        "model": "MLP",
+        "candidate_id": 1,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 2.997362354,
+        "validation_RMSE": 4.0470042499,
+        "validation_WAPE": 0.2668557899,
+        "mean_selected_epochs": 35.0,
+        "tuning_seconds": 6.6515593341
+      },
+      {
+        "scenario": "wine",
+        "model": "MLP",
+        "candidate_id": 0,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 3.4727484541,
+        "validation_RMSE": 4.651837871,
+        "validation_WAPE": 0.3091795126,
+        "mean_selected_epochs": 35.0,
+        "tuning_seconds": 6.538379666
+      }
+    ],
+    "garden": [
+      {
+        "scenario": "garden",
+        "model": "MLP",
+        "candidate_id": 2,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.003, \"weight_decay\": 0.0001}",
+        "validation_MAE": 6.2892859175,
+        "validation_RMSE": 7.8978643731,
+        "validation_WAPE": 0.0774130336,
+        "mean_selected_epochs": 21.75,
+        "tuning_seconds": 6.469918291
+      },
+      {
+        "scenario": "garden",
+        "model": "MLP",
+        "candidate_id": 0,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 6.5869486353,
+        "validation_RMSE": 8.0371703082,
+        "validation_WAPE": 0.0810768794,
+        "mean_selected_epochs": 33.75,
+        "tuning_seconds": 6.556080667
+      },
+      {
+        "scenario": "garden",
+        "model": "MLP",
+        "candidate_id": 3,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.003, \"weight_decay\": 0.001}",
+        "validation_MAE": 6.8135349171,
+        "validation_RMSE": 8.508023581,
+        "validation_WAPE": 0.0838658656,
+        "mean_selected_epochs": 23.5,
+        "tuning_seconds": 6.531120667
+      },
+      {
+        "scenario": "garden",
+        "model": "MLP",
+        "candidate_id": 1,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 7.3212619816,
+        "validation_RMSE": 9.0385989054,
+        "validation_WAPE": 0.0901153338,
+        "mean_selected_epochs": 34.0,
+        "tuning_seconds": 6.6427308759
+      }
+    ],
+    "luxury": [
+      {
+        "scenario": "luxury",
+        "model": "MLP",
+        "candidate_id": 3,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.003, \"weight_decay\": 0.001}",
+        "validation_MAE": 0.1481380727,
+        "validation_RMSE": 0.3396295219,
+        "validation_WAPE": 1.8105764439,
+        "mean_selected_epochs": 3.0,
+        "tuning_seconds": 6.6165912491
+      },
+      {
+        "scenario": "luxury",
+        "model": "MLP",
+        "candidate_id": 1,
+        "parameters": "{\"hidden\": 32, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 0.1631864814,
+        "validation_RMSE": 0.3402361404,
+        "validation_WAPE": 1.9945014396,
+        "mean_selected_epochs": 3.0,
+        "tuning_seconds": 6.7045947911
+      },
+      {
+        "scenario": "luxury",
+        "model": "MLP",
+        "candidate_id": 0,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.001, \"weight_decay\": 0.001}",
+        "validation_MAE": 0.1694145677,
+        "validation_RMSE": 0.3432170305,
+        "validation_WAPE": 2.0706224947,
+        "mean_selected_epochs": 13.5,
+        "tuning_seconds": 6.678170085
+      },
+      {
+        "scenario": "luxury",
+        "model": "MLP",
+        "candidate_id": 2,
+        "parameters": "{\"hidden\": 16, \"learning_rate\": 0.003, \"weight_decay\": 0.0001}",
+        "validation_MAE": 0.1785807969,
+        "validation_RMSE": 0.3520123904,
+        "validation_WAPE": 2.1826541838,
+        "mean_selected_epochs": 10.75,
+        "tuning_seconds": 6.7558520411
+      }
+    ]
+  },
+  "base_params_by_scenario": {
+    "grocery": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    },
+    "wine": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    },
+    "garden": {
+      "hidden": 16,
+      "learning_rate": 0.003,
+      "weight_decay": 0.0001
+    },
+    "luxury": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    }
+  },
+  "model_id": "mlp",
+  "declared_variant_params": {},
+  "resolved_params_by_scenario": {
+    "grocery": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    },
+    "wine": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    },
+    "garden": {
+      "hidden": 16,
+      "learning_rate": 0.003,
+      "weight_decay": 0.0001
+    },
+    "luxury": {
+      "hidden": 32,
+      "learning_rate": 0.003,
+      "weight_decay": 0.001
+    }
+  }
+}

@@ -9,16 +9,24 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from retail_forecast.autogluon_benchmark import (
-    AUTOGLOUON_MODEL_LIBRARY,
-    EXCLUDED_FOUNDATION_MODELS,
+from retail_forecast.autogluon_v4 import (
+    AUTOML_COMPONENT_IDS,
+    AUTOML_MODEL_LIBRARY,
+    AUTOML_TIME_LIMIT_SECONDS,
     autogluon_frame,
+    automl_model_configs,
     known_covariate_names,
 )
 from retail_forecast.common import SCENARIOS, datasets, valid_labels
 from retail_forecast.model_comparison import CORE_MODELS
 from retail_forecast.neural import NEURAL_CANDIDATES, inputs, preprocessor
 from retail_forecast.prophet_benchmark import PROPHET_CANDIDATES, prophet_frame
+from retail_forecast.tft import tft_inference_dataset, training_dataset
+from retail_forecast.timesfm_v4 import (
+    timesfm_context,
+    timesfm_covariate_matrix,
+    timesfm_known_covariates,
+)
 
 
 class ModelBenchmarkProtocolTests(unittest.TestCase):
@@ -48,21 +56,42 @@ class ModelBenchmarkProtocolTests(unittest.TestCase):
         pd.testing.assert_frame_equal(pd.DataFrame(first[0]), pd.DataFrame(second[0]))
         pd.testing.assert_frame_equal(pd.DataFrame(first[1]), pd.DataFrame(second[1]))
 
+    def test_tft_sliding_history_uses_positional_origin(self):
+        frame = datasets["grocery"].iloc[500:1256].copy()
+        history = frame.iloc[:728].copy()
+        future = frame.iloc[728:756].copy()
+        dataset, mean, std = training_dataset(history, "grocery")
+        bundle = {"dataset": dataset, "mean": mean, "std": std}
+        inference = tft_inference_dataset(
+            bundle,
+            pd.concat([history, future]),
+            "grocery",
+            origin=len(history) - 1,
+        )
+        self.assertEqual(inference.max_prediction_length, 28)
+
     def test_core_model_order(self):
         self.assertEqual(len(CORE_MODELS), 10)
         self.assertEqual(CORE_MODELS[0], "Prophet")
         self.assertEqual(CORE_MODELS[-1], "TFT")
 
     def test_autogluon_model_budget(self):
-        self.assertIn("SeasonalNaive", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("AutoARIMA", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("DirectTabular", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertIn("DeepAR", AUTOGLOUON_MODEL_LIBRARY)
-        self.assertTrue(
-            {"Chronos", "Toto", "PatchTST", "TemporalFusionTransformer"}.issubset(
-                EXCLUDED_FOUNDATION_MODELS
-            )
-        )
+        self.assertEqual(AUTOML_TIME_LIMIT_SECONDS, 240)
+        self.assertIn("SeasonalNaive", AUTOML_MODEL_LIBRARY)
+        self.assertIn("AutoARIMA", AUTOML_MODEL_LIBRARY)
+        self.assertIn("DirectTabular", AUTOML_MODEL_LIBRARY)
+        self.assertIn("DeepAR", AUTOML_MODEL_LIBRARY)
+        self.assertNotIn("Chronos", AUTOML_MODEL_LIBRARY)
+
+    def test_autogluon_models_are_separate_automl_comparisons(self):
+        configs = automl_model_configs()
+        self.assertEqual(set(configs), set(AUTOML_COMPONENT_IDS.values()))
+        self.assertIn("ag-weighted-ensemble", configs)
+        for model_id, config in configs.items():
+            self.assertTrue(model_id.startswith("ag-"))
+            self.assertEqual(config.family, "automl")
+            self.assertEqual(config.comparison_role, "automl")
+            self.assertNotEqual(config.comparison_role, "breadth")
 
     def test_autogluon_future_targets_do_not_change_inputs(self):
         future = datasets["luxury"].iloc[500:528].copy()
@@ -92,6 +121,47 @@ class ModelBenchmarkProtocolTests(unittest.TestCase):
             self.assertEqual(
                 converted.target.isna().sum(), (~valid_labels(frame.head(10))).sum()
             )
+
+    def test_timesfm_inputs_exclude_future_targets_and_diagnostic_truth(self):
+        history = datasets["luxury"].iloc[100:828].copy()
+        future = datasets["luxury"].iloc[828:856].copy()
+        expected_context = timesfm_context(history)
+        expected_covariates = timesfm_covariate_matrix(history, future, "luxury")
+
+        changed = future.copy()
+        changed["y"] = 99999.0
+        changed["stockout"] = ~changed["stockout"]
+        for column in (
+            "conditional_mean",
+            "latent_demand",
+            "occurrence_probability",
+            "positive_demand",
+        ):
+            if column in changed:
+                changed[column] = -99999.0
+
+        actual_covariates = timesfm_covariate_matrix(history, changed, "luxury")
+        self.assertEqual(expected_covariates.shape[1], len(history) + len(future))
+        self.assertGreater(expected_covariates.shape[0], 1)
+        self.assertEqual(len(expected_context), len(history))
+        pd.testing.assert_frame_equal(
+            pd.DataFrame(actual_covariates), pd.DataFrame(expected_covariates)
+        )
+
+    def test_timesfm_known_covariates_are_origin_known(self):
+        forbidden = {
+            "y",
+            "stockout",
+            "conditional_mean",
+            "latent_demand",
+            "occurrence_probability",
+            "positive_demand",
+        }
+        for scenario, frame in datasets.items():
+            covariates = timesfm_known_covariates(frame.head(10), scenario)
+            self.assertFalse(forbidden.intersection(covariates.columns))
+            self.assertIn("is_open", covariates.columns)
+            self.assertEqual(len(covariates), 10)
 
 
 if __name__ == "__main__":

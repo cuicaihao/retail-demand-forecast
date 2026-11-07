@@ -1,70 +1,109 @@
 ---
-title: "拆解 Google TimesFM：从时序大模型原理到 BigQuery 企业级零售预测实战"
-date: 2026-11-03T11:00:00+11:00
+title: "TimesFM 3.0 零售需求预测：13-fold 双协议实验与已知协变量消融"
+date: 2026-11-06T16:00:00+11:00
 draft: true
-summary: "深入剖析 Google Research 3.3 亿参数时序大模型 TimesFM 3.0 的架构演进、补丁化机制（Patching）与协变量建模原理。结合 BigQuery 原生托管 AI.FORECAST 算力，在商超、红酒、庭院与奢侈品四大受控零售场景中完成零样本对比、缺货删失去偏诊断与极短样本冷启动实测。"
-tags: ["机器学习", "时间序列", "TimesFM", "Google Cloud", "BigQuery", "Demand Forecasting", "AI Engineering"]
+summary: "在四类合成零售场景上，以 13 个非重叠 28 日 fold 比较 TimesFM 3.0 单变量零样本预测与已知未来协变量配置，并同时检验扩展历史和固定 104 周生产窗口。"
+tags: ["机器学习", "时间序列", "TimesFM", "Demand Forecasting", "MLOps"]
 categories: ["机器学习工程"]
 math: true
 ---
 
-## 一、引言：时序大模型走向企业级数仓
+> 📌 **阶段归属**：阶段二/三 · 基础模型探索与双协议验证 (Stage 2/3: Foundation Model Evaluation)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/26-timesfm-tutorial.ipynb`](../../notebooks/26-timesfm-tutorial.ipynb)  
+> 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
-在零售需求预测领域，传统的建模路径通常分为两条：
-1. **单序列统计拟合**（如 Prophet、ARIMA）：可解释性好、对业务假日与季节分解直观，但面对海量 SKU 时运维成本极高，无法跨序列共享规律；
-2. **多序列全局机器学习**（如 LightGBM、TFT、DeepAR）：具备强大的特征交互能力，但严重依赖人工滑窗特征工程，且在新店/新品上市（冷启动 $L \le 28$ 天）时因特征历史窗口缺失而面临崩溃。
+## 问题不是“基础模型能不能跑”，而是“比较是否公平”
 
-2024–2025 年，以 Google Research 开源的 **TimesFM (Time-series Foundation Model)** 为代表的时序基础模型正在重塑预测技术版图。而在 2025 年末，Google 进一步将 **TimesFM 3.0** 原生集成至 **BigQuery** 时序推理引擎（表函数 `AI.FORECAST`），使得企业用户无需部署复杂的 GPU 集群、无需维护 PyTorch / OpenMP 环境，即可在数仓内以 SQL 原生完成百万级 SKU 的零样本推理与分位数不确定性生成。
+零售预测很容易把不同信息条件混成一张排行榜：一个模型只看历史销量，另一个模型读取未来
+促销计划，还有一个 AutoML 系统在每个预测起点重新选择组件。即使它们预测的是同一批日期，
+结果也不能自动视为同一种实验。
 
-本文基于本仓库的四套合成零售数据（覆盖商超高频、红酒脉冲、庭院年季节与奢侈品极端稀疏场景），系统检验 TimesFM 3.0 的实战能力边界。
+本文只分析不可变 release `20261106-timesfm-v1`。TimesFM 3.0 被预先冻结为两个配置：
 
-> 完整量化评测指标、实验方案与对比数据详见仓库报告：
-> - 实验方案协议：[`reports/2026-11-03-timesfm-experiment-plan.md`](../reports/2026-11-03-timesfm-experiment-plan.md)
-> - 量化实证报告：[`reports/2026-11-03-timesfm-validation-report.md`](../reports/2026-11-03-timesfm-validation-report.md)
-> - 交互实操代码：[`notebooks/36-timesfm-bigquery-tutorial.ipynb`](../../notebooks/36-timesfm-bigquery-tutorial.ipynb)
-> - 生产 SQL 资产：[`src/retail_forecast/sql/bigquery_timesfm_experiments.sql`](../../src/retail_forecast/sql/bigquery_timesfm_experiments.sql)
+- `timesfm-3-0-univariate`：只读取预测起点以前的有效销量历史，作为 TimesFM 工具包的广度代表；
+- `timesfm-3-0-known-covariates`：额外读取预测时已知的营业状态、日历、节假日和业务计划变量，
+  作为配置消融，不重复占据广度榜名次。
 
----
+完整参数、输入哈希和 checkpoint revision 均写入模型 manifest。正式 2026 标签不参与配置选择。
 
-## 二、四大场景多模型全历史基准对决
+## 两套历史策略，共用同一组预测日期
 
-在拥有 1,068 天（约 3 年）历史的基准测试中，我们对比了 **Seasonal Naive**、**Prophet**、**LightGBM** 与 **TimesFM 3.0 (BigQuery)** 在最后 28 天测试期的预测表现：
+实验使用四套固定生成协议的日粒度合成数据，并在 2025-12-29 至 2026-12-27 之间设置
+13 个互不重叠的 28 日 fold，共覆盖 364 个评估日：
 
-![四场景多模型预测对比四宫格](../../images/tsfm/fig-tsfm-01-four-scenarios-comparison.png)
+- `2026-retail-week-expanding-v4`：每个预测起点读取此前全部历史；
+- `2026-retail-week-104w-rolling-v4`：每个起点只读取此前 104 个完整周，再预测随后 4 周。
 
-### 核心量化发现
-1. **高频商超（Grocery）**：
-   - 零样本 TimesFM 3.0 取得了 **5.13% WAPE** 与 **81.48% 的 80% 区间覆盖率**，紧逼调优后的 Prophet（4.22%），大幅领先 LightGBM（10.67%）；
-2. **庭院耗材（Garden）**：
-   - 在强冬夏正弦年周期下，TimesFM 3.0 凭借强大的 Patch 先验识别了跨年周期，WAPE 稳定在 **11.13%**，持平调优 Prophet（10.47%），而缺乏长周期锚定的 LightGBM 恶化至 39.73%。
+第二套协议模拟现实中“每月用最近两年数据更新模型，再预测下个月”的滚动 MLOps 流程。
+104 周严格等于 728 天，因此这里讨论的是两个零售年度，而不是两个完整日历年。
 
----
+## 单变量与已知协变量：三个场景改善，一个场景没有解决
 
-## 三、缺货删失污染：基础模型能否“自愈”？
+扩展历史协议的 pooled WAPE 如下。指标由全部有效逐日预测重新汇总，不是 13 个 fold WAPE
+的简单平均。
 
-零售实际销售数据经常遭受**缺货删失（Stockout Censoring）**污染——当货架售空时，实际观测销量被截断在库存上限，导致观察值系统性低于潜在真实需求。
+| 场景 | TimesFM 单变量 | TimesFM + 已知协变量 | WAPE 变化 |
+| :--- | ---: | ---: | ---: |
+| Grocery | 4.91% | 4.54% | -0.37 pp |
+| Wine | 24.29% | 22.69% | -1.60 pp |
+| Garden | 8.86% | 8.17% | -0.69 pp |
+| Luxury | 100.35% | 100.41% | +0.06 pp |
 
-我们将商超场景中包含 24 个缺货截断日的原始污染序列直接输入 TimesFM 3.0，并与经过插补去偏的序列对比：
+Grocery 的折扣计划、Wine 的促销与事件标记、Garden 的清仓和长周末信息都带来了描述性改善。
+这支持一个有限结论：在当前合成机制中，TimesFM 3.0 能利用与生成过程一致、且在预测起点
+真实可知的业务变量。它不能证明任何协变量在真实企业数据上都会产生相同收益。
 
-![缺货删失对 TimesFM 预测的系统性偏差](../../images/tsfm/fig-tsfm-03-stockout-censoring-impact.png)
+Luxury 必须单独解释。两个 TimesFM 配置的 `DemandRecall@0.5` 和事件 F1 都是 0%。接近
+100% 的 WAPE 主要来自接近零的保守预测，而不是模型成功识别了购买事件。因此，不能把
+Luxury 的 WAPE 排名写成“TimesFM 擅长极端间歇需求”。
 
-> **实证结论**：直接暴露缺货截断导致 TimesFM 预测产生 **-1.74% 的系统性负向偏差（Bias）**。这量化证实了：**时序大模型具备强大的形态拟合能力，但无法凭空识别业务语义上的隐性截断，上游去偏清洗不可替代**。
+## 104 周窗口改变了什么
 
----
+固定 104 周后，TimesFM 单变量在 Grocery、Wine、Garden 的 WAPE 分别变为 5.19%、
+25.19% 和 8.86%；已知协变量版本分别变为 4.93%、23.98% 和 8.55%。三个连续或低量
+场景都没有从更短历史中获益，但差异远小于“模型完全失效”。Garden 单变量两种历史策略
+几乎持平，说明增加历史长度的价值依赖具体需求机制。
 
-## 四、极短历史冷启动：基础模型的护城河
+Luxury 的两种配置在 104 周协议下事件 F1 仍为 0%。改变历史长度没有修复事件识别边界。
 
-在新品上市或新店开业场景下，历史数据往往极短（$L = 14 \sim 28$ 天）。我们对比了样本长度从 1068 天极端压缩至 14 天时的模型衰减曲线：
+![扩展历史与固定 104 周的配对 WAPE 差异](../../images/benchmarks/comparisons/2026-retail-week-expanding-v4--vs--2026-retail-week-104w-rolling-v4/20261106-timesfm-v1/fig-01-training-history-wape-delta.png)
 
-![冷启动样本衰减曲线](../../images/tsfm/fig-tsfm-02-coldstart-degradation-curve.png)
+## 分位数区间不是库存服务水平保证
 
-> **实证结论**：在 14 天极限冷启动下，LightGBM 的特征滑动窗口失效崩溃（WAPE 达 100%），Prophet 产生严重过拟合（WAPE 55.27%）。而 TimesFM 3.0 依托跨领域千亿级时序先验，在红酒场景将 WAPE 压制在 **43.79%**，显现出基础模型在长尾小样本下的绝对壁垒。
+TimesFM 同时输出 P10/P90。扩展历史单变量配置在 Grocery、Wine、Garden、Luxury 的
+Coverage80 分别为 83.19%、75.69%、74.03% 和 93.65%；已知协变量配置分别为
+81.45%、77.07%、79.56% 和 91.44%。这些是当前回测中的经验覆盖率，尚未经过业务校准。
 
----
+特别是 Luxury：高覆盖率与极窄区间可以和事件召回为 0 同时出现。零值占绝大多数时，覆盖
+大量零销量日期并不能证明区间能覆盖真正的购买事件，更不能直接转换成安全库存或服务水平。
 
-## 五、总结与落地决策树
+## 与普通模型和 AutoML 的关系
 
-1. **新品/长尾冷启动（$L \le 28$ 天）**：坚决推行 TimesFM 3.0，替代传统小样本容易崩溃的树模型；
-2. **成熟稳定品（$L > 1$ 年）**：TimesFM 可作为免调参顶级基线，与精调统计模型协同；
-3. **极端稀疏慢动品（零值率 $> 80\%$）**：配合两阶段门控或 Croston/SBA，不可直接依赖连续大模型。
+TimesFM 单变量配置进入普通工具包广度榜，但没有成为四个场景的统一冠军：Grocery 的最低
+广度 WAPE 来自 Prophet，Wine 和 Garden 来自 Regression + ARIMA，Luxury 则必须联合
+CatBoost 的 WAPE 与事件 F1 阅读。仓库不计算跨四种需求尺度的单一总冠军。
 
+AutoGluon 仍是独立 AutoML 对比层。扩展历史 release 中，AutoGluon 套件记录约 2,398 秒
+总耗时；TimesFM 单变量和协变量配置分别约 10 秒和 63 秒。这个数字只能描述本机本次执行：
+AutoGluon 包含训练、内部验证和集成，TimesFM 使用预训练权重做零样本推理，两者不是等价的
+计算任务。
+
+![四场景代表配置比较](../../images/benchmarks/2026-retail-week-expanding-v4/20261106-timesfm-v1/fig-01-retail-week-leaderboard-all-scenarios.png)
+
+## 可复现边界
+
+- TimesFM 包版本固定为 `3.0.2`；
+- checkpoint 固定为 `google/timesfm-3.0-pytorch` revision
+  `43046b85ec22d584a13f8098c2ed39c889e129c2`；
+- 本次在 16GB Apple M4 Mac mini 上使用 CPU 串行运行，模型在每个进程只加载一次；
+- 两个协议、四个场景、13 个 fold 的预测、指标和 manifest 均已发布并通过哈希复算；
+- TimesFM 3.0 默认权重受非商业许可证约束，实验结果不等于商业生产部署授权。
+
+完整证据见：
+
+- [V4 实验设计](../reports/experiment-design.md)
+- [V4 完整技术报告](../reports/2026-retail-week-v4-first-stage-report.md)
+- [模型接入与发布协议](../reports/model-onboarding-protocol.md)
+
+旧版单一切片和 BigQuery 实验已移入
+[历史文章](archive/timesfm-retail-demand-forecast-v2.md)，不再作为当前模型比较结论。

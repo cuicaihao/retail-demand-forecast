@@ -1,0 +1,482 @@
+{
+  "result_schema_version": "benchmark-result-v4",
+  "benchmark_id": "2026-retail-week-104w-rolling-v4",
+  "protocol_version": "retail-benchmark-v4",
+  "protocol_hash": "13918ef24a240992a4254869b6dd968a8246ed615e927eda452217428188ecbf",
+  "metrics_version": "retail-metrics-v4",
+  "model_id": "timesfm-3-0-univariate",
+  "model_name": "TimesFM 3.0",
+  "toolkit": "timesfm_3_0",
+  "family": "foundation_model",
+  "variant": "univariate",
+  "comparison_role": "breadth",
+  "config_group": "timesfm_3_0",
+  "declared_params": {
+    "checkpoint": "google/timesfm-3.0-pytorch",
+    "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+    "device": "cpu",
+    "per_core_batch_size": 1,
+    "use_covariates": false,
+    "return_quantiles": true,
+    "history_imputation": "mask-invalid-then-forward-fill-backfill"
+  },
+  "resolved_params_by_scenario": {
+    "grocery": {
+      "checkpoint": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "device": "cpu",
+      "per_core_batch_size": 1,
+      "use_covariates": false,
+      "return_quantiles": true,
+      "history_imputation": "mask-invalid-then-forward-fill-backfill"
+    },
+    "wine": {
+      "checkpoint": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "device": "cpu",
+      "per_core_batch_size": 1,
+      "use_covariates": false,
+      "return_quantiles": true,
+      "history_imputation": "mask-invalid-then-forward-fill-backfill"
+    },
+    "garden": {
+      "checkpoint": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "device": "cpu",
+      "per_core_batch_size": 1,
+      "use_covariates": false,
+      "return_quantiles": true,
+      "history_imputation": "mask-invalid-then-forward-fill-backfill"
+    },
+    "luxury": {
+      "checkpoint": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "device": "cpu",
+      "per_core_batch_size": 1,
+      "use_covariates": false,
+      "return_quantiles": true,
+      "history_imputation": "mask-invalid-then-forward-fill-backfill"
+    }
+  },
+  "selected_config_sha256": "16ad3bfacab66833a2882e92296ca175b1ded1b28713a86f661674e685eb4535",
+  "scenarios": [
+    "grocery",
+    "wine",
+    "garden",
+    "luxury"
+  ],
+  "folds": [
+    {
+      "fold_id": 1,
+      "period_name": "P01",
+      "train_start": "2024-01-01",
+      "train_end": "2025-12-28",
+      "test_start": "2025-12-29",
+      "test_end": "2026-01-25",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 2,
+      "period_name": "P02",
+      "train_start": "2024-01-29",
+      "train_end": "2026-01-25",
+      "test_start": "2026-01-26",
+      "test_end": "2026-02-22",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 3,
+      "period_name": "P03",
+      "train_start": "2024-02-26",
+      "train_end": "2026-02-22",
+      "test_start": "2026-02-23",
+      "test_end": "2026-03-22",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 4,
+      "period_name": "P04",
+      "train_start": "2024-03-25",
+      "train_end": "2026-03-22",
+      "test_start": "2026-03-23",
+      "test_end": "2026-04-19",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 5,
+      "period_name": "P05",
+      "train_start": "2024-04-22",
+      "train_end": "2026-04-19",
+      "test_start": "2026-04-20",
+      "test_end": "2026-05-17",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 6,
+      "period_name": "P06",
+      "train_start": "2024-05-20",
+      "train_end": "2026-05-17",
+      "test_start": "2026-05-18",
+      "test_end": "2026-06-14",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 7,
+      "period_name": "P07",
+      "train_start": "2024-06-17",
+      "train_end": "2026-06-14",
+      "test_start": "2026-06-15",
+      "test_end": "2026-07-12",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 8,
+      "period_name": "P08",
+      "train_start": "2024-07-15",
+      "train_end": "2026-07-12",
+      "test_start": "2026-07-13",
+      "test_end": "2026-08-09",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 9,
+      "period_name": "P09",
+      "train_start": "2024-08-12",
+      "train_end": "2026-08-09",
+      "test_start": "2026-08-10",
+      "test_end": "2026-09-06",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 10,
+      "period_name": "P10",
+      "train_start": "2024-09-09",
+      "train_end": "2026-09-06",
+      "test_start": "2026-09-07",
+      "test_end": "2026-10-04",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 11,
+      "period_name": "P11",
+      "train_start": "2024-10-07",
+      "train_end": "2026-10-04",
+      "test_start": "2026-10-05",
+      "test_end": "2026-11-01",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 12,
+      "period_name": "P12",
+      "train_start": "2024-11-04",
+      "train_end": "2026-11-01",
+      "test_start": "2026-11-02",
+      "test_end": "2026-11-29",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    },
+    {
+      "fold_id": 13,
+      "period_name": "P13",
+      "train_start": "2024-12-02",
+      "train_end": "2026-11-29",
+      "test_start": "2026-11-30",
+      "test_end": "2026-12-27",
+      "train_weeks": 104,
+      "eval_weeks": 4,
+      "n_test_days": 28
+    }
+  ],
+  "valid_label_counts": {
+    "grocery": 345,
+    "wine": 362,
+    "garden": 362,
+    "luxury": 362
+  },
+  "valid_label_provenance": {
+    "garden": {
+      "count": 362,
+      "dates_sha256": "52a473461999f4992fe3ca530d6c5b0c64ad4fe5a4a632780795d74ab023466d",
+      "folds": {
+        "1": {
+          "count": 28,
+          "dates_sha256": "05f55b451e2914ad9d7bd7e43ec85475370ddf2485605e3eb581b0c841f339c2"
+        },
+        "2": {
+          "count": 28,
+          "dates_sha256": "0618ff606154cc5f085374d6572b55fe916f2b6fbc9b3bb43282761487cd30d5"
+        },
+        "3": {
+          "count": 28,
+          "dates_sha256": "44b0c00ca67f22c0524bb414f7fca70562308d09040104fa375566fa698ba710"
+        },
+        "4": {
+          "count": 27,
+          "dates_sha256": "668a14b41f9e3444b2bca87685a4fc7f82adff880a49bf0c62118637f38e07e0"
+        },
+        "5": {
+          "count": 28,
+          "dates_sha256": "fc6a17600d785061a5d9d027c82500b376902cd85a210ba2ccdc7119f4f222b2"
+        },
+        "6": {
+          "count": 28,
+          "dates_sha256": "a423424d73a1c19f51ec49a077e74a2b5ec38bf721f89f73929998292ca29333"
+        },
+        "7": {
+          "count": 28,
+          "dates_sha256": "63b0423433a0eaa18b14fb4eb27ffbf2e917ade4c50a4f748fa65af0659a6be2"
+        },
+        "8": {
+          "count": 28,
+          "dates_sha256": "6edc456fdd38633c65abdb8a1fc183eca3264dd480ba24b28cbe44ef5d967ed8"
+        },
+        "9": {
+          "count": 28,
+          "dates_sha256": "9062c05272581bcb9933f2a7cb7269d2caadff258d3cc3253c1ddd0c3245cdf4"
+        },
+        "10": {
+          "count": 28,
+          "dates_sha256": "4fbf2fd44ff9960e70956609b0d2876b012e0a4427a7a10d62cea4b97a194f49"
+        },
+        "11": {
+          "count": 28,
+          "dates_sha256": "a26463e5806aacf24e7a9a75ba4b9f0ab4d70ae82bbfbff11d3d37379cbf1ec3"
+        },
+        "12": {
+          "count": 28,
+          "dates_sha256": "654182e3c8c62f37fd45b4e76032445476186b3dd301354f8feb01684a4166bc"
+        },
+        "13": {
+          "count": 27,
+          "dates_sha256": "931f78f19cfec60db59486f58f0acb4f41f1990bdf24e472fc26fce4709bec61"
+        }
+      }
+    },
+    "grocery": {
+      "count": 345,
+      "dates_sha256": "9077e07567091a716ec73d4e2d8e64c00562b8995e54b0a73fe20835d0eaf1a7",
+      "folds": {
+        "1": {
+          "count": 27,
+          "dates_sha256": "a989458ad3168279565b1fb01b83ada50ec5a4ca2231f23a7c428195d55bc38a"
+        },
+        "2": {
+          "count": 26,
+          "dates_sha256": "69a924c76df1e07d4e2de24828fe616e77e4481efb177588d579a75625f12e5f"
+        },
+        "3": {
+          "count": 26,
+          "dates_sha256": "f93d8fea4c5dced118464b66ef692d462385d50295dfea398de9ec9d72628390"
+        },
+        "4": {
+          "count": 27,
+          "dates_sha256": "668a14b41f9e3444b2bca87685a4fc7f82adff880a49bf0c62118637f38e07e0"
+        },
+        "5": {
+          "count": 28,
+          "dates_sha256": "fc6a17600d785061a5d9d027c82500b376902cd85a210ba2ccdc7119f4f222b2"
+        },
+        "6": {
+          "count": 27,
+          "dates_sha256": "5f1fe27d71c36640ebc504623a36276977cfbd6a813b037576eb76dc316d7107"
+        },
+        "7": {
+          "count": 25,
+          "dates_sha256": "9a415b77c48d88796f8861e19ee6787e116dfa2cfe39d40bcc7e2a060e146ebe"
+        },
+        "8": {
+          "count": 28,
+          "dates_sha256": "6edc456fdd38633c65abdb8a1fc183eca3264dd480ba24b28cbe44ef5d967ed8"
+        },
+        "9": {
+          "count": 27,
+          "dates_sha256": "52cd41cf04c9140c16591038fede82cf5dec70c0265d5eee1bd00d32253eb41e"
+        },
+        "10": {
+          "count": 27,
+          "dates_sha256": "d2227f704d958f5061e4804d870548d71bec8426e6835e04577e488f7157baa0"
+        },
+        "11": {
+          "count": 27,
+          "dates_sha256": "b4f753eff289a71ecb98c8a1d6f40a29818857e58393bbb1576acc1b4acecceb"
+        },
+        "12": {
+          "count": 25,
+          "dates_sha256": "76ec95ae44db8a015157865e2350584bbde34d476cca050b68f1291e59b9b983"
+        },
+        "13": {
+          "count": 25,
+          "dates_sha256": "70f298a4b34082a15564c6b268930faf95bed0873bbf41089a16a842643f0374"
+        }
+      }
+    },
+    "luxury": {
+      "count": 362,
+      "dates_sha256": "52a473461999f4992fe3ca530d6c5b0c64ad4fe5a4a632780795d74ab023466d",
+      "folds": {
+        "1": {
+          "count": 28,
+          "dates_sha256": "05f55b451e2914ad9d7bd7e43ec85475370ddf2485605e3eb581b0c841f339c2"
+        },
+        "2": {
+          "count": 28,
+          "dates_sha256": "0618ff606154cc5f085374d6572b55fe916f2b6fbc9b3bb43282761487cd30d5"
+        },
+        "3": {
+          "count": 28,
+          "dates_sha256": "44b0c00ca67f22c0524bb414f7fca70562308d09040104fa375566fa698ba710"
+        },
+        "4": {
+          "count": 27,
+          "dates_sha256": "668a14b41f9e3444b2bca87685a4fc7f82adff880a49bf0c62118637f38e07e0"
+        },
+        "5": {
+          "count": 28,
+          "dates_sha256": "fc6a17600d785061a5d9d027c82500b376902cd85a210ba2ccdc7119f4f222b2"
+        },
+        "6": {
+          "count": 28,
+          "dates_sha256": "a423424d73a1c19f51ec49a077e74a2b5ec38bf721f89f73929998292ca29333"
+        },
+        "7": {
+          "count": 28,
+          "dates_sha256": "63b0423433a0eaa18b14fb4eb27ffbf2e917ade4c50a4f748fa65af0659a6be2"
+        },
+        "8": {
+          "count": 28,
+          "dates_sha256": "6edc456fdd38633c65abdb8a1fc183eca3264dd480ba24b28cbe44ef5d967ed8"
+        },
+        "9": {
+          "count": 28,
+          "dates_sha256": "9062c05272581bcb9933f2a7cb7269d2caadff258d3cc3253c1ddd0c3245cdf4"
+        },
+        "10": {
+          "count": 28,
+          "dates_sha256": "4fbf2fd44ff9960e70956609b0d2876b012e0a4427a7a10d62cea4b97a194f49"
+        },
+        "11": {
+          "count": 28,
+          "dates_sha256": "a26463e5806aacf24e7a9a75ba4b9f0ab4d70ae82bbfbff11d3d37379cbf1ec3"
+        },
+        "12": {
+          "count": 28,
+          "dates_sha256": "654182e3c8c62f37fd45b4e76032445476186b3dd301354f8feb01684a4166bc"
+        },
+        "13": {
+          "count": 27,
+          "dates_sha256": "931f78f19cfec60db59486f58f0acb4f41f1990bdf24e472fc26fce4709bec61"
+        }
+      }
+    },
+    "wine": {
+      "count": 362,
+      "dates_sha256": "52a473461999f4992fe3ca530d6c5b0c64ad4fe5a4a632780795d74ab023466d",
+      "folds": {
+        "1": {
+          "count": 28,
+          "dates_sha256": "05f55b451e2914ad9d7bd7e43ec85475370ddf2485605e3eb581b0c841f339c2"
+        },
+        "2": {
+          "count": 28,
+          "dates_sha256": "0618ff606154cc5f085374d6572b55fe916f2b6fbc9b3bb43282761487cd30d5"
+        },
+        "3": {
+          "count": 28,
+          "dates_sha256": "44b0c00ca67f22c0524bb414f7fca70562308d09040104fa375566fa698ba710"
+        },
+        "4": {
+          "count": 27,
+          "dates_sha256": "668a14b41f9e3444b2bca87685a4fc7f82adff880a49bf0c62118637f38e07e0"
+        },
+        "5": {
+          "count": 28,
+          "dates_sha256": "fc6a17600d785061a5d9d027c82500b376902cd85a210ba2ccdc7119f4f222b2"
+        },
+        "6": {
+          "count": 28,
+          "dates_sha256": "a423424d73a1c19f51ec49a077e74a2b5ec38bf721f89f73929998292ca29333"
+        },
+        "7": {
+          "count": 28,
+          "dates_sha256": "63b0423433a0eaa18b14fb4eb27ffbf2e917ade4c50a4f748fa65af0659a6be2"
+        },
+        "8": {
+          "count": 28,
+          "dates_sha256": "6edc456fdd38633c65abdb8a1fc183eca3264dd480ba24b28cbe44ef5d967ed8"
+        },
+        "9": {
+          "count": 28,
+          "dates_sha256": "9062c05272581bcb9933f2a7cb7269d2caadff258d3cc3253c1ddd0c3245cdf4"
+        },
+        "10": {
+          "count": 28,
+          "dates_sha256": "4fbf2fd44ff9960e70956609b0d2876b012e0a4427a7a10d62cea4b97a194f49"
+        },
+        "11": {
+          "count": 28,
+          "dates_sha256": "a26463e5806aacf24e7a9a75ba4b9f0ab4d70ae82bbfbff11d3d37379cbf1ec3"
+        },
+        "12": {
+          "count": 28,
+          "dates_sha256": "654182e3c8c62f37fd45b4e76032445476186b3dd301354f8feb01684a4166bc"
+        },
+        "13": {
+          "count": 27,
+          "dates_sha256": "931f78f19cfec60db59486f58f0acb4f41f1990bdf24e472fc26fce4709bec61"
+        }
+      }
+    }
+  },
+  "input_hashes": {
+    "grocery_scenario_data.csv": "03340569d0137bc4f6e03e7222f07bc1acae2c6c2a37bf344932767d490847a8",
+    "wine_scenario_data.csv": "7dbdcec0c377fa9d22de9ecded0301484302c1e30db32644c65dac82ac2f04a0",
+    "luxury_scenario_data.csv": "d26da5fbf95426461d8da9ea0bdeb7e9d4cdb4afa1a0560f737fffc3f9a1122e",
+    "scenario_diagnostics.csv": "5a5e52d71cc56aaa8c14201abf1afa47bcd385b3a4e98fca49126237fefeba91",
+    "vic_holidays.csv": "c863a1bf789c3e54875a738ec33aef81b9e11c218de89f7880f46a34d6e3d096",
+    "garden_scenario_data.csv": "acef8fb26398c32130a572af518036ceb9311f92b23b5a1a89e5b8bdb938b307"
+  },
+  "software_versions": {
+    "python": "3.12.13",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scikit-learn": "1.7.2",
+    "lightgbm": "4.6.0",
+    "xgboost": "3.1.3",
+    "catboost": "1.2.10",
+    "prophet": "1.4.0",
+    "autogluon-timeseries": "1.5.0",
+    "timesfm": "3.0.2"
+  },
+  "random_seed": 42,
+  "git_commit": "6728bc44393b718bfe85a36cc56f266417c2b3d1",
+  "source_provenance": {
+    "git_commit": "6728bc44393b718bfe85a36cc56f266417c2b3d1",
+    "git_dirty": false,
+    "source_tree_sha256": "5722bb4ed20a22a7af678e14abad6c0287ea9f2b1b88b0f0759794d0174ae596"
+  },
+  "updated_at": "2026-11-06T04:07:36.119322+00:00",
+  "elapsed_seconds": 9.668626708036754
+}

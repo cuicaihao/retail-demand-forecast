@@ -6,14 +6,14 @@
 
 ## 1. Project Purpose & Core Value
 
-This repository provides **reproducible retail demand forecasting benchmarks and tutorials** built on synthetic daily sales series from Melbourne, Victoria (VIC), Australia (2023-01-01 to 2025-12-31, 1,096 days).
+This repository provides **reproducible retail demand forecasting benchmarks and tutorials** built on synthetic daily sales series from Melbourne, Victoria (VIC), Australia (2022-07-04 to 2027-06-27, 1,820 days / 260 weeks).
 
 ### The Primary Contribution: Four Retail Challenge Scenarios
 The foundational asset of this repository is the **four distinct retail scenario datasets** (`data/teaching/`):
-1. **`grocery` (High-frequency FMCG)**: Continuous daily demand (~109.5 units), weekday/weekend cycles, with **24 stockout censored days** (sales artificially capped at 20 units) and mandatory shop closure days (Good Friday, Christmas Day).
-2. **`wine` (Poisson Pulse Promotions)**: Low-volume count demand (~10.4 units, $\mathrm{ADI} \approx 1.013$), sharp non-linear promotions (`promo_case_buy`), party events, and December seasonal peaks.
-3. **`garden` (Strong Annual Seasonality)**: Multi-year sinusoidal weather seasonality (~64.9 units), weekend DIY peaks, long weekend holidays, and autumn clearances.
-4. **`luxury` (Extreme Zero-Inflated Intermittent)**: **93.58% zero sales days** ($\mathrm{ADI} \approx 15.571$), high unit value, VIP events, and weekend skew.
+1. **`grocery` (High-frequency FMCG)**: Continuous daily demand (~111.5 units), weekday/weekend cycles, with **52 stockout censored days** (sales artificially capped at 20 units) and mandatory shop closure days (Good Friday, Christmas Day).
+2. **`wine` (Poisson Pulse Promotions)**: Low-volume count demand (~10.7 units, $\mathrm{ADI} \approx 1.010$), sharp non-linear promotions (`promo_case_buy`), party events, and December seasonal peaks.
+3. **`garden` (Strong Annual Seasonality)**: Multi-year sinusoidal weather seasonality (~66.5 units), weekend DIY peaks, long weekend holidays, and autumn clearances.
+4. **`luxury` (Extreme Zero-Inflated Intermittent)**: **94.03% zero sales days** ($\mathrm{ADI} \approx 16.759$), high unit value, VIP events, and weekend skew.
 
 ---
 
@@ -26,7 +26,7 @@ retail-demand-forecast/
 ├── data/                       # Ground truth data, schemas, persistent benchmarks & model weights
 │   ├── teaching/               # 4 Scenario CSVs, VIC holidays, and BigQuery JSON schemas
 │   ├── artifacts/              # Reviewed golden snapshots (published/)
-│   ├── benchmarks/             # Persistent benchmark results store (results/ & summary/)
+│   ├── benchmarks/             # Versioned protocols, reviewed releases, and historical archive
 │   └── models/                 # Pretrained model checkpoints (reference/)
 ├── docs/                       # Single documentation hub
 │   ├── articles/               # Public blog posts (*-retail-demand-forecast.md)
@@ -41,22 +41,76 @@ retail-demand-forecast/
 ```
 
 ### Critical Rules for AI Agents:
-- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, benchmark results belong in `data/benchmarks/results/`.
+- **Rule 1 (Top-level Cleanliness)**: NEVER create new top-level directories. SQL belongs in `src/retail_forecast/sql/`, reports belong in `docs/reports/`, local benchmark runs belong in `runs/`, reviewed model releases belong in `data/benchmarks/published/<benchmark-id>/releases/<release-id>/`, and reviewed cross-protocol comparisons belong in `data/benchmarks/published/comparisons/<comparison-id>/releases/<release-id>/`.
 - **Rule 2 (Notebook Invariant)**: All Jupyter Notebooks (`notebooks/*.ipynb`) must NOT contain saved execution outputs. Cells must have `"outputs": []` and `"execution_count": null`. The test suite strictly asserts this.
 - **Rule 3 (PEP 518/621 Layout)**: `tests/` must remain in the root directory and never be merged into `src/`.
-- **Rule 4 (No Data Leakage)**: The final test set is strictly the **last 28 calendar days** (`2025-12-04` to `2025-12-31`). During inference, future `y` values must be masked or set to `NaN` / `NULL`. Future known covariates (`is_open`, `discount`, holidays) are permitted.
+- **Rule 4 (No Data Leakage)**: Evaluation dates are frozen by the selected file in `data/benchmarks/protocols/`. Parameter selection must end before formal evaluation. During inference, future `y` and diagnostic ground-truth columns must be invisible. Future known covariates (`is_open`, planned discounts, holidays) are permitted.
 - **Rule 5 (`runs/` Directory Naming Invariant)**: Any experiment execution directory generated under `runs/` must strictly adopt the format `[时间]+[模型]+[type]` (i.e. `YYYYMMDD-[model]-[type]` in lowercase kebab-case, e.g., `20261020-prophet-experiment`, `20261020-all-models-summary`, `20261020-tree-models-validation`, `20261020-autogluon-validation`, `20261103-timesfm-validation`).
+- **Rule 6 (Notebook-to-Article Synchronization Protocol)**:
+  - **1:1 Conceptual Coupling**: Every deep-dive tutorial article in `docs/articles/` is paired with an exploratory notebook in `notebooks/`.
+  - **Mandatory Synchronization on Data/Logic Changes**: When underlying ground truth data, forecast horizon, evaluation protocol, or notebook features change, the author or agent MUST update the companion article:
+    - Time horizons, cutoff dates, and evaluation periods (e.g. 2026 P13 holdout).
+    - Sample sizes, valid label counts, and evaluated record counts.
+    - Component reconstruction values, sensitivity tables, and metric tables (WAPE, Bias, MAE, coverage).
+    - Visual figures in `docs/articles/figures/` (copied from the latest matching outputs in `runs/<run-id>/`).
+  - **Navigation Header Card**: Every article in `docs/articles/` must carry a prominent header block linking to its companion notebook and the formal benchmark report.
 
 ---
 
-## 3. Benchmark Results Store & Avoidance of Recomputation
+## 3. Repository Three-Stage Development Lifecycle
+
+The repository architecture follows a strict three-stage lifecycle:
+
+```mermaid
+flowchart LR
+    subgraph S1["Stage 1: Data Assets (1X)"]
+        D1["data/teaching/*.csv"]
+        D2["notebooks/10-generate-teaching-data.ipynb"]
+    end
+
+    subgraph S2["Stage 2: Model Sandbox & Articles (2X)"]
+        N1["notebooks/2X-*-tutorial.ipynb"]
+        A1["docs/articles/*-retail-demand-forecast.md"]
+    end
+
+    subgraph S3["Stage 3: Industrial Benchmark & Reports (3X)"]
+        B1["src/retail_forecast/*.py (Adapters)"]
+        B2["scripts/run_benchmark.py (V4 Runner)"]
+        B3["data/benchmarks/published/ (Releases)"]
+        R1["docs/reports/*.md (Reports)"]
+        M1["README.md (Leaderboard)"]
+        N2["notebooks/3X-benchmark-*.ipynb"]
+    end
+
+    S1 --> S2
+    S2 --> S3
+```
+
+1. **Stage 1 (Data Foundation, `1X`)**:
+   - Melbourne retail scenarios in `data/teaching/` generated deterministically by `scripts/generate_teaching_data.py` / `notebooks/10-generate-teaching-data.ipynb`.
+   - Schemas and immutable holiday calendars.
+2. **Stage 2 (Model Exploration & Educational Articles, `2X`)**:
+   - Interactive scratchpads in `notebooks/` (e.g., `20-prophet`, `22-arima`, `23-trees`, `24-neural`, `25-autogluon`, `26-timesfm`) for prototyping, hyperparameter experiments, and component breakdown.
+   - Polished public technical articles in `docs/articles/` explaining model behavior, failure modes, and retail domain insights.
+3. **Stage 3 (Standardized Benchmark Automation & Reports, `3X`)**:
+   - Production-grade adapters in `src/retail_forecast/` adhering to `BaseRetailForecaster`.
+   - CLI automation via `scripts/run_benchmark.py` running expanding-window V4 protocols across all 4 scenarios.
+   - Versioned releases in `data/benchmarks/published/` and formal analytical reports in `docs/reports/` with automated marker injection.
+   - Global multi-scenario leaderboards in `README.md`.
+   - Auxiliary cross-model comparison notebooks in `notebooks/` (`30-*` ~ `33-*`) serve as interactive visual verification, secondary to the official CLI benchmark.
+
+---
+
+## 4. Benchmark Results Store & Avoidance of Recomputation
 
 To avoid expensive repeated retraining of deep learning models (TFT, neural nets) and AutoML (AutoGluon):
 
-1. **Standard Contract**: Every model persists two lightweight CSV files in `data/benchmarks/results/<model_key>/`:
-   - `predictions.csv`: `[scenario, model, split, forecast_origin, ds, y, prediction, (q10, q90)]`
-   - `metrics.csv`: `[scenario, model, split, (forecast_origin), MAE, RMSE, WAPE, Bias, (Coverage80)]`
-   - `manifest.json`: Metadata, input hashes, and timestamps.
+1. **V4 Standard Contract**: Every local model run persists five lightweight files below `runs/<run-id>/<benchmark-id>/models/<model-id>/`:
+   - `predictions.csv`: daily fold predictions and forecast origins;
+   - `metrics_period.csv`: fold metrics, WAPE denominators, and sample counts;
+   - `metrics_annual.csv`: metrics recomputed from pooled valid predictions;
+   - `selected_config.json`: parameters frozen before formal evaluation;
+   - `manifest.json`: protocol/fold/scenario/input/config provenance.
 2. **Independent Re-computation**:
    Agents and developers can recompute or experiment with a single model or a subset of models without re-running everything:
    ```bash
@@ -64,23 +118,25 @@ To avoid expensive repeated retraining of deep learning models (TFT, neural nets
    uv run python scripts/run_benchmark.py --list
 
    # Run or re-run a specific model independently
-   uv run python scripts/run_benchmark.py --models prophet
-   uv run python scripts/run_benchmark.py --models lightgbm,xgboost
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models prophet
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models lightgbm,xgboost
 
    # Refresh leaderboard across all registered models (0 re-training, milliseconds)
-   uv run python scripts/run_benchmark.py --compare-only
+   uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --compare-only --source-root runs/<run-id>
    ```
 
 ---
 
-## 4. Agent Workflow: How to Add a New Model (XXX)
+## 5. Agent Workflow: How to Add a New Model (XXX)
 
 When tasked with adding a new forecasting model (e.g. Chronos, MOIRAI, TiDE, PatchTST):
 
 1. **Study Protocol**: Read [`docs/reports/model-onboarding-protocol.md`](docs/reports/model-onboarding-protocol.md).
 2. **Implement Adapter**: In `src/retail_forecast/<model_key>.py`, subclass `BaseRetailForecaster` from `retail_forecast.benchmark_registry`.
 3. **Add CLI Runner**: Register the runner in `AVAILABLE_RUNNERS` within `scripts/run_benchmark.py`.
-4. **Execute Benchmark**: Run `uv run python scripts/run_benchmark.py --models <model_key>` to evaluate on all 4 scenarios.
-5. **Create Tutorial Notebook**: Generate `notebooks/3X-<model_key>-tutorial.ipynb` with stripped outputs (`"outputs": []`).
-6. **Verify Tests**: Run `.venv/bin/python -m unittest discover -s tests -v` to ensure 100% test pass rate.
+4. **Execute Benchmark**: Run `uv run python scripts/run_benchmark.py --benchmark 2026-retail-week-expanding-v4 --models <model_key>` to evaluate on all 4 scenarios.
+5. **Create Tutorial Notebook (Stage 2)**: Generate `notebooks/2X-<model_key>-tutorial.ipynb` with stripped outputs (`"outputs": []`).
+6. **Author / Update Article (Stage 2)**: Create or update `docs/articles/<model_key>-retail-demand-forecast.md` with companion navigation links, metric tables, and matching figures from `runs/`.
+7. **Refresh Reports & Leaderboard (Stage 3)**: Sync release summaries in `docs/reports/` and `README.md`.
+8. **Verify Tests**: Run `uv run python -m unittest discover -s tests -v` to ensure 100% test pass rate.
 

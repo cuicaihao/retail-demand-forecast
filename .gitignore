@@ -47,14 +47,18 @@ htmlcov/
 !docs/reports/
 !docs/reports/**
 
-# Data and experiment artifacts are regenerated locally. Keep only directory
-# placeholders so CSV, images, manifests, and model output never reach Git.
+# Generated teaching data and local runs stay untracked. Versioned protocol
+# declarations, reviewed benchmark releases, and the immutable V2 archive are
+# explicit exceptions.
 /data/**
 !/data/**/
 !/data/**/.gitkeep
 !/data/**/*.md
 !/data/*.md
-!/data/benchmarks/**
+!/data/teaching/generation_spec.json
+!/data/benchmarks/protocols/**
+!/data/benchmarks/published/**
+!/data/benchmarks/archive_single_cutoff_28d/**
 
 # Local experiment runs and generated visual assets
 /runs/
@@ -62,3 +66,9 @@ htmlcov/
 !/images/**/
 !/images/**/.gitkeep
 !/images/tweedie/**
+!/images/benchmarks/**
+!/images/grocery-demand.*
+!/images/wine-demand.*
+!/images/garden-demand.*
+!/images/luxury-handbag-demand.*
+!/images/retail-demand-profile-adi-cv.*

@@ -6,16 +6,15 @@ with variance power p in [1.1, 1.2, 1.5, 1.8], especially on Scenario 4 (luxury 
 
 STRICT ISOLATION GUARANTEE:
 Outputs ONLY to runs/20261103-gbdt-tweedie-experiment/ and DOES NOT overwrite any existing
-benchmark results in data/benchmarks/results/ or data/benchmarks/summary/.
+published benchmark snapshot in data/benchmarks/published/.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,16 +26,13 @@ if str(ROOT / "src") not in sys.path:
 
 from retail_forecast.benchmark_registry import compute_standard_metrics
 from retail_forecast.common import (
-    CPU_THREADS,
     HORIZON,
     SCENARIOS,
-    SEED,
     datasets,
     sales_prediction,
     valid_labels,
 )
 from retail_forecast.trees import (
-    PARAMETER_GRIDS,
     fit_model,
     predict_model,
     tune_model,
@@ -48,11 +44,11 @@ EXPERIMENT_DIR = ROOT / "runs" / "20261103-gbdt-tweedie-experiment"
 def run_experiment(scenarios: list[str] | None = None):
     scenarios = scenarios or SCENARIOS
     EXPERIMENT_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"\n========================================================")
-    print(f"Starting Isolated GBDT Tweedie vs Default Experiment")
+    print("\n========================================================")
+    print("Starting Isolated GBDT Tweedie vs Default Experiment")
     print(f"Target Directory: {EXPERIMENT_DIR}")
     print(f"Scenarios: {scenarios}")
-    print(f"========================================================\n")
+    print("========================================================\n")
 
     # Define model configurations
     # Format: (model_family, config_name, extra_params)
@@ -437,13 +433,13 @@ def run_rolling_12m_experiment(scenarios: list[str] | None = None):
     rolling_dir = EXPERIMENT_DIR / "rolling_12m"
     rolling_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n========================================================")
-    print(f"Starting 12-Month Walk-Forward Rolling GBDT Experiment")
-    print(f"Rolling Horizon: 2025-01 to 2025-12 (12 Calendar Months, 365 Days)")
-    print(f"Fixed Train Window: Preceding 24 Calendar Months (~730 Days)")
+    print("\n========================================================")
+    print("Starting 12-Month Walk-Forward Rolling GBDT Experiment")
+    print("Rolling Horizon: 2025-01 to 2025-12 (12 Calendar Months, 365 Days)")
+    print("Fixed Train Window: Preceding 24 Calendar Months (~730 Days)")
     print(f"Target Directory: {rolling_dir}")
     print(f"Scenarios: {scenarios}")
-    print(f"========================================================\n")
+    print("========================================================\n")
 
     configs = [
         # LightGBM
@@ -514,9 +510,9 @@ def run_rolling_12m_experiment(scenarios: list[str] | None = None):
 
     for sc in scenarios:
         df = datasets[sc]
-        print(f"\n========================================================")
+        print("\n========================================================")
         print(f"Evaluating Scenario: {sc.upper()}")
-        print(f"========================================================")
+        print("========================================================")
 
         base_params_cache = {}
         for family in ["LightGBM", "XGBoost", "CatBoost"]:
@@ -697,13 +693,13 @@ def run_rolling_12m_experiment(scenarios: list[str] | None = None):
     # Print out annual leaderboard
     for sc in scenarios:
         print(
-            f"\n=========================================================================="
+            "\n=========================================================================="
         )
         print(
             f"=== FULL YEAR 2025 LEADERBOARD: {sc.upper()} (365 Days Walk-Forward Backtest) ==="
         )
         print(
-            f"=========================================================================="
+            "=========================================================================="
         )
         sub = annual_df[annual_df["scenario"] == sc]
         for _, r in sub.iterrows():

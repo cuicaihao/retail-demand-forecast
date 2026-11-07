@@ -7,11 +7,11 @@ import nbformat as nbf
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOKS = ROOT / "notebooks"
 MODELS = [
-    ("32a-decision-tree-tutorial.ipynb", "Decision Tree", "决策树"),
-    ("32b-random-forest-tutorial.ipynb", "Random Forest", "随机森林"),
-    ("32c-lightgbm-tutorial.ipynb", "LightGBM", "LightGBM"),
-    ("32d-xgboost-tutorial.ipynb", "XGBoost", "XGBoost"),
-    ("32e-catboost-tutorial.ipynb", "CatBoost", "CatBoost"),
+    ("23a-decision-tree-tutorial.ipynb", "Decision Tree", "决策树"),
+    ("23b-random-forest-tutorial.ipynb", "Random Forest", "随机森林"),
+    ("23c-lightgbm-tutorial.ipynb", "LightGBM", "LightGBM"),
+    ("23d-xgboost-tutorial.ipynb", "XGBoost", "XGBoost"),
+    ("23e-catboost-tutorial.ipynb", "CatBoost", "CatBoost"),
 ]
 
 
@@ -189,7 +189,7 @@ print("Exports:", out.resolve())"""
 def main() -> None:
     for filename, model_name, chinese_name in MODELS:
         nbf.write(model_notebook(model_name, chinese_name), NOTEBOOKS / filename)
-    nbf.write(comparison_notebook(), NOTEBOOKS / "32f-tree-model-comparison.ipynb")
+    nbf.write(comparison_notebook(), NOTEBOOKS / "31-benchmark-tree-models.ipynb")
 
 
 if __name__ == "__main__":

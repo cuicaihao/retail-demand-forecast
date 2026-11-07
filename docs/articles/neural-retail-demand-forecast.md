@@ -2,11 +2,15 @@
 title: "用神经网络做零售需求预测：从 MLP、LSTM 到 TFT"
 date: 2026-10-05T09:00:00+11:00
 draft: true
-summary: "从历史窗口与未来业务计划出发，解释 MLP、LSTM 和 TFT 如何产生未来 28 天预测，连接训练损失、输入可见性、滚动验证与工业交付，并说明全局模型和概率预测的价值与边界。"
+summary: "从历史窗口与未来业务计划出发，深入解析 MLP、LSTM 和 TFT 的网络结构与多步预测机制，对比 2026 V4 工业级 13-fold 基准在四个零售场景下的表现，并说明单序列局部训练与全局跨序列概率预测的价值与边界。"
 tags: ["Demand Forecasting", "Neural Networks", "LSTM", "TFT", "PyTorch", "MLOps"]
 categories: ["机器学习工程"]
 math: true
 ---
+
+> 📌 **阶段归属**：阶段二 · 模型探索与教学剖析 (Stage 2: Model Sandbox & In-depth Tutorial)  
+> 🔗 **配套交互实验 Notebook**：[`notebooks/24a-mlp-tutorial.ipynb`](../../notebooks/24a-mlp-tutorial.ipynb) · [`notebooks/24b-lstm-tutorial.ipynb`](../../notebooks/24b-lstm-tutorial.ipynb) · [`notebooks/24c-tft-tutorial.ipynb`](../../notebooks/24c-tft-tutorial.ipynb) · [`notebooks/32-benchmark-neural-models.ipynb`](../../notebooks/32-benchmark-neural-models.ipynb)  
+> 📊 **统一评测横向对比报告**：[`docs/reports/2026-retail-week-v4-first-stage-report.md`](../reports/2026-retail-week-v4-first-stage-report.md) · [天梯榜 Leaderboard](../../README.md#综合排行榜)
 
 ## 一、四周预测为什么会用到神经网络？
 
@@ -14,7 +18,7 @@ math: true
 
 神经网络可以学习输入窗口到未来输出的映射。实际价值取决于样本组织、未来输入的可见性、训练数据规模与交付成本。**网络结构增加表达能力，工程验证决定这些能力是否改善补货预测。**
 
-本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../../notebooks/33a-mlp-tutorial.ipynb)、[LSTM Notebook](../../notebooks/33b-lstm-tutorial.ipynb)、[TFT Notebook](../../notebooks/33c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../../notebooks/33d-neural-model-comparison.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
+本文沿用 Prophet 和树模型教程的 VIC 教学案例。配套 [MLP Notebook](../../notebooks/24a-mlp-tutorial.ipynb)、[LSTM Notebook](../../notebooks/24b-lstm-tutorial.ipynb)、[TFT Notebook](../../notebooks/24c-tft-tutorial.ipynb) 和 [神经网络比较 Notebook](../../notebooks/32-benchmark-neural-models.ipynb)，分别比较训练内回看、历史滚动验证和最终 28 天测试。
 
 LSTM 与 TFT 的完整实现分别来自 PyTorch 和 PyTorch Forecasting；后者也提供需求预测教程 [1]。本文记录的历史快照曾恢复每个起点对应的真实检查点，并验证恢复预测与此前逐日预测完全一致。当前仓库的权威 wine/garden 数据已经更新，因此 Notebook 默认从头训练全部 TFT；历史 checkpoint 只能与其 manifest 记录的输入版本配套使用。
 
@@ -28,7 +32,7 @@ LSTM 与 TFT 的完整实现分别来自 PyTorch 和 PyTorch Forecasting；后�
 | 已知未来输入（Known future inputs） | 目标日期、星期、假日、预先公布的折扣计划 | 传入未来 28 天日历与业务特征 |
 | 只在历史可见的输入（Observed historical inputs） | 已实现销量、过去实际库存、历史天气 | 本例使用历史销量；未来真实销量从推理输入排除 |
 
-三个案例分别为平滑加法商超需求、泊松采样的低销量红酒需求，以及强季节庭院需求。`conditional_mean` 为生成器无噪声均值，`latent_demand` 已包含随机性，二者仅用于诊断。门店品牌和消费机制均为教学背景，不能据此推断真实业务表现。
+四个案例分别为平滑加法商超需求（`grocery`）、泊松采样的低销量红酒需求（`wine`）、强季节庭院需求（`garden`），以及 94.03% 极度零膨胀的奢侈品手袋需求（`luxury`）。`conditional_mean` 为生成器无噪声均值，`latent_demand` 已包含随机性，二者仅用于诊断。门店品牌和消费机制均为教学背景，不能据此推断真实业务表现。
 
 缺货和闭店日期在训练中设为无效标签。神经网络要求张量有限，因此历史销量用最近有效值前向填充，首部必要时使用当时训练均值；目标损失在无效日期权重为零。原始销售记录继续保存在 CSV。填充与屏蔽缓解输入问题，仍需验证是否扭曲真实的高需求缺货关系。
 
@@ -170,26 +174,47 @@ $$
 
 历史快照还曾将恢复后的 TFT 逐日预测与上一轮保存的预测逐一比较：滚动验证、最终测试及训练回看的最大差异均为零。这证明这些检查点能复现对应的旧数据版本；它不代表检查点可与当前已更新的 wine/garden 数据混用。当前默认执行会重新训练，耗时口径应以新运行记录为准。
 
-## 七、三个案例的实际表现怎样解释？
+## 七、四个零售场景的实际表现与 2026 工业基准解释
 
-下表每个单元格依次为 **训练内回看 → 历史滚动汇总 → 最终测试 WAPE**，单位为百分比。三个时间段的销量与事件分布不同；训练内回看参数已经见过对应标签。滚动汇总按总绝对误差除以总实际销量计算。
+为客观评估深度学习模型在零售预测中的真实收益与开销，我们采用 2026 年 52 个完整零售周的 13-fold 滚动评估基准（`2026-retail-week-expanding-v4`，发布版本 `20261106-neural-v1`）。在统一协议下，MLP、LSTM、TFT 与基准模型在四个场景上的评估指标如下：
 
-| 模型 | 商超刚需品 | 单 SKU 红酒 | 庭院耗材 |
-| --- | ---: | ---: | ---: |
-| MLP | 4.45 → 5.03 → 5.02 | 25.60 → 25.84 → 23.42 | 15.40 → 10.59 → 10.14 |
-| LSTM | 4.29 → 4.06 → 4.30 | 22.28 → 26.78 → 21.26 | 14.50 → 10.00 → 10.16 |
-| TFT | 3.99 → 5.66 → 4.81 | 22.34 → 29.64 → 21.78 | 14.00 → 8.08 → 13.19 |
-| 每周基线 | 17.28 → 14.61 → 16.21 | 74.03 → 51.94 → 59.68 | 27.09 → 12.27 → 19.27 |
+| 场景 | 模型 | WAPE | Bias | MAE | RMSE | ZeroRecall | EventF1 | 结构特点与分析 |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| **商超刚需品**<br>(`grocery`) | **Prophet (统计参考)** | 4.16% | +0.19% | 5.093 | 6.442 | N/A | 100.0% | 显式周期/趋势分解基准 |
+| | **LSTM (长短期记忆网络)** | **4.44%** | -0.19% | 5.435 | 6.833 | N/A | 100.0% | **神经模型最佳**，逼近 Prophet 与 ARIMA (4.17%) |
+| | MLP (多层感知机) | 4.66% | +0.81% | 5.694 | 7.176 | N/A | 100.0% | 简单前馈上下文映射，优于 GBDT (5.01%) |
+| | TFT (时间融合变换器) | 4.99% | -1.96% | 6.106 | 7.890 | N/A | 100.0% | 多头注意力与 VSN 在平滑加法序列上容量偏大 |
+| | Seasonal naive (基线) | 15.28% | -8.89% | 18.696 | 22.953 | N/A | 100.0% | 遗漏趋势与动态折扣 |
+| **单 SKU 红酒**<br>(`wine`) | **Regression + ARIMA (参考)** | 22.10% | +2.14% | 2.586 | 3.265 | N/A | 100.0% | 动态回归广度榜第一 |
+| | Prophet (统计参考) | 22.78% | -1.03% | 2.665 | 3.375 | N/A | 100.0% | 负二项/泊松事件脉冲基线 |
+| | **LSTM** | **23.20%** | +2.54% | 2.715 | 3.450 | N/A | 100.0% | **神经模型最佳**，优于 LightGBM (25.08%) |
+| | MLP | 23.23% | +3.17% | 2.717 | 3.409 | N/A | 100.0% | 门控与非线性编码周度周期 |
+| | TFT | 24.40% | +0.49% | 2.854 | 3.587 | N/A | 100.0% | 低计数方差下注意力权重略有发散 |
+| | Seasonal naive (基线) | 49.26% | +4.39% | 5.762 | 8.043 | N/A | 99.4% | 无法识别成箱促销与派对 |
+| **庭院耗材**<br>(`garden`) | **Regression + ARIMA (参考)** | 7.80% | -0.21% | 5.605 | 6.971 | N/A | 100.0% | 傅里叶年周期第一 |
+| | Prophet (统计参考) | 7.81% | -0.23% | 5.611 | 6.975 | N/A | 100.0% | 平滑正弦加法季节 |
+| | **TFT** | **8.76%** | -1.11% | 6.292 | 7.998 | N/A | 100.0% | **神经模型最佳**，与 CatBoost (8.73%) 齐平 |
+| | MLP | 8.82% | -0.62% | 6.333 | 7.851 | N/A | 100.0% | 历史窗口上下文拟合清仓 |
+| | LSTM | 11.43% | +3.44% | 8.212 | 11.081 | N/A | 100.0% | 长周期递归存在时序记忆衰减 |
+| | Seasonal naive (基线) | 15.36% | -2.92% | 11.030 | 15.556 | N/A | 99.4% | 年季节与长周末错位 |
+| **奢侈品手袋**<br>(`luxury`) | Prophet (统计参考) | 172.55% | -15.07% | 0.138 | 0.397 | 99.1% | 8.0% | 连续模型产生轻微假正例 |
+| | Seasonal naive (基线) | 182.76% | -3.45% | 0.146 | 0.490 | 93.5% | 8.9% | 偶遇 VIP 周末脉冲 |
+| | **TFT** | **195.41%** | +10.84% | 0.157 | 0.392 | 99.7% | 0.0% | **神经模型最佳**，保持 99.7% 零召回 |
+| | MLP | 202.14% | +23.11% | 0.162 | 0.397 | 99.7% | 8.7% | 单序列 MSE 目标被零值主导 |
+| | LSTM | 204.49% | +25.52% | 0.164 | 0.390 | 99.7% | 8.7% | 零膨胀梯度消失与均值塌陷 |
 
-商超中，当前 LSTM 的滚动误差低于 MLP 和 TFT；庭院中，TFT 的滚动误差更低。红酒则是 MLP 的滚动汇总较好，但最终测试中 LSTM 较好。神经网络之间的排序随案例、时间窗口和训练配置改变。
+### 7.2 关键架构洞见与消融分析
 
-庭院还提供了一个具体反例：MLP/LSTM 在最终测试的 WAPE 约为 10.1%，低于 TFT 的约 13.2%；四个历史窗口汇总时，TFT 又优于这两个小网络。单个年末窗口不足以选择长期模型，网络复杂度也没有单调对应更低误差。
+1. **结构复杂度不等于泛化精度**：
+   - 在高频商超 (`grocery`) 中，轻量级 LSTM（4.44%）与 MLP（4.66%）均超越了参数量更大的 TFT（4.99%），并显著击败了默认 GBDT 模型（5.01% ~ 5.31%）。在平滑趋势与加法周期占主导的场景下，紧凑的循环门控能够更专注地捕捉短期连续残差，而复杂的多头注意力机制反而引入了轻微的参数开销与方差。
+2. **长程正弦周期与注意力机制的匹配**：
+   - 在强季节庭院 (`garden`) 中，TFT（8.76%）显著优于 LSTM（11.43%），几乎与表现最优的 CatBoost 对称树（8.73%）并驾齐驱。LSTM 逐日串行推进隐藏状态 $\mathbf h_t$，在跨越 84 天历史并向后解码 28 天（跨度长达 112 天）时，门控机制会遭遇长程依赖衰减；而 TFT 的自注意力与门控残差网络（GRN）可以直接对齐历史上同一季节相位的特征，有效克服了递归遗忘。
+3. **单序列局部训练在极度零膨胀下的局限性**：
+   - 在奢侈品手袋场景中，三类神经网络的 WAPE 均在 195% ~ 204% 之间。因为当前评测遵循单序列局部训练协议，当 94.03% 的样本标签为 0 时，MSE 损失的梯度绝大多数时间将网络推向输出常数零；偶然到来的 VIP 购买事件被视为极端离群点惩罚，无法构建稳健的非线性映射。这为企业界提供了明确指引：**面对极度稀疏与零膨胀序列，不能仅靠单序列本地网络，而必须转向全局跨序列模型（Global models）或结合 Tweedie/零膨胀泊松分布**。
 
+![神经网络在 2026 年 13 个周期的 WAPE 轨迹与稳定性对比](./figures/fig-neural-01-13-period-trajectories.png)
 
-
-![各回测窗口的 WAPE](../../data/artifacts/published/model-series/neural/rolling_heatmap.png)
-
-![内部验证学习曲线](../../data/artifacts/published/model-series/neural/learning_curves.png)
+![神经网络在四场景代表配置天梯榜上的定位](./figures/fig-neural-02-leaderboard-comparison.png)
 
 MLP/LSTM 的学习曲线来自内部验证，纵轴为缩放后的验证 RMSE；不同案例的缩放不同，不能直接跨案例比较这个纵轴。原单位误差则在统一评价表中报告。
 
@@ -231,12 +256,12 @@ CI 检查张量 shape、时间边界、保存加载和缺货掩码；CT 更新�
 
 ## 参考文献
 
-[1] PyTorch Forecasting. Demand forecasting with the Temporal Fusion Transformer. v1.5.0. https://pytorch-forecasting.readthedocs.io/en/v1.5.0/tutorials/stallion.html
+[1] PyTorch Forecasting. Demand forecasting with the Temporal Fusion Transformer. v1.5.0. <https://pytorch-forecasting.readthedocs.io/en/v1.5.0/tutorials/stallion.html>
 
-[2] PyTorch. LSTM implementation and gate equations. https://github.com/pytorch/pytorch/blob/main/torch/nn/modules/rnn.py
+[2] PyTorch. LSTM implementation and gate equations. <https://github.com/pytorch/pytorch/blob/main/torch/nn/modules/rnn.py>
 
-[3] Lim, B., Arık, S. Ö., Loeff, N., & Pfister, T. Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting. https://arxiv.org/abs/1912.09363
+[3] Lim, B., Arık, S. Ö., Loeff, N., & Pfister, T. Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting. <https://arxiv.org/abs/1912.09363>
 
-[4] Salinas, D., Flunkert, V., Gasthaus, J., & Januschowski, T. DeepAR: Probabilistic Forecasting with Autoregressive Recurrent Networks. https://arxiv.org/abs/1704.04110
+[4] Salinas, D., Flunkert, V., Gasthaus, J., & Januschowski, T. DeepAR: Probabilistic Forecasting with Autoregressive Recurrent Networks. <https://arxiv.org/abs/1704.04110>
 
-[5] Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting. https://arxiv.org/abs/1905.10437
+[5] Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting. <https://arxiv.org/abs/1905.10437>
